@@ -9,6 +9,8 @@ import (
 	"cpa-session-archive/internal/archive"
 )
 
+const NormalizerVersion = 2
+
 type Message struct {
 	Role     string `json:"role"`
 	Text     string `json:"text"`
@@ -48,7 +50,7 @@ func compact(v any) string {
 }
 
 // Normalize operates on retained payloads, not the truncated UI timeline.
-// Pointers locate JSON messages; ranges refer to their v1 normalized text. SSE
+// Pointers locate JSON messages; ranges refer to their versioned normalized text. SSE
 // pointers identify reconstructed event groups and are explicitly synthetic.
 func Normalize(r archive.Record) Document {
 	d := Document{Messages: []Message{}, Issues: []string{}}
@@ -158,11 +160,31 @@ func (d *Document) message(m map[string]any, side, pointer string) {
 	}
 	id := str(m["id"])
 	switch str(m["type"]) {
-	case "function_call":
-		d.add("assistant", str(m["name"])+"\n"+compact(m["arguments"]), side, pointer, id)
+	case "function_call", "custom_tool_call":
+		arguments := m["arguments"]
+		if str(m["type"]) == "custom_tool_call" {
+			arguments = m["input"]
+		}
+		d.add("assistant", str(m["name"])+"\n"+compact(arguments), side, pointer, id)
 		return
-	case "function_call_output":
-		d.add("tool", compact(m["output"]), side, pointer, str(m["call_id"]))
+	case "function_call_output", "custom_tool_call_output":
+		if output, ok := m["output"].(string); ok {
+			d.add("tool", output, side, pointer, str(m["call_id"]))
+		} else {
+			d.content("tool", m["output"], side, pointer+"/output", str(m["call_id"]))
+		}
+		return
+	case "agent_message":
+		role = str(m["author"])
+		switch role {
+		case "user", "assistant", "system", "developer", "tool":
+		default:
+			role = "agent"
+		}
+		d.content(role, m["content"], side, pointer+"/content", id)
+		return
+	case "additional_tools":
+		d.issue("tool declarations omitted")
 		return
 	case "reasoning":
 		d.issue("opaque reasoning omitted")

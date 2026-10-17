@@ -90,7 +90,7 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 			rows.Close()
 			return out, err
 		}
-		c.hit.Citation.NormalizerVersion = 1
+		c.hit.Citation.NormalizerVersion = NormalizerVersion
 		candidates = append(candidates, c)
 	}
 	err = rows.Err()
@@ -162,7 +162,7 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 }
 func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
 	out := Evidence{Citation: c}
-	if c.NormalizerVersion != 1 || c.RequestID == "" || c.Revision == "" || c.Start < 0 || c.End <= c.Start || c.End-c.Start > 1600 {
+	if c.NormalizerVersion != NormalizerVersion || c.RequestID == "" || c.Revision == "" || c.Start < 0 || c.End <= c.Start || c.End-c.Start > 1600 {
 		return out, ErrSourceUnavailable
 	}
 	source, err := e.feed.MemorySource(ctx, c.RequestID)
@@ -209,7 +209,7 @@ func (e *Engine) Recap(ctx context.Context, q Query) (RecapResult, error) {
 		text += "No retained evidence found.\n"
 	}
 	for _, hit := range results.Hits {
-		entry := fmt.Sprintf("\n[%s | %s | %s | %s]\n%s\nSource: %s@%s %s:%s [%d:%d] (normalizer v1)\n", hit.EventAt, hit.Client, hit.SessionID, hit.Role, hit.Snippet, hit.Citation.RequestID, hit.Citation.Revision, hit.Citation.Side, hit.Citation.Pointer, hit.Citation.Start, hit.Citation.End)
+		entry := fmt.Sprintf("\n[%s | %s | %s | %s]\n%s\nSource: %s@%s %s:%s [%d:%d] (normalizer v%d)\n", hit.EventAt, hit.Client, hit.SessionID, hit.Role, hit.Snippet, hit.Citation.RequestID, hit.Citation.Revision, hit.Citation.Side, hit.Citation.Pointer, hit.Citation.Start, hit.Citation.End, NormalizerVersion)
 		if len(text)+len(entry) > 8192 {
 			break
 		}

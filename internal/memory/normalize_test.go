@@ -89,3 +89,22 @@ func TestNormalizeStreamingEvidence(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeCodexCustomToolsAndAgentMessages(t *testing.T) {
+	record := archive.Record{OriginalRequest: []byte(`{"input":[{"type":"custom_tool_call","call_id":"c1","name":"apply_patch","input":"*** Update File: main.go"},{"type":"custom_tool_call_output","call_id":"c1","output":[{"type":"input_text","text":"patch failed"}]},{"type":"agent_message","author":"worker-42","content":[{"type":"text","text":"worker result"}]},{"type":"additional_tools","tools":[]}]}`), Response: []byte(`{"output":[{"type":"custom_tool_call","call_id":"c2","name":"exec","input":"go test ./..."}]}`)}
+	d := Normalize(record)
+	text := ""
+	for _, message := range d.Messages {
+		text += message.Role + ":" + message.Text + "\n"
+	}
+	for _, want := range []string{"apply_patch", "main.go", "tool:patch failed", "agent:worker result", "exec", "go test ./..."} {
+		if !strings.Contains(text, want) {
+			t.Errorf("missing %q: %s", want, text)
+		}
+	}
+	for _, issue := range d.Issues {
+		if issue == "unsupported message type" {
+			t.Fatal(d.Issues)
+		}
+	}
+}

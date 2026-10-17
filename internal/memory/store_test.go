@@ -277,3 +277,56 @@ func TestRecallDoesNotBindProjectByFolderNameAndExcludesInternalCalls(t *testing
 		t.Fatalf("%+v %v", r, err)
 	}
 }
+
+func TestRecallRebuildsEarlierNormalizerProjection(t *testing.T) {
+	e, raw, path := testEngine(t)
+	ctx := context.Background()
+	if err := raw.PutBatch([]archive.Record{sample("a", "s", "p", "parser upgrade")}); err != nil {
+		t.Fatal(err)
+	}
+	syncAll(t, e)
+	if _, err := e.db.Exec(`PRAGMA user_version=1`); err != nil {
+		t.Fatal(err)
+	}
+	e.Close()
+	upgraded, err := Open(path, storage.NewSQLite(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer upgraded.Close()
+	status, err := upgraded.Status(ctx)
+	if err != nil || status.BackfillDone || status.Sources != 0 {
+		t.Fatalf("old projection was retained: %+v %v", status, err)
+	}
+	syncAll(t, upgraded)
+	result, err := upgraded.Search(ctx, Query{Text: "upgrade"})
+	if err != nil || len(result.Hits) != 1 || result.Hits[0].Citation.NormalizerVersion != 2 {
+		t.Fatalf("%+v %v", result, err)
+	}
+	old := result.Hits[0].Citation
+	old.NormalizerVersion = 1
+	if _, err := upgraded.ReadSource(ctx, old); !errors.Is(err, ErrSourceUnavailable) {
+		t.Fatalf("old parser citation reinterpreted: %v", err)
+	}
+}
+
+func TestRecallUnchangedRevisionAdvancesWithoutRewritingChunks(t *testing.T) {
+	e, raw, _ := testEngine(t)
+	ctx := context.Background()
+	record := sample("a", "s", "p", "unchanged revision")
+	if err := raw.PutBatch([]archive.Record{record}); err != nil {
+		t.Fatal(err)
+	}
+	syncAll(t, e)
+	if _, err := e.db.Exec(`CREATE TRIGGER reject_rewrite BEFORE INSERT ON chunks BEGIN SELECT RAISE(FAIL,'unchanged chunks rewritten'); END`); err != nil {
+		t.Fatal(err)
+	}
+	if err := raw.PutBatch([]archive.Record{record}); err != nil {
+		t.Fatal(err)
+	}
+	syncAll(t, e)
+	status, err := e.Status(ctx)
+	if err != nil || status.Lag != 0 || status.Failures != 0 {
+		t.Fatalf("%+v %v", status, err)
+	}
+}

@@ -54,7 +54,7 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err = db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 1 {
+	if version > NormalizerVersion {
 		return fail(fmt.Errorf("unsupported memory schema version %d", version))
 	}
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS state(id INTEGER PRIMARY KEY CHECK(id=1),backfill_after_id INTEGER NOT NULL DEFAULT 0,backfill_done INTEGER NOT NULL DEFAULT 0,checkpoint INTEGER NOT NULL DEFAULT 0,failures INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '');
@@ -65,10 +65,25 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
  CREATE INDEX IF NOT EXISTS idx_memory_scope_time ON sources(project_id,event_ns);
  CREATE INDEX IF NOT EXISTS idx_memory_session ON sources(session_id,event_ns);
  CREATE VIRTUAL TABLE IF NOT EXISTS chunk_search USING fts4(tokens,tokenize=unicode61);
- CREATE TRIGGER IF NOT EXISTS memory_chunk_delete AFTER DELETE ON chunks BEGIN DELETE FROM chunk_search WHERE docid=OLD.id; END;
- PRAGMA user_version=1;`)
+ CREATE TRIGGER IF NOT EXISTS memory_chunk_delete AFTER DELETE ON chunks BEGIN DELETE FROM chunk_search WHERE docid=OLD.id; END;`)
 	if err != nil {
 		return fail(err)
+	}
+	if version < NormalizerVersion {
+		tx, err := db.Begin()
+		if err != nil {
+			return fail(err)
+		}
+		// This database currently contains only rebuildable projections.
+		// Reset the checkpoint with the corpus so new normalizer semantics
+		// cannot silently reinterpret an older indexed citation.
+		if _, err = tx.Exec(fmt.Sprintf(`DELETE FROM sources; DELETE FROM chunk_search; DELETE FROM state; INSERT INTO state(id) VALUES(1); PRAGMA user_version=%d;`, NormalizerVersion)); err != nil {
+			tx.Rollback()
+			return fail(err)
+		}
+		if err = tx.Commit(); err != nil {
+			return fail(err)
+		}
 	}
 	return &Engine{db: db, feed: feed}, nil
 }
@@ -172,6 +187,24 @@ func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error
 		return err
 	}
 	defer tx.Rollback()
+	if !missing {
+		var indexedRevision string
+		readErr := tx.QueryRowContext(ctx, `SELECT revision FROM sources WHERE request_id=?`, id).Scan(&indexedRevision)
+		if readErr != nil && !errors.Is(readErr, sql.ErrNoRows) {
+			return readErr
+		}
+		if readErr == nil && indexedRevision == source.Revision {
+			if _, err = tx.ExecContext(ctx, `UPDATE sources SET sequence=? WHERE request_id=?`, source.Sequence, id); err != nil {
+				return err
+			}
+			if checkpoint > 0 {
+				if _, err = tx.ExecContext(ctx, `UPDATE state SET checkpoint=?,last_error='' WHERE id=1`, checkpoint); err != nil {
+					return err
+				}
+			}
+			return tx.Commit()
+		}
+	}
 	if _, err = tx.ExecContext(ctx, `DELETE FROM sources WHERE request_id=?`, id); err != nil {
 		return err
 	}

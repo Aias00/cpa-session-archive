@@ -83,7 +83,8 @@ exclusive `before` (RFC3339 timestamps). Project scope is an explicit
 Names and directory paths alone do not create a cross-device project identity.
 Unknown sources stay unassigned. Remote aliases are not automatically merged.
 
-Chat Completions, Responses and Claude Messages include text, tool arguments
+Chat Completions, Responses (including Codex custom tools and agent messages)
+and Claude Messages include text, tool arguments
 and tool results. Unsupported media/protocols, missing payloads, truncated
 records and incomplete streams are labeled partial. Opaque reasoning is omitted.
 Gemini payload normalization is not implemented in this increment. Coverage
@@ -151,4 +152,9 @@ this first projection schema.
 - A disposable real collector and Chromium smoke check covers ingestion,
   source reads, Web search/recap, text injection safety, restart and deletion.
 
-No Mac mini deployment or real Codex/Claude MCP integration is claimed.
+Normalizer v2 adds Codex custom tool calls/results and attributed agent messages.
+Opening a v1 projection atomically resets its derived corpus and checkpoints for
+rebuild; old v1 citations return unavailable rather than changing meaning.
+
+Deployment status is recorded in [the Mac mini runbook](mac-mini-deployment.md).
+Real Codex/Claude MCP integration is not claimed.
