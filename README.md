@@ -58,6 +58,10 @@ For evaluated long-term memory directions, see the
 [Hy-Memory / MemHub comparison](docs/hy-memory-integration-evaluation.md).
 These record proposed integrations, not installed storage backends.
 
+The [project recall and continuity plan](docs/plans/2026-10-17-project-memory-product.md)
+turns those evaluations into staged product outcomes and acceptance gates. Its
+search, MCP and memory features are proposed, not implemented.
+
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded
 backpressure. Accepted collector batches wait through transient SQLite locks
