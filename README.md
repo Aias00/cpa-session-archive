@@ -63,7 +63,9 @@ turns those evaluations into staged product outcomes and acceptance gates.
 The opt-in [built-in recall engine](docs/builtin-memory.md) now provides local
 literal search, checked source citations and copyable recap excerpts through a
 separate token-authenticated Web/API listener. MCP, curated long-term memory and
-semantic retrieval remain planned. The installed Mac mini service is unchanged.
+semantic retrieval remain planned. The recall collector is deployed on the
+user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
+for access, verification and rollback.
 
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded

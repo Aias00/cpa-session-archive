@@ -6,9 +6,11 @@ Status: first retrieval increment implemented and locally verified. Implements t
 ## Outcome and boundary
 
 Provide local, source-grounded search without models or new dependencies. Keep
-archive capture and exports compatible. Do not deploy to the Mac mini or modify
-client configuration in this increment. MCP, automatic extraction and semantic
-retrieval remain separate increments.
+archive capture and exports compatible. Deployment was originally excluded from
+this increment; the user's subsequent 2026-10-17 instruction authorized the Mac
+mini M4 rollout and made it the standing deployment target. See the
+[deployment record](../mac-mini-deployment.md). MCP, automatic extraction and
+semantic retrieval remain separate increments.
 
 ## Implementation and verification
 

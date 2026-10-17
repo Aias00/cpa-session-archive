@@ -55,7 +55,7 @@ requests. Do not expose the collector's unauthenticated ingestion listener.
 For a Mac mini deployment, forward only the recall listener:
 
 ```sh
-ssh -N -L 18319:127.0.0.1:8319 mac-mini
+ssh -N -L 18319:127.0.0.1:8319 mac-mini-m4
 ```
 
 Then open <http://127.0.0.1:18319/>. Enabling this feature in a local checkout does
