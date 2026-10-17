@@ -59,8 +59,11 @@ For evaluated long-term memory directions, see the
 These record proposed integrations, not installed storage backends.
 
 The [project recall and continuity plan](docs/plans/2026-10-17-project-memory-product.md)
-turns those evaluations into staged product outcomes and acceptance gates. Its
-search, MCP and memory features are proposed, not implemented.
+turns those evaluations into staged product outcomes and acceptance gates.
+The opt-in [built-in recall engine](docs/builtin-memory.md) now provides local
+literal search, checked source citations and copyable recap excerpts through a
+separate token-authenticated Web/API listener. MCP, curated long-term memory and
+semantic retrieval remain planned. The installed Mac mini service is unchanged.
 
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded

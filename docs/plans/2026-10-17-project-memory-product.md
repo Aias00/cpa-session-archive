@@ -2,7 +2,10 @@
 
 Date: 2026-10-17
 
-Status: proposed implementation plan, not an implemented feature or deployment.
+Status: partially implemented. The [built-in retrieval increment](../builtin-memory.md)
+provides local search, revision-checked source excerpts and a Web recap packet.
+Remaining release gates, MCP and durable curated memory are not implemented;
+no Mac mini deployment has been performed.
 Baseline: fork commit `35cfaa281505c4008abae4613c64cedc05717b26`.
 
 ## Product outcome

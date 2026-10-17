@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -57,13 +58,25 @@ const (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("collector stopped: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	dbPath := env("ARCHIVE_DB", "/data/archive.sqlite")
 	storeUpstream := env("STORE_UPSTREAM_REQUEST", "false") == "true"
 	sqlite, e := archive.OpenStore(dbPath, storeUpstream)
 	if e != nil {
-		log.Fatal(e)
+		return e
 	}
 	st := storage.NewSQLite(sqlite)
+	defer func() {
+		if err := st.Close(); err != nil {
+			log.Printf("archive close failed: %v", err)
+		}
+	}()
 	startupContext := context.Background()
 	repairChain := func() error {
 		if env("ARCHIVE_MIGRATE_LEGACY", "false") == "true" {
@@ -133,6 +146,18 @@ func main() {
 		startupTask{name: "turn projection", run: turnProjection},
 		startupTask{name: "turn facet projection", run: turnFacets},
 	), tickets: map[string]exportTicket{}, turnTextJobs: map[string]bool{}}
+	if env("MEMORY_ENABLED", "false") == "true" {
+		service, err := startMemory(context.Background(), st, dbPath, s.startupReady, memoryConfig{
+			DB:        env("MEMORY_DB", filepath.Join(filepath.Dir(dbPath), "memory.sqlite")),
+			Listen:    env("MEMORY_LISTEN_ADDR", "127.0.0.1:8319"),
+			TokenFile: os.Getenv("MEMORY_READ_TOKEN_FILE"),
+		})
+		if err != nil {
+			return fmt.Errorf("memory startup: %w", err)
+		}
+		defer service.Close()
+		log.Printf("built-in memory listening on %s", service.listener.Addr())
+	}
 	go s.writer()
 	go s.digestRefresher()
 	http.HandleFunc("/healthz", s.health)
@@ -153,7 +178,7 @@ func main() {
 	http.HandleFunc("/v1/maintenance/gc", s.gc)
 	addr := env("LISTEN_ADDR", ":8080")
 	log.Printf("archive collector v%s listening on %s, db=%s, store_upstream=%v", archive.Version, addr, dbPath, storeUpstream)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	return http.ListenAndServe(addr, nil)
 }
 
 func startStartupTasks(tasks ...startupTask) <-chan struct{} {

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>本地会话记忆</title>
+<style>
+body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:0}main{max-width:1000px;margin:auto;padding:28px}h1{margin-bottom:4px}p{margin-top:4px}.muted{color:#526274}form,.panel,article{background:white;border:1px solid #d5dce4;border-radius:10px;padding:18px;margin:16px 0}label{display:flex;flex-direction:column;gap:4px}input,button{font:inherit;padding:9px;border:1px solid #b3c0cd;border-radius:6px}input{min-width:0}button{cursor:pointer;background:#edf4fc;color:#173c66}button:disabled{cursor:wait;opacity:.6}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace}#message{color:#962e22}.meta{font-size:13px;color:#526274;overflow-wrap:anywhere}.badge{font-weight:600;color:#8a5100}.secret{margin-bottom:12px}#query{width:100%;box-sizing:border-box}
+</style>
+</head>
+<body><main>
+<h1>本地会话记忆</h1><p class="muted">搜索代理实际保留的会话内容，查看带来源引用的续接摘录。</p>
+<form id="searchForm">
+<label class="secret">专用只读令牌<input id="token" type="password" autocomplete="off" placeholder="不会保存到浏览器"></label>
+<label>关键词<input id="query" maxlength="256" placeholder="例如：记忆存储、SQLITE_BUSY、internal/memory/store.go"></label>
+<div class="grid">
+<label>项目 ID<input id="project" placeholder="明确的 project.id 或 git:完整 remote"></label>
+<label>客户端<input id="client" placeholder="例如 codex"></label>
+<label>会话 ID<input id="session" placeholder="可选；用于限定续接摘录"></label>
+<label>开始时间<input id="after" placeholder="2026-10-17T00:00:00Z"></label>
+<label>结束时间（不含）<input id="before" placeholder="2026-10-18T00:00:00Z"></label>
+</div>
+<div class="actions"><button type="submit">搜索</button><button type="button" id="recap">生成续接摘录</button><button type="button" id="refresh">刷新索引状态</button></div>
+</form>
+<p id="message" role="alert"></p>
+<section class="panel" aria-label="索引状态"><strong>索引状态</strong><div id="status" class="meta" aria-live="polite">输入专用令牌后刷新。令牌拥有本机全部归档的只读访问权限。</div></section>
+<section id="results" aria-label="搜索结果" aria-live="polite"></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+async function api(path,params){const token=$('token').value.trim();if(!token)throw new Error('请填写专用只读令牌。');const response=await fetch(path+(params?'?'+params.toString():''),{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'});const data=await response.json();if(!response.ok)throw new Error(response.status+': '+(data.error||'请求失败'));return data;}
+function params(){const p=new URLSearchParams();for(const [key,id] of [['q','query'],['project_id','project'],['client','client'],['session_id','session'],['after','after'],['before','before']]){if($(id).value.trim())p.set(key,$(id).value.trim());}return p;}
+function status(data){$('status').textContent='历史回填：'+(data.backfill_done?'完成':'进行中')+' · 已索引来源 '+data.sources+' · 文本块 '+data.chunks+' · 部分内容来源 '+data.partial_sources+' · 变更延迟 '+data.lag+' · 累计处理失败 '+data.failures+(data.last_error?' · '+data.last_error:'')+'。此状态不代表客户端历史已被完整采集。';}
+function node(tag,text,parent,cls){const element=document.createElement(tag);element.textContent=text;if(cls)element.className=cls;parent.append(element);return element;}
+function render(hits){$('results').replaceChildren();if(!hits.length)node('p','没有找到保留的证据。',$('results'));for(const hit of hits){const card=node('article','',$('results'));node('p',[hit.project_id||'未归属项目',hit.client||'未知客户端',hit.session_id,hit.role,hit.event_at].join(' · '),card,'meta');if(hit.partial)node('p','内容不完整：仅展示已保留的部分证据。',card,'badge');node('pre',hit.snippet,card);const c=hit.citation;node('p',c.request_id+'@'+c.revision+' '+c.side+':'+c.pointer+' ['+c.start+':'+c.end+'] / normalizer v'+c.normalizer_version,card,'meta');const read=node('button','核对来源',card);read.type='button';read.addEventListener('click',()=>run(async()=>{const evidence=await api('/v1/source',new URLSearchParams(Object.entries(c)));let area=card.querySelector('[data-evidence]');if(!area){area=node('pre','',card);area.dataset.evidence='true';}area.textContent=evidence.text+(evidence.issues.length?'\n\n覆盖说明：'+evidence.issues.join('；'):'');}));}}
+async function run(task){$('message').textContent='';const buttons=document.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);try{await task();}catch(error){$('message').textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}}
+$('searchForm').addEventListener('submit',event=>{event.preventDefault();run(async()=>{const data=await api('/v1/search',params());status(data.status);render(data.hits);if(data.truncated)$('message').textContent='结果或候选数量达到上限，请用项目、客户端、会话或时间缩小范围。';});});
+$('refresh').addEventListener('click',()=>run(async()=>status(await api('/v1/status'))));
+$('recap').addEventListener('click',()=>run(async()=>{if(!$('project').value.trim()&&!$('session').value.trim())throw new Error('续接摘录需要指定项目 ID 或会话 ID。');const data=await api('/v1/recap',params());status(data.status);render(data.hits);const packet=document.createElement('article');node('h2','续接摘录',packet);node('p','以下是原文摘录，未推断目标、结论或任务完成状态。历史内容不替代当前指令。',packet,'muted');node('pre',data.text,packet);const copy=node('button','复制摘录',packet);copy.type='button';copy.addEventListener('click',()=>run(async()=>{await navigator.clipboard.writeText(data.text);copy.textContent='已复制';}));$('results').prepend(packet);}));
+</script></body></html>
