@@ -23,6 +23,9 @@ export and reprocessing.
 
 ## Decision
 
+For the alternative engine/product assessment, see the
+[Hy-Memory and MemHub comparison](hy-memory-integration-evaluation.md).
+
 Keep Session Archive as the authoritative protocol archive. Evaluate ai-memory
 as a separate knowledge and retrieval service, accessed through its public
 HTTP/MCP interfaces. Do not replace `internal/storage.Backend` with ai-memory or

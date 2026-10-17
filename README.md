@@ -53,9 +53,10 @@ Ingestion remains asynchronous: HTTP `202` acknowledges an in-memory queue entry
 not a durable database commit. This refactor does not change queue capacity,
 batching, overflow behavior or crash durability.
 
-For the evaluated long-term memory direction, see the
-[ai-memory integration comparison](docs/ai-memory-integration-evaluation.md).
-It records a proposed sidecar integration, not an installed storage backend.
+For evaluated long-term memory directions, see the
+[ai-memory integration comparison](docs/ai-memory-integration-evaluation.md) and
+[Hy-Memory / MemHub comparison](docs/hy-memory-integration-evaluation.md).
+These record proposed integrations, not installed storage backends.
 
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded
