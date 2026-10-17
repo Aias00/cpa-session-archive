@@ -285,6 +285,13 @@ func (s *Store) RepairRecordPreviews(ctx context.Context) error {
 		if beginErr != nil {
 			return beginErr
 		}
+		// Reserve the WAL writer before loading payloads. A deferred
+		// transaction that reads first cannot upgrade a stale snapshot after
+		// live ingestion commits, regardless of SQLite's busy timeout.
+		if _, err = tx.ExecContext(ctx, `UPDATE previewed_requests SET version=version WHERE request_id=?`, candidates[offset].requestID); err != nil {
+			tx.Rollback()
+			return err
+		}
 		for _, item := range candidates[offset:end] {
 			var summary, responsePreview, threadSource string
 			if item.originalRef != "" {
