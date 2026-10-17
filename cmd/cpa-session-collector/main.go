@@ -10,16 +10,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/storage"
 )
 
 type server struct {
-	s                   *archive.Store
+	s                   storage.Backend
+	exportDir           string
 	q                   chan archive.Record
 	startupReady        <-chan struct{}
 	ticketMu            sync.Mutex
@@ -56,10 +59,11 @@ const (
 func main() {
 	dbPath := env("ARCHIVE_DB", "/data/archive.sqlite")
 	storeUpstream := env("STORE_UPSTREAM_REQUEST", "false") == "true"
-	st, e := archive.OpenStore(dbPath, storeUpstream)
+	sqlite, e := archive.OpenStore(dbPath, storeUpstream)
 	if e != nil {
 		log.Fatal(e)
 	}
+	st := storage.NewSQLite(sqlite)
 	startupContext := context.Background()
 	repairChain := func() error {
 		if env("ARCHIVE_MIGRATE_LEGACY", "false") == "true" {
@@ -124,7 +128,7 @@ func main() {
 			return nil
 		}
 	}
-	s := &server{s: st, q: make(chan archive.Record, 4096), startupReady: startStartupTasks(
+	s := &server{s: st, exportDir: env("ARCHIVE_EXPORT_DIR", filepath.Dir(dbPath)), q: make(chan archive.Record, 4096), startupReady: startStartupTasks(
 		startupTask{name: "repair chain", run: repairChain},
 		startupTask{name: "turn projection", run: turnProjection},
 		startupTask{name: "turn facet projection", run: turnFacets},
@@ -242,7 +246,7 @@ func env(k, d string) string {
 	return d
 }
 func (s *server) health(w http.ResponseWriter, r *http.Request) {
-	if e := s.s.DB.PingContext(r.Context()); e != nil {
+	if e := s.s.Ping(r.Context()); e != nil {
 		http.Error(w, "unhealthy", http.StatusServiceUnavailable)
 		return
 	}
@@ -256,7 +260,7 @@ func (s *server) ready(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not ready", http.StatusServiceUnavailable)
 		return
 	}
-	if err := s.s.DB.PingContext(r.Context()); err != nil {
+	if err := s.s.Ping(r.Context()); err != nil {
 		http.Error(w, "not ready", http.StatusServiceUnavailable)
 		return
 	}
@@ -309,13 +313,12 @@ func (s *server) flush(batch []archive.Record) {
 		if e == nil {
 			return
 		}
-		message := strings.ToLower(e.Error())
-		if !strings.Contains(message, "database is locked") && !strings.Contains(message, "database is busy") {
+		if !s.s.RetryableWrite(e) {
 			log.Printf("archive batch dropped after non-retryable error: %v", e)
 			return
 		}
 		if attempt == 1 || attempt%10 == 0 {
-			log.Printf("archive batch waiting for SQLite lock: attempt=%d records=%d", attempt, len(batch))
+			log.Printf("archive batch waiting for storage retry: attempt=%d records=%d", attempt, len(batch))
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
@@ -601,9 +604,8 @@ func (s *server) exportTicket(w http.ResponseWriter, r *http.Request) {
 		cursorProtocol = archive.StableCursorProtocol
 	}
 	if scope == "session" {
-		var exists int
 		if snapshotID == "" {
-			if err := s.s.DB.QueryRowContext(r.Context(), `SELECT 1 FROM records WHERE session_id=? LIMIT 1`, sessionID).Scan(&exists); err != nil {
+			if exists, err := s.s.SessionExists(r.Context(), sessionID); err != nil || !exists {
 				http.Error(w, "session not found", 404)
 				return
 			}

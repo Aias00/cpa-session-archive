@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/storage"
 )
 
 func TestProcessingHeartbeatsRemainInterimUntilFinalResponse(t *testing.T) {
@@ -115,7 +116,7 @@ func TestReadinessWaitsForRepairsAndTurnBackfills(t *testing.T) {
 			return nil
 		}},
 	)
-	server := &server{s: store, startupReady: startupReady}
+	server := &server{s: storage.NewSQLite(store), startupReady: startupReady}
 
 	<-repairStarted
 	assertProbeStatus(t, server.health, http.StatusOK)
@@ -178,7 +179,7 @@ func TestHealthFailureIsGeneric(t *testing.T) {
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	(&server{s: store}).health(response, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	(&server{s: storage.NewSQLite(store)}).health(response, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if response.Code != http.StatusServiceUnavailable || strings.TrimSpace(response.Body.String()) != "unhealthy" {
 		t.Fatalf("status=%d body=%q", response.Code, response.Body.String())
 	}
@@ -195,7 +196,7 @@ func TestReadyFailureIsGenericWhenDatabaseIsUnavailable(t *testing.T) {
 	startupReady := make(chan struct{})
 	close(startupReady)
 	response := httptest.NewRecorder()
-	(&server{s: store, startupReady: startupReady}).ready(response, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	(&server{s: storage.NewSQLite(store), startupReady: startupReady}).ready(response, httptest.NewRequest(http.MethodGet, "/readyz", nil))
 	if response.Code != http.StatusServiceUnavailable || strings.TrimSpace(response.Body.String()) != "not ready" {
 		t.Fatalf("status=%d body=%q", response.Code, response.Body.String())
 	}
@@ -332,5 +333,44 @@ func TestExpiredExportTicketReturnsMachineReadableGone(t *testing.T) {
 		if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body["error"] != "export ticket expired" {
 			t.Fatalf("body=%s err=%v", response.Body.String(), err)
 		}
+	}
+}
+
+func TestIngestValidatesAndQueuesWithoutWriting(t *testing.T) {
+	s := &server{q: make(chan archive.Record, 1)}
+	for _, test := range []struct {
+		method string
+		body   string
+		status int
+	}{
+		{http.MethodGet, "", http.StatusMethodNotAllowed},
+		{http.MethodPost, `{`, http.StatusBadRequest},
+		{http.MethodPost, `{}`, http.StatusBadRequest},
+		{http.MethodPost, `{"request_id":"request-1"}`, http.StatusAccepted},
+		{http.MethodPost, `{"request_id":"request-2"}`, http.StatusServiceUnavailable},
+	} {
+		response := httptest.NewRecorder()
+		s.ingest(response, httptest.NewRequest(test.method, "/ingest", strings.NewReader(test.body)))
+		if response.Code != test.status {
+			t.Fatalf("%s %s: status=%d, want %d", test.method, test.body, response.Code, test.status)
+		}
+	}
+	record := <-s.q
+	if record.RequestID != "request-1" || record.SessionID != "request:request-1" {
+		t.Fatalf("unexpected queued record: %+v", record)
+	}
+}
+
+func TestExportTicketRejectsMissingSession(t *testing.T) {
+	store, err := archive.OpenStore(filepath.Join(t.TempDir(), "archive.sqlite"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.DB.Close() })
+	s := &server{s: storage.NewSQLite(store), tickets: map[string]exportTicket{}}
+	response := httptest.NewRecorder()
+	s.exportTicket(response, httptest.NewRequest(http.MethodGet, "/v1/export-tickets?session_id=missing", nil))
+	if response.Code != http.StatusNotFound || len(s.tickets) != 0 {
+		t.Fatalf("status=%d tickets=%d", response.Code, len(s.tickets))
 	}
 }

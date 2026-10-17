@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/storage"
 )
 
 func TestWaitStableSnapshotExportSendsHeartbeatsUntilMaterialized(t *testing.T) {
@@ -80,7 +81,9 @@ func (writer *blockedExportWriter) Write(payload []byte) (int, error) {
 	return len(payload), nil
 }
 
-func refreshHTTPTestDigests(t *testing.T, store *archive.Store) {
+func refreshHTTPTestDigests(t *testing.T, store interface {
+	RefreshSessionExportDigests(context.Context, int) (int, error)
+}) {
 	t.Helper()
 	for {
 		updated, err := store.RefreshSessionExportDigests(context.Background(), 64)
@@ -110,7 +113,7 @@ func snapshotTestServer(t *testing.T, records []archive.Record, maxActive int) (
 		t.Fatal(err)
 	}
 	server := &server{
-		s:                store,
+		s:                storage.NewSQLite(store),
 		tickets:          map[string]exportTicket{},
 		snapshotRegistry: registry,
 		allowOfflineFull: true,
@@ -278,7 +281,7 @@ func TestStableSessionsRejectWrongFenceAndSnapshotBinding(t *testing.T) {
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("future prior fence status=%d", response.Code)
 	}
-	if _, err := server.s.DB.Exec(`UPDATE archive_snapshot_contract SET tombstone_safe_after_sequence=1 WHERE id=1`); err != nil {
+	if _, err := server.s.(*storage.SQLite).DB.Exec(`UPDATE archive_snapshot_contract SET tombstone_safe_after_sequence=1 WHERE id=1`); err != nil {
 		t.Fatal(err)
 	}
 	response, _ = requestStablePage(t, server, base)
@@ -343,7 +346,7 @@ func TestStableSnapshotTicketExportsExactSnapshot(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := server.s.DB.Exec(`DELETE FROM records WHERE request_id='request-old'`); err != nil {
+	if _, err := server.s.(*storage.SQLite).DB.Exec(`DELETE FROM records WHERE request_id='request-old'`); err != nil {
 		t.Fatal(err)
 	}
 	downloadRequest := httptest.NewRequest(http.MethodGet, ticket.URL, nil)

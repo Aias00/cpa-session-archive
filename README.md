@@ -30,6 +30,29 @@ Exports transparently rehydrate the JSON structure, including repeated reference
 
     CPA native plugin -> bounded memory queue -> collector -> SQLite WAL + CAS blobs
 
+### Collector storage boundary
+
+The collector's HTTP handlers and ingestion worker use `internal/storage.Backend`
+rather than a SQLite connection. The contract separates batch writing, archive
+queries and snapshot lifetimes. Backend implementations own write-error
+classification; the collector retains its existing retry timing. Shared archive
+record and query types remain in `internal/archive`.
+
+`internal/storage.SQLite` adapts the existing archive implementation. SQLite is
+still the default and only bundled backend: `ARCHIVE_DB`, database contents,
+archive/SFT exports and HTTP APIs remain compatible. Concrete initialization and
+SQLite repair/backfill tasks stay in the collector startup assembly. A different
+backend must provide the complete contract, including stable snapshot semantics;
+adding the interface does not add another database driver.
+
+Stable export files use `ARCHIVE_EXPORT_DIR` when set, otherwise the directory
+containing `ARCHIVE_DB`. This is a collector workspace, not a backend database
+property. The directory must already exist and be writable by the collector.
+
+Ingestion remains asynchronous: HTTP `202` acknowledges an in-memory queue entry,
+not a durable database commit. This refactor does not change queue capacity,
+batching, overflow behavior or crash durability.
+
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded
 backpressure. Accepted collector batches wait through transient SQLite locks

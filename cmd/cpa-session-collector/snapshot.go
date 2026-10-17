@@ -13,13 +13,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/storage"
 )
 
 var (
@@ -55,7 +55,7 @@ type stableSnapshotEntry struct {
 	CreatedAt     time.Time
 	LastUsedAt    time.Time
 	ExpiresAt     time.Time
-	Snapshot      *archive.StableSessionSnapshot
+	Snapshot      storage.Snapshot
 	CursorState   map[string]stableCursorClaims
 	ActiveExports int
 }
@@ -112,7 +112,7 @@ func (registry *stableSnapshotRegistry) cleanup() {
 	registry.cleanupLocked(registry.now())
 }
 
-func (registry *stableSnapshotRegistry) create(store *archive.Store, lowerBound time.Time, afterFence *int64, limit int) (*stableSnapshotEntry, error) {
+func (registry *stableSnapshotRegistry) create(store storage.SnapshotStore, lowerBound time.Time, afterFence *int64, limit int) (*stableSnapshotEntry, error) {
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 	now := registry.now()
@@ -120,7 +120,7 @@ func (registry *stableSnapshotRegistry) create(store *archive.Store, lowerBound 
 	if len(registry.snapshots) >= registry.maxActive {
 		return nil, errStableSnapshotLimit
 	}
-	snapshot, err := store.BeginStableSessionSnapshot(lowerBound, afterFence)
+	snapshot, err := store.BeginSnapshot(lowerBound, afterFence)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func (s *server) prepareStableSnapshotExport(r *http.Request, ticket exportTicke
 	if err != nil {
 		return nil, 0, err
 	}
-	artifact, err := os.CreateTemp(filepath.Dir(s.s.DBPath), ".cpa-stable-session-*.jsonl")
+	artifact, err := os.CreateTemp(s.exportDir, ".cpa-stable-session-*.jsonl")
 	if err != nil {
 		return nil, 0, err
 	}
