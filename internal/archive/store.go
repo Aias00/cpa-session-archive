@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"cpa-session-archive/internal/nativehistory"
 )
 
 type Store struct {
@@ -328,7 +330,12 @@ func (s *Store) PutBatch(batch []Record) error {
 	defer turnSt.Close()
 	for _, r := range batch {
 		resolveIdentity(&r, identityIndex)
-		orig, e := putPayload(tx, r.OriginalRequest)
+		var orig string
+		if r.SourceFormat == nativehistory.Format {
+			orig, e = putNativePayload(tx, r.OriginalRequest)
+		} else {
+			orig, e = putPayload(tx, r.OriginalRequest)
+		}
 		if e != nil {
 			return e
 		}

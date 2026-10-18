@@ -162,6 +162,9 @@ func (s *Store) fullTurnUserText(ctx context.Context, group turnGroup) string {
 			body = gunzipBytes(legacy)
 		}
 		candidate := cleanTurnText(extractConversationUserText(body))
+		if native := nativeUserText(body); native != "" {
+			candidate = native
+		}
 		if candidate == "" {
 			continue
 		}

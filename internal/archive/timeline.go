@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"cpa-session-archive/internal/nativehistory"
 )
 
 type TimelineEntry struct {
@@ -113,6 +115,9 @@ func (s *Store) RequestTimeline(ctx context.Context, id string) (RequestTimeline
 	current, err := s.Request(ctx, id)
 	if err != nil {
 		return RequestTimelineView{}, err
+	}
+	if current.SourceFormat == nativehistory.Format {
+		return nativeTimeline(current), nil
 	}
 	var recordID int64
 	if err = s.DB.QueryRowContext(ctx, `SELECT id FROM records WHERE request_id=?`, id).Scan(&recordID); err != nil {

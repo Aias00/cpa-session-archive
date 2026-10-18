@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/nativehistory"
 )
 
 const NormalizerVersion = 2
@@ -53,6 +54,9 @@ func compact(v any) string {
 // Pointers locate JSON messages; ranges refer to their versioned normalized text. SSE
 // pointers identify reconstructed event groups and are explicitly synthetic.
 func Normalize(r archive.Record) Document {
+	if r.SourceFormat == nativehistory.Format {
+		return normalizeNative(r)
+	}
 	d := Document{Messages: []Message{}, Issues: []string{}}
 	if r.Truncated {
 		d.issue("retained payload was truncated")
