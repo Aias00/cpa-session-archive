@@ -33,7 +33,9 @@ without a newline is accepted; an incomplete active tail waits for the next pass
 Source IDs namespace device, client, native filename, byte range and original
 content digest. Session IDs separately namespace native session and branch.
 Moving a Codex file from active to archived history preserves source identity.
-Subagents remain distinct. Repeated text is not evidence of event identity; no
+Codex fork filenames are authoritative when an inherited parent session header
+contains a different UUID. The header remains in the original payload and the
+parent relationship is retained in metadata. Subagents remain distinct. Repeated text is not evidence of event identity; no
 text/time-based merging with CPA traffic occurs. The existing projection shares
 identical text storage without merging source occurrences.
 
@@ -101,3 +103,15 @@ Before the first live merge or collector replacement, follow the verified online
 backup and rollback procedure in [M4 deployment](mac-mini-deployment.md). The
 original histories, staging archive, and previous native versions are retained;
 this feature does not propagate destructive retention decisions.
+
+
+## Attribution repair for pre-fix imports
+
+`scripts/repair_native_forks.py --archive /private/archive.sqlite --device workstation-id
+--report /private/new-repair-report.json` repairs only native Codex records for the
+specified device whose filename UUID differs from the inherited header. Back up
+the archive first. Run after imports finish, on both staging and destination when
+repairing an existing installation. It changes session metadata, facets and derived
+browser projections; original CAS references and bytes remain unchanged. Ingest
+events invalidate stale source revisions and drive recall catch-up. Staging parsing
+checkpoints are updated when present. Repeating the repair makes zero changes.

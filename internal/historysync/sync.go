@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"cpa-session-archive/internal/archive"
@@ -52,6 +53,8 @@ type checkpoint struct {
 const maxLine = 64 << 20
 const segmentBytes = 1 << 20
 const segmentLines = 64
+
+var codexFileSession = regexp.MustCompile(`(?i)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$`)
 
 // Sync preserves complete original records, checkpointing only after archive
 // commit. It reports per-file failures while allowing independent files to progress.
@@ -280,6 +283,16 @@ func syncFile(ctx context.Context, cfg Config, client, path, key string, remotes
 	return flush()
 }
 func enrich(ctx context.Context, client, path string, c *nativehistory.Context, remotes map[string]string) {
+	if client == "codex" {
+		// Fork rollouts can contain only an inherited parent session_meta.
+		// The native file UUID identifies the independently retained thread.
+		if match := codexFileSession.FindStringSubmatch(filepath.Base(path)); len(match) == 2 && match[1] != c.SessionID {
+			if c.ParentID == "" && len(c.SessionID) == 36 {
+				c.ParentID = c.SessionID
+			}
+			c.SessionID = match[1]
+		}
+	}
 	stem := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	if client == "claude-code" && strings.Contains(filepath.ToSlash(path), "/subagents/") {
 		c.Branch = stem

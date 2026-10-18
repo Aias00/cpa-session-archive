@@ -180,3 +180,33 @@ func TestSyncBoundedSegmentsRetainRawAndFinalJSON(t *testing.T) {
 		t.Fatalf("final replay %+v %v", r, err)
 	}
 }
+
+func TestCodexForkFilenameOverridesInheritedParentHeader(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "sessions")
+	os.Mkdir(root, 0700)
+	parent := "11111111-1111-1111-1111-111111111111"
+	child := "22222222-2222-2222-2222-222222222222"
+	raw := `{"type":"session_meta","payload":{"id":"` + parent + `"}}` + "\n" + `{"type":"response_item","payload":{"type":"message","role":"user","content":"fork event"}}` + "\n"
+	for _, sid := range []string{parent, child} {
+		os.WriteFile(filepath.Join(root, "rollout-2026-10-18-"+sid+".jsonl"), []byte(raw), 0600)
+	}
+	store, err := archive.OpenStore(filepath.Join(dir, "a.sqlite"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.DB.Close()
+	r, err := Sync(context.Background(), Config{Store: store, Device: "d", Roots: []Root{{"codex", root}}})
+	if err != nil || r.Segments != 2 {
+		t.Fatalf("sync %+v %v", r, err)
+	}
+	var count int
+	store.DB.QueryRow("select count(distinct session_id) from records").Scan(&count)
+	if count != 2 {
+		t.Fatalf("forks collapsed into %d sessions", count)
+	}
+	store.DB.QueryRow("select count(*) from record_facets where name='native.parent_id' and value=?", parent).Scan(&count)
+	if count != 1 {
+		t.Fatal("inherited parent not retained")
+	}
+}
