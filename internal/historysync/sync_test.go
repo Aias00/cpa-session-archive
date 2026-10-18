@@ -210,3 +210,24 @@ func TestCodexForkFilenameOverridesInheritedParentHeader(t *testing.T) {
 		t.Fatal("inherited parent not retained")
 	}
 }
+
+func TestMixedWorkspaceHistoryDoesNotClaimGitProjectScope(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "sessions")
+	os.Mkdir(root, 0700)
+	raw := `{"type":"session_meta","payload":{"id":"s","cwd":"/project-a","git":{"repository_url":"https://example.test/project-a"}}}` + "\n" + `{"type":"turn_context","payload":{"cwd":"/project-b"}}` + "\n" + `{"type":"response_item","payload":{"type":"message","role":"user","content":"project-b text"}}` + "\n"
+	os.WriteFile(filepath.Join(root, "s.jsonl"), []byte(raw), 0600)
+	store, err := archive.OpenStore(filepath.Join(dir, "a.sqlite"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.DB.Close()
+	if _, err := Sync(context.Background(), Config{Store: store, Device: "d", Roots: []Root{{"codex", root}}}); err != nil {
+		t.Fatal(err)
+	}
+	var project string
+	store.DB.QueryRow("select value from record_facets where name='project.id'").Scan(&project)
+	if project != "native:d:ambiguous:s" {
+		t.Fatalf("mixed project content assigned to %q", project)
+	}
+}

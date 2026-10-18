@@ -14,6 +14,7 @@ type Context struct {
 	Model          string    `json:"model,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	CodexResponses bool      `json:"codex_responses,omitempty"`
+	ScopeAmbiguous bool      `json:"scope_ambiguous,omitempty"`
 }
 type Line struct {
 	Offset int64  `json:"offset"`

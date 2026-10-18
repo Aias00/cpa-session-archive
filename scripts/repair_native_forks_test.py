@@ -44,6 +44,22 @@ CREATE TABLE native_sync_files(source_key TEXT,context_json TEXT);""")
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM session_indexed_requests").fetchone()[0], 2)
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM record_facets WHERE name='native.parent_id' AND value=?", (parent,)).fetchone()[0], 1)
             self.assertEqual(repair.repair(path, "d")["repaired_segments"], 0)
+            self.assertEqual(repair.repair(path, "d", {child})["repaired_segments"], 1)
+            with sqlite3.connect(path) as db:
+                project = db.execute("SELECT value FROM record_facets WHERE request_id='fork' AND name='project.id'").fetchone()[0]
+                self.assertEqual(project, "native:d:ambiguous:" + child)
+                ctx = json.loads(db.execute("SELECT context_json FROM native_sync_files WHERE source_key=?", ("\0".join(["d", "codex", "rollout-" + child + ".jsonl"]),)).fetchone()[0])
+                self.assertTrue(ctx["scope_ambiguous"])
+            self.assertEqual(repair.repair(path, "d", {child})["repaired_segments"], 0)
+            with sqlite3.connect(path) as db:
+                meta = json.loads(db.execute("SELECT metadata_json FROM records WHERE request_id='parent'").fetchone()[0])
+                meta.update(native_client="claude-code", native_path="/projects/reused.jsonl")
+                db.execute("UPDATE records SET metadata_json=? WHERE request_id='parent'", (json.dumps(meta),))
+                db.execute("UPDATE record_facets SET value='claude-code' WHERE request_id='parent' AND name='client'")
+            self.assertEqual(repair.repair(path, "d", ambiguous_claude={"reused.jsonl"})["repaired_segments"], 1)
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute("SELECT session_id FROM records WHERE request_id='parent'").fetchone()[0], "old")
+                self.assertEqual(db.execute("SELECT value FROM record_facets WHERE request_id='parent' AND name='project.id'").fetchone()[0], "native:d:ambiguous:" + parent)
 
 
 if __name__ == "__main__":

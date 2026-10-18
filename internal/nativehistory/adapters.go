@@ -28,6 +28,13 @@ func compact(v any) string {
 }
 func timestamp(v any) time.Time { s := text(v); t, _ := time.Parse(time.RFC3339Nano, s); return t }
 
+func inspectWorkspace(c *Context, cwd string) {
+	if cwd != "" && c.CWD != "" && cwd != c.CWD {
+		c.ScopeAmbiguous = true
+	}
+	c.CWD = first(c.CWD, cwd)
+}
+
 // Inspect gathers file context before segmenting, so mirrored Codex event_msg
 // records are not indexed in addition to authoritative response_item records.
 func Inspect(client string, raw []byte, c *Context) {
@@ -46,27 +53,31 @@ func Inspect(client string, raw []byte, c *Context) {
 			c.SessionID = first(text(p["id"]), text(p["session_id"]), c.SessionID)
 			c.ParentID = first(text(p["parent_thread_id"]), text(p["forked_from_id"]), c.ParentID)
 			c.Branch = first(text(p["agent_path"]), c.Branch)
-			c.CWD = first(text(p["cwd"]), c.CWD)
-			c.GitRemote = first(text(object(p["git"])["repository_url"]), c.GitRemote)
+			inspectWorkspace(c, text(p["cwd"]))
+			remote := text(object(p["git"])["repository_url"])
+			if c.GitRemote != "" && remote != "" && c.GitRemote != remote {
+				c.ScopeAmbiguous = true
+			}
+			c.GitRemote = first(c.GitRemote, remote)
 			if t := timestamp(p["timestamp"]); !t.IsZero() {
 				c.CreatedAt = t
 			}
 		case "turn_context":
-			c.CWD = first(c.CWD, text(p["cwd"]))
+			inspectWorkspace(c, text(p["cwd"]))
 			c.Model = first(c.Model, text(p["model"]))
 		case "response_item":
 			c.CodexResponses = true
 		}
 	case "claude-code":
 		c.SessionID = first(text(m["sessionId"]), c.SessionID)
-		c.CWD = first(c.CWD, text(m["cwd"]))
+		inspectWorkspace(c, text(m["cwd"]))
 		c.Model = first(c.Model, text(object(m["message"])["model"]))
 		if p := text(m["sourceToolAssistantUUID"]); p != "" {
 			c.ParentID = first(c.ParentID, p)
 		}
 	case "kiro-cli":
 		c.SessionID = first(c.SessionID, text(m["session_id"]))
-		c.CWD = first(c.CWD, text(m["cwd"]))
+		inspectWorkspace(c, text(m["cwd"]))
 		if t := timestamp(m["created_at"]); !t.IsZero() {
 			c.CreatedAt = t
 		}

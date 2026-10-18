@@ -47,7 +47,12 @@ auxiliary files are mutable snapshots: changed versions are retained separately.
 Archive commit precedes checkpoint advancement; deterministic source IDs make a
 crash between them replay safely. Source deletions do not delete archived data.
 
-Project scope prefers the recorded Git origin. When missing, the importer reads
+Project scope prefers the recorded Git origin when the history has one consistent
+workspace. Files spanning multiple working directories or recorded Git origins
+receive a device/session-specific ambiguous project ID. Owner-wide and session
+recall remain available; project-scoped credentials do not inherit those mixed
+histories. This conservative classification can exclude same-repository worktrees
+from project recall until finer event-level attribution is available. When missing, the importer reads
 the currently accessible working tree's origin, or falls back to a device-scoped
 local path. This fallback is enrichment, not proof of historical repository
 identity. Per-event timestamps remain in originals; search/time filtering uses
@@ -114,4 +119,8 @@ the archive first. Run after imports finish, on both staging and destination whe
 repairing an existing installation. It changes session metadata, facets and derived
 browser projections; original CAS references and bytes remain unchanged. Ingest
 events invalidate stale source revisions and drive recall catch-up. Staging parsing
-checkpoints are updated when present. Repeating the repair makes zero changes.
+checkpoints are updated when present. Repeating the repair makes zero changes. `--scope-manifest` optionally applies an
+owner-audited JSON manifest with `device`, `ambiguous_codex_sessions` (filename
+UUIDs), and `ambiguous_claude_files` (native basenames). It marks mixed-workspace
+sources with an ambiguous project ID and updates staging parsing contexts. It
+never changes original payloads or activates curated knowledge.

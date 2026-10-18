@@ -363,6 +363,9 @@ func commitSegment(ctx context.Context, cfg Config, key, path string, e nativehi
 	if c.GitRemote != "" {
 		project = "git:" + c.GitRemote
 	}
+	if c.ScopeAmbiguous {
+		project = "native:" + cfg.Device + ":ambiguous:" + c.SessionID
+	}
 	facets := map[string][]string{"client": {e.Client}, "project.id": {project}, "request.kind": {"native-history"}, "thread.source": {"native-history"}, "session.id": {session}, "native.device": {cfg.Device}, "native.session_id": {c.SessionID}}
 	if c.CWD != "" {
 		facets["project.path"] = []string{c.CWD}
@@ -406,6 +409,10 @@ func commitSegment(ctx context.Context, cfg Config, key, path string, e nativehi
 		}
 	}
 	r := archive.Record{RequestID: sourceID, SessionID: session, SourceFormat: nativehistory.Format, Client: e.Client, RequestKind: "native-history", StartedAt: stamp, CompletedAt: stamp, Outcome: "imported", OriginalRequest: raw, Model: c.Model, RequestedModel: c.Model, Summary: summary, ResponsePreview: preview, Facets: facets, Metadata: map[string]any{"native_device": cfg.Device, "native_client": e.Client, "native_path": path, "native_start": start, "native_end": end, "native_sha256": digest(h), "native_session_id": c.SessionID, "native_parent_id": c.ParentID, "native_branch": c.Branch}}
+	if c.ScopeAmbiguous {
+		r.Metadata["native_scope_ambiguous"] = true
+		r.Facets["native.scope"] = []string{"ambiguous"}
+	}
 	if err := cfg.Store.PutBatch([]archive.Record{r}); err != nil {
 		return err
 	}
