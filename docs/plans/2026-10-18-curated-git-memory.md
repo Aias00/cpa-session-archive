@@ -1,6 +1,6 @@
 # Reviewed Git memory through Codex
 
-Status: authorized implementation; only Codex is used for acceptance testing.
+Status: implemented and installed; only Codex was used for acceptance testing.
 
 ## Authority and scope
 
@@ -19,26 +19,47 @@ commands, model calls or configuration changes are part of this increment.
 
 ## First lifecycle
 
-- [ ] `memory_propose` saves an explicitly scoped, sourced draft; deterministic
+- [x] `memory_propose` saves an explicitly scoped, sourced draft; deterministic
   operation IDs make retries idempotent. Editing requires the expected draft
   revision; correcting active knowledge records its base revision.
-- [ ] `project_memory` reads only confirmed, current in-scope Git entries. Drafts
+- [x] `project_memory` reads only confirmed, current in-scope Git entries. Drafts
   are separately requested. Revalidate retained archive citations on reads and
   review; deleted/changed/cross-project evidence cannot support active recall.
-- [ ] A separate `cpa-memory review` command requires an explicit reviewed
+- [x] A separate `cpa-memory review` command requires an explicit reviewed
   attestation and expected draft revision. Review is never exposed as MCP.
   Confirmation commits canonical Markdown/YAML; corrections preserve Git history.
   Archiving makes a prior entry unavailable to subsequent active recall.
-- [ ] Project roots are configured by the owner, never accepted as tool arguments.
+- [x] Project roots are configured by the owner, never accepted as tool arguments.
   Global promotion is explicit. Preserve existing KB front matter/body contracts.
-- [ ] Test source validation, scopes, optimistic revisions, duplicate retries,
+- [x] Test source validation, scopes, optimistic revisions, duplicate retries,
   confirm/correct/archive, dirty-file safety, and independent staged Git changes.
-- [ ] Test the actual workflow with Codex only: draft proposal, explicit operator
+- [x] Test the actual workflow with Codex only: draft proposal, explicit operator
   confirmation, recall, correction and archive. Use disposable fixtures for
   synthetic claims; leave no test claim in the user's canonical entries.
-- [ ] Run full/race/vet/build checks, install verified bridge binaries on the
+- [x] Run full/race/vet/build checks, install verified bridge binaries on the
   workstation and M4, back up configuration and record honest remaining limits.
 
 Automatic extraction, inferred preference activation, semantic search and
 unattended publication remain separate increments. Saving a citation proves
 where evidence was retained, not that a proposed interpretation is correct.
+
+## Verified outcome
+
+Bridge commit `fb5526f61310d4412237076b7aedd8cc5b18c788` was full/race-tested
+and vetted on workstation and Apple M4, then installed on both. Collector/CPA
+processes, archive schema and memory projection were unchanged. A verified raw
+SQLite backup and prior bridge/configuration were preserved before deployment.
+
+Four fresh Codex runs against a disposable Git repository passed: draft save
+without activation; confirmed-entry correction as a draft; corrected recall
+after operator review; and empty recall after archive. A further Codex check
+used the actual installed entry and existing canonical KB, found the confirmed
+`canonical-memory-authority` entry, and left the existing Git worktree/index
+unchanged. No test claim entered the user's canonical entries. No Claude test
+was run and its configuration hash remained unchanged.
+
+The real Codex entry now references the existing workstation codex-kb and an
+owner-configured map for cpa-session-archive/CLIProxyAPI project Git roots. Other
+project roots must be explicitly registered. The M4 bridge is available for
+clients with their own selected canonical Git checkout; this rollout does not
+copy or publish a second authoritative knowledge repository on M4.

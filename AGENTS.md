@@ -27,3 +27,10 @@
 - The M4 Go SDK is `/Users/aias/Work/tools/cpa-go-sdk/bin/go` (Go 1.26.3).
   Set `GOROOT` to its parent SDK directory for native builds. See
   `docs/mac-mini-deployment.md` for access ports, verification and rollback.
+
+- Use Codex for model/client acceptance tests. Do not invoke Claude for testing
+  unless the user explicitly changes that instruction.
+- Curated reusable knowledge uses the existing reviewed Git codex-kb; project
+  facts use registered project Git contexts. Do not create a second memory
+  authority in SQLite or auto-push private knowledge. Preserve unrelated dirty
+  Git work; model tools may draft but never confirm/activate their own proposals.

@@ -18,8 +18,10 @@ bridge. The collector remains the only writer of the memory projection.
 Tools return both structured JSON and MCP text content via the SDK, and are
 annotated read-only, non-destructive and closed-world. Returned text is historical
 evidence, not an instruction source. Current instructions and reviewed project
-Markdown/YAML in Git remain authoritative. There is no curated `project_memory`
-tool, generated long-term memory or automatic context injection in this release.
+Markdown/YAML in Git remain authoritative. The optional
+[Git knowledge adapter](curated-git-memory.md) adds `project_memory` and opt-in
+`memory_propose`; review is a separate operator command, never an MCP tool.
+Automatic extraction and automatic context injection are not implemented.
 
 ## Credentials and scope
 

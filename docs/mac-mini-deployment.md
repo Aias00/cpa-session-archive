@@ -167,3 +167,26 @@ User configuration backups live in the private workstation access directory
 under `backups/before-recall-mcp-20261018T003008`. Runtime artifact hashes,
 credential paths, verification counts and rollback paths are recorded in the
 private install manifest. No curated or generated long-term memory is claimed.
+
+## Reviewed Git memory bridge (2026-10-18)
+
+The optional bridge was updated to source commit
+`fb5526f61310d4412237076b7aedd8cc5b18c788` on workstation and M4. M4 native
+full/race Go tests and vet passed. The collector remains at its earlier source
+commit; no collector/CPA restart or archive/projection migration was needed.
+The private manifest records independent artifact hashes and the bridge's
+pre-update backup/verified raw snapshot.
+
+The production Codex stdio entry adds the existing workstation knowledge Git
+root and an owner-configured project-root map. It exposes `project_memory` and
+opt-in `memory_propose` in addition to the four archive tools. Confirmation and
+archive require a separate `cpa-memory review` operator action with the expected
+revision and explicit reviewed attestation; there is no MCP approval tool.
+Knowledge stays in existing Git Markdown/YAML authorities, not the M4 SQLite
+projection. See [the curated memory guide](curated-git-memory.md).
+
+Codex-only acceptance completed draft/confirm/correct/archive in a disposable Git
+fixture, and separately read an existing confirmed entry from the actual KB. The
+user's staged/unstaged KB work was preserved. Claude was not invoked and its
+configuration remained unchanged. Synthetic test conclusions were not added to
+the user's canonical repository.

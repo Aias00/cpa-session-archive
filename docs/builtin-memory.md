@@ -7,9 +7,10 @@ Go SDK. The archive remains the source
 of evidence; `memory.sqlite` is a separate derived projection.
 
 The [read-only MCP bridge](mcp-recall.md) now lets clients invoke search, source
-reads and recaps directly. The Web page remains available. Curated memory
-editing, semantic retrieval, native thread restoration and automatic context
-injection are not implemented.
+reads and recaps directly. The Web page remains available. Optional
+[reviewed Git memory](curated-git-memory.md) adds sourced drafts, explicit operator
+confirmation, correction and archive. Semantic retrieval, native thread
+restoration and automatic context injection are not implemented.
 
 ## Enable on a development collector
 
