@@ -334,8 +334,8 @@ content are used by the tests.
 ## Storage backend
 
 SQLite WAL on a persistent volume is intentional for the authoritative archive:
-there is one asynchronous writer, while payload bodies are large immutable CAS
-objects. Putting those bodies in an HA PostgreSQL cluster would replicate them
+one primary asynchronous collector and bounded transactional imports share the
+serialized write path, while payload bodies are large immutable CAS objects. Putting those bodies in an HA PostgreSQL cluster would replicate them
 through WAL, replicas and backups without improving this write path. Small
 `session_summaries` and `session_facets` projections keep the management UI fast
 without scanning payload pages.
@@ -347,9 +347,22 @@ Maintenance projections and historical normalization are resumable and retry
 transient SQLite lock contention in the background. SQLite free pages are reused automatically; a large database file after a
 migration does not by itself mean that the same amount of live data remains.
 
+## Native client histories
+
+The fork also imports retained Codex, Claude Code and Kiro CLI histories into the
+same archive and built-in recall API. `cpa-history-sync` provides private staging,
+source adapters, prefix verification, resumable checkpoints and bounded delta
+exports. An optional workstation job synchronizes committed history to the M4.
+See [native history synchronization](docs/native-history-sync.md) for supported
+formats, provenance, project scope and operation. Import does not automatically
+activate long-term Git knowledge.
+
 ## Privacy
 
-Authorization headers and raw API keys are never archived. Request/response bodies can still contain user-provided secrets or personal data; protect the database and export endpoints accordingly. No Ingress is included.
+Proxy transport authorization headers and configured API keys are excluded from
+CPA request metadata. Native histories are retained as recorded; messages and tool
+output can contain credentials or personal data. Protect private archives, read
+credentials and export endpoints accordingly. No Ingress is included.
 
 ## License
 

@@ -190,3 +190,57 @@ fixture, and separately read an existing confirmed entry from the actual KB. The
 user's staged/unstaged KB work was preserved. Claude was not invoked and its
 configuration remained unchanged. Synthetic test conclusions were not added to
 the user's canonical repository.
+
+
+## Native client history rollout (2026-10-18)
+
+The collector's native-format reader is deployed from `48595a9`. The standalone
+native history sync CLI and workstation orchestration are from
+`a60ec7f518c074104df63d0bc8caa163517f4c78`; the snapshot importer is from `dadb9d6`.
+The private manifest tracks these independent artifacts. The curated-memory bridge
+and CPA executable/plugin were retained. Only the collector was restarted during
+its initial reader upgrade; later CLI and attribution updates needed no restart.
+Native full/race Go suites, vet and Python synchronization/repair tests passed on
+both workstation and the actual M4.
+
+Initial workstation import covered 5,387 files and 34,812,525,197 original bytes.
+The 111,619 native archive segments comprise 108,437 Codex, 3,095 Claude Code and
+87 Kiro CLI sources. These are segments, not conversation counts. After native
+fork attribution repair, retained session identities were 4,091 Codex, 1,241
+Claude Code and 33 Kiro; Kiro includes metadata-only identities. Original local
+histories were retained, with unsupported/encrypted content stored but not
+claimed as searchable text.
+
+The first 78,208 sources and a 33,411-source remainder merged with zero conflicts;
+replaying the remainder before attribution repair added zero records or blobs.
+Full source/destination comparison matched all 28 retained metadata/CAS-reference
+columns, excluding local row IDs. Verified online backups and previous binaries
+are recorded under `backups/before-native-history-*`, `before-native-delta-*`, and
+`before-native-attribution-*`. No old CPA rows were replaced.
+
+Fork rollouts can contain inherited parent session headers. The filename UUID is
+now authoritative and the parent header remains intact in original payloads.
+An audited set of 81 Codex files and 324 Claude histories with multiple workspaces
+received ambiguous project IDs, preserving owner/session recall without assigning
+mixed content to a registered Git project. Both staging and M4 metadata were
+repaired transactionally; original CAS bytes remained unchanged. These scope
+flags are conservative and may include worktrees of the same repository.
+
+The workstation LaunchAgent `com.router-for-me.cpa-native-history-sync` runs after
+login every 1,800 seconds. Its private installation is under `CLIProxyAPI
+Access/history-sync`; configuration, reports and status files stay outside Git.
+The first scheduled run collected another 57 segments / 16,500,095 source bytes,
+exported only those 57 records, copied 114 blobs, and merged with zero conflicts
+or failures. The job completed with exit code 0. It stages locally before trying
+M4 connectivity and acknowledges only committed, verified transfers.
+
+Final checks found 111,676 native sources with zero missing or incorrectly scoped
+projection rows, authenticated search/source round trips for all three clients,
+collector readyz 200 and unauthenticated recall denial. A real read-only Codex run
+completed archive_status, archive_search and archive_read_source successfully.
+Claude was not invoked for testing. The live projection reported zero failures;
+active CPA traffic can produce a transient lag of one while native coverage is
+complete. Curated Git knowledge was not populated automatically.
+
+See [native history operation](native-history-sync.md) for replay, incremental
+exports, partial coverage, attribution repair and source-preserving behavior.

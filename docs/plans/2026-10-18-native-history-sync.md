@@ -13,8 +13,8 @@
 - [x] Add three adapters and synthetic regression fixtures covering text, tools, metadata, Codex event/response duplication, compaction, unsupported/encrypted blocks, and branch IDs. Test first, then implement.
 - [x] Add bounded discovery/segment synchronization, durable checkpoints, deterministic replay, active-tail handling, prefix verification and private summary reporting. Test interruption/replay, append, move, rewrite rejection, malformed lines and non-model execution.
 - [x] Integrate native normalization with existing search/source citations and archive timeline; test end-to-end isolation and source round trips. Do not change legacy normalizer-v2 citations.
-- [ ] Run full tests, race, vet and builds. Document operation/coverage. Commit exact source; build and test natively on M4, back up live SQLite and artifacts, deploy collector without restarting CPA.
-- [ ] Execute workstation initial sync, transfer a consistent staging snapshot, merge on M4, verify zero-conflict replay, native client coverage, source citation reads and projection catch-up. Install periodic workstation synchronization only once the one-shot pipeline is verified.
+- [x] Run full tests, race, vet and builds. Document operation/coverage. Commit exact source; build and test natively on M4, back up live SQLite and artifacts, deploy collector without restarting CPA.
+- [x] Execute workstation initial sync, transfer a consistent staging snapshot, merge on M4, verify zero-conflict replay, native client coverage, source citation reads and projection catch-up. Install periodic workstation synchronization only once the one-shot pipeline is verified.
 
 ## Interfaces
 
