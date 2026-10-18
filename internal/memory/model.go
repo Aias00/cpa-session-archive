@@ -24,13 +24,13 @@ type Query struct {
 
 // Citation ranges are Unicode rune offsets within one normalized message.
 type Citation struct {
-	NormalizerVersion int    `json:"normalizer_version"`
-	RequestID         string `json:"request_id"`
-	Revision          string `json:"revision"`
-	Side              string `json:"side"`
-	Pointer           string `json:"pointer"`
-	Start             int    `json:"start"`
-	End               int    `json:"end"`
+	NormalizerVersion int    `json:"normalizer_version" yaml:"normalizer_version"`
+	RequestID         string `json:"request_id" yaml:"request_id"`
+	Revision          string `json:"revision" yaml:"revision"`
+	Side              string `json:"side" yaml:"side"`
+	Pointer           string `json:"pointer" yaml:"pointer"`
+	Start             int    `json:"start" yaml:"start"`
+	End               int    `json:"end" yaml:"end"`
 }
 
 type Hit struct {

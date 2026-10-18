@@ -65,7 +65,9 @@ literal search, checked source citations and copyable recap excerpts through a
 separate token-authenticated Web/API listener. The [MCP bridge](docs/mcp-recall.md)
 provides the same read-only tools to clients, and projection v3 shares repeated
 text/FTS while preserving citations. Curated long-term memory and semantic
-retrieval remain planned. The recall collector is deployed on the
+retrieval remain planned. An optional [reviewed Git memory adapter](docs/curated-git-memory.md)
+adds sourced candidates, explicit operator confirmation, correction and archive
+using existing canonical Git repositories. The recall collector is deployed on the
 user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
 for access, verification and rollback.
 
