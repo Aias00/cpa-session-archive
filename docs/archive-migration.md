@@ -67,7 +67,8 @@ go vet ./...
 
 ## Verified M1 to M4 migration
 
-Source: legacy `mac-mini` (Apple M1). Destination: `mac-mini-m4` (Apple M4).
+Source: Apple M1 (SSH alias `mac-mini` at migration time, now `mac-mini-m1`).
+Destination: `mac-mini-m4` (Apple M4), now also the target of SSH alias `mac-mini`.
 The final immutable source snapshot was taken at **2026-10-18 02:47:42 UTC**
 (2026-10-17 in America/Los_Angeles), containing 7,509 requests. Its SHA-256 was
 checked on both machines before the live merge.

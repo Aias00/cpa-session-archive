@@ -2,9 +2,9 @@
 
 - Work in the user's fork: `Aias00/cpa-session-archive`.
 - The standing deployment target is the user's **Mac mini M4**, reachable as
-  `ssh mac-mini-m4` (user `aias`).
+  `ssh mac-mini` or `ssh mac-mini-m4` (user `aias`).
   Verify the hardware before deployment: this target reports Apple M4 / Mac16,10.
-  The separate `mac-mini` alias is the legacy Apple M1 / Macmini9,1 host;
+  The separate `mac-mini-m1` SSH alias is the legacy Apple M1 / Macmini9,1 host;
   do not substitute it for the M4 target. After requested code updates pass verification, deploy them
   there and verify the running service. The user authorized this workflow on
   2026-10-17; routine deployments do not need another permission handoff.

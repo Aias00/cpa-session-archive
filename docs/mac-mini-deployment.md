@@ -6,16 +6,18 @@ another routine permission handoff.
 
 ## Verify the target first
 
-Use `ssh mac-mini-m4`, user `aias`. Before changing services, verify:
+Use `ssh mac-mini` or `ssh mac-mini-m4`, user `aias`. Before changing services, verify:
 
 ```sh
 ssh mac-mini-m4 'sysctl -n machdep.cpu.brand_string; sysctl -n hw.model'
 ```
 
-The target reports **Apple M4 / Mac16,10**. The separate `mac-mini` alias reports
-**Apple M1 / Macmini9,1** and is a legacy host. Do not substitute it for the M4.
-The workstation SSH configuration holds the actual address and deployment-key
-selection. Its existing public key is authorized on the M4.
+The target reports **Apple M4 / Mac16,10**. Both workstation SSH aliases
+`mac-mini` and `mac-mini-m4` now select this M4. The legacy Apple M1 / Macmini9,1
+host is available as `mac-mini-m1`. The workstation SSH configuration holds the
+actual address and deployment-key selection. Its existing public key is
+authorized on the M4. This is an SSH alias change: the Tailscale DNS name
+`mac-mini.tail73d4c.ts.net` still identifies M1; only the SSH aliases changed.
 
 During this rollout the legacy M1 received a collector update before the host
 identity mismatch was discovered. Its hardware provenance was corrected and its
