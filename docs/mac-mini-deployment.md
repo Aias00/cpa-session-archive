@@ -117,3 +117,11 @@ The M4 projection is approximately 8.4 GiB, with approximately 140 GiB free at
 verification. Repeated context remains separately attributable across request
 snapshots; source-aware deduplication/retention is a subsequent improvement.
 MCP, semantic retrieval and automatic memory extraction are not deployed.
+
+## Legacy archive merge
+
+The legacy M1 archive was subsequently merged into M4 with the standalone
+`cpa-session-import` tool (commit `99c51be`). It added 1,413 missing requests,
+kept existing M4 rows intact, and completed memory-index catch-up. See the
+[migration record](archive-migration.md) for snapshot cutoff, backups and checks.
+The collector did not need a restart or executable update for this operation.

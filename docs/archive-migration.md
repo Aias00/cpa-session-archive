@@ -64,3 +64,42 @@ go test ./internal/archive -run TestImportSnapshot -count=1
 go test -race ./...
 go vet ./...
 ```
+
+## Verified M1 to M4 migration
+
+Source: legacy `mac-mini` (Apple M1). Destination: `mac-mini-m4` (Apple M4).
+The final immutable source snapshot was taken at **2026-10-18 02:47:42 UTC**
+(2026-10-17 in America/Los_Angeles), containing 7,509 requests. Its SHA-256 was
+checked on both machines before the live merge.
+
+The tool was built on the M4 from fork commit
+`99c51be6b0f859f6abd927176ebcffe162d04be5`, with native full/race tests and vet
+passing. A disposable target-backup copy imported the initial delta and a repeat
+run inserted nothing before production use.
+
+The live import inserted **1,413 requests** and **2,963 reachable CAS blobs**,
+skipped 6,096 shared IDs, and found no conflicting raw record columns. The merge
+took approximately 12 seconds without restarting CPA or the collector. A repeat
+live import inserted zero rows/blobs and reported zero remaining source IDs.
+
+Final verification passed:
+
+- All 7,509 source request IDs exist on M4; all copied record columns match.
+- Every request from the pre-import M4 backup remains, with zero column changes.
+- Raw SQLite quick_check, turn/record ID associations, indexed-session membership
+  and session summary counters match the merged raw archive.
+- All imported IDs are present in the memory projection. A migrated source
+  citation resolves to exactly the indexed excerpt.
+- At verification M4 held 7,542 requests / 3,564 sessions and 2,826,203 chunks,
+  with checkpoint and watermark 13,638, zero lag and zero processing failures.
+  Counts include concurrent live M4 traffic and continue changing.
+
+Private reports and the transferred snapshots are retained on M4 under
+`session-archive/migration/`. Source and destination online backups remain in
+`session-archive/backups/`, with paths recorded in the private reports. The
+installed `bin/cpa-session-import` and its checksum/provenance are recorded in
+`install-manifest.json`; the collector executable itself did not change.
+
+This covers the stated source snapshot. The M1 service/archive was retained;
+clients still sending requests to M1 after the snapshot are not continuously
+replicated by this one-time operation.
