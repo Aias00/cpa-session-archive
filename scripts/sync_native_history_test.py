@@ -61,6 +61,39 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(calls, ["/fixture/cpa-history-sync", "ssh"])
             self.assertFalse((root / "transfer-state.json").exists())
 
+    def test_incremental_export_avoids_full_snapshot_and_keeps_failed_checkpoint(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            config = root / "config.json"
+            sync.private_json(config, {"ssh_host": "mac-mini-m4", "device": "device", "state_dir": str(root), "binary": "/fixture/cpa-history-sync"})
+            sync.private_json(root / "transfer-state.json", {"watermark": 10})
+            with sqlite3.connect(root / "staging.sqlite") as db:
+                db.execute("CREATE TABLE archive_ingest_clock(id INTEGER, sequence INTEGER)")
+                db.execute("INSERT INTO archive_ingest_clock VALUES(1,20)")
+            calls = []
+
+            def fake_run(args, **kwargs):
+                calls.append(args)
+                if args[0] == "/fixture/cpa-history-sync":
+                    if "--export" in args:
+                        path = args[args.index("--export") + 1]
+                        with sqlite3.connect(path) as db:
+                            db.execute("CREATE TABLE fixture(id INTEGER)")
+                    return json.dumps({"complete": True})
+                if args[0] == "rsync":
+                    raise subprocess.CalledProcessError(1, args)
+                if "sysctl" in args[-1]:
+                    return "Apple M4\nMac16,10\n"
+                return ""
+
+            with patch.object(sync, "run", side_effect=fake_run), patch.object(sync, "snapshot", side_effect=AssertionError("full snapshot attempted")):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    sync.sync(config)
+            exports = [args for args in calls if "--export" in args]
+            self.assertEqual(len(exports), 1)
+            self.assertEqual(exports[0][-4:], ["--after", "10", "--through", "20"])
+            self.assertEqual(json.loads((root / "transfer-state.json").read_text())["watermark"], 10)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -166,3 +166,50 @@ func TestImportSnapshotRejectsCorruptCASAndHandlesEscapedPaths(t *testing.T) {
 		t.Fatal("corrupt record became visible")
 	}
 }
+
+func TestImportSnapshotRangeExportsOnlyCommittedDelta(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "source.sqlite")
+	source, err := OpenStore(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.DB.Close()
+	stamp := time.Now().UTC()
+	record := func(id string) Record {
+		return Record{RequestID: id, SessionID: "s", StartedAt: stamp, CompletedAt: stamp, OriginalRequest: []byte(`{"input":"` + id + `"}`)}
+	}
+	source.PutBatch([]Record{record("old")})
+	after, _ := source.MemoryWatermark(context.Background())
+	source.PutBatch([]Record{record("new")})
+	through, _ := source.MemoryWatermark(context.Background())
+	source.PutBatch([]Record{record("future")})
+	target, err := OpenStore(filepath.Join(dir, "delta.sqlite"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer target.DB.Close()
+	report, err := target.ImportSnapshotRange(context.Background(), path, 8, after, through)
+	if err != nil || report.SourceRecords != 1 || report.Imported != 1 || report.Remaining != 0 {
+		t.Fatalf("range %+v %v", report, err)
+	}
+	var n int
+	target.DB.QueryRow("select count(*) from records where request_id='new'").Scan(&n)
+	if n != 1 {
+		t.Fatal("new record missing")
+	}
+	target.DB.QueryRow("select count(*) from records").Scan(&n)
+	if n != 1 {
+		t.Fatal("unselected source leaked")
+	}
+	report, err = target.ImportSnapshotRange(context.Background(), path, 8, after, through)
+	if err != nil || report.Imported != 0 || report.Existing != 1 {
+		t.Fatalf("replay %+v %v", report, err)
+	}
+	if _, err = target.ImportSnapshotRange(context.Background(), path, 8, through, after); err == nil {
+		t.Fatal("invalid range accepted")
+	}
+	if _, err = target.ImportSnapshotRange(context.Background(), path, 8, after, through+100); err == nil {
+		t.Fatal("future watermark accepted")
+	}
+}

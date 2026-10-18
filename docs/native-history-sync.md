@@ -72,8 +72,10 @@ file-failure count makes the command fail while preserving completed files.
 `scripts/sync_native_history.py --config /private/history/config.json` orchestrates:
 
 1. An exclusive job lock and local staging, including when the M4 is offline.
-2. An actual M4 hardware check through the configured SSH alias, then a consistent
-   SQLite online snapshot verified with quick_check.
+2. An actual M4 hardware check through the configured SSH alias. The initial run
+   creates a consistent SQLite online snapshot; later runs export only the source
+   event range after the acknowledged watermark, including its reachable CAS
+   dependencies. Each transfer archive is verified with quick_check.
 3. Delta rsync to a private M4 staging directory, followed by the existing additive
    `cpa-session-import` into the live archive.
 4. Zero-conflict/full-import checks, collector readiness and authenticated recall
@@ -90,9 +92,10 @@ login. It catches up on the next run when the M4 is offline or the workstation w
 asleep. Archive commit and recall indexing are separate: a successful transfer
 can report a nonzero projection lag until the collector catches up. Check the
 private `last-success.json`, `last-failure.json`, and timestamped reports. As the
-staging archive grows, full-prefix verification and online snapshots cost local
-I/O even when few new records are present; zero-change transfers skip snapshot
-creation and network upload.
+staging archive grows, full-prefix verification costs local
+I/O even when few new records are present. After the first transfer, small
+independent delta archives avoid rewriting the full staging database on every
+run; zero-change transfers skip export and network upload.
 
 Before the first live merge or collector replacement, follow the verified online
 backup and rollback procedure in [M4 deployment](mac-mini-deployment.md). The

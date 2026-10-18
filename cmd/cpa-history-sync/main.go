@@ -31,6 +31,9 @@ func run() error {
 	device := flag.String("device", "", "stable source device ID (required)")
 	target := flag.String("archive", "", "private staging SQLite archive (required)")
 	reportPath := flag.String("report", "", "new private JSON report path")
+	exportPath := flag.String("export", "", "export a new delta archive instead of collecting")
+	after := flag.Int64("after", 0, "exclusive staging event watermark for export")
+	through := flag.Int64("through", 0, "inclusive staging event watermark for export")
 	flag.Parse()
 	if *device == "" || *target == "" {
 		return fmt.Errorf("device and archive are required")
@@ -63,6 +66,9 @@ func run() error {
 	defer store.DB.Close()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+	if *exportPath != "" {
+		return exportCommitted(ctx, store, *exportPath, *after, *through, os.Stdout)
+	}
 	started := time.Now()
 	last := started
 	roots := []historysync.Root{{Client: "codex", Path: filepath.Join(*home, ".codex/sessions")}, {Client: "codex", Path: filepath.Join(*home, ".codex/archived_sessions")}, {Client: "claude-code", Path: filepath.Join(*home, ".claude/projects")}, {Client: "kiro-cli", Path: filepath.Join(*home, ".kiro/sessions/cli")}}

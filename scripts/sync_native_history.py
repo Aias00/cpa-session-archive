@@ -84,8 +84,15 @@ def sync(config_path):
         hardware = remote(["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string", "hw.model"])
         if hardware.strip().splitlines() != ["Apple M4", "Mac16,10"]:
             raise RuntimeError("M4 hardware verification failed; destination untouched")
-        transfer = root / "transfer.sqlite"
-        snapshot(root / "staging.sqlite", transfer)
+        if "watermark" not in state:
+            transfer = root / "transfer.sqlite"
+            snapshot(root / "staging.sqlite", transfer)
+        else:
+            transfer = root / "reports" / (stamp + "-delta.sqlite")
+            run([cfg["binary"], "--device", cfg["device"], "--archive", str(root / "staging.sqlite"), "--export", str(transfer), "--after", str(state["watermark"]), "--through", str(watermark)])
+            with sqlite3.connect(transfer.resolve().as_uri() + "?mode=ro", uri=True) as db:
+                if db.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+                    raise RuntimeError("delta archive integrity check failed")
         remote_dir = "/Users/aias/Work/data/cpa-native-history/" + cfg["device"]
         remote(["mkdir", "-p", remote_dir])
         remote(["chmod", "700", remote_dir])
@@ -110,6 +117,8 @@ print(json.dumps({'lag':status['lag'],'failures':status['failures'],'sources':st
 """
         recall = json.loads(remote(["python3", "-c", status_code]))
         private_json(state_path, {"watermark": watermark, "completed_at": stamp})
+        if transfer.name.endswith("-delta.sqlite"):
+            transfer.unlink()
         result = {"archive_committed": True, "transfer_needed": True, "local": summary, "import": imported, "recall": recall}
         private_json(root / "last-success.json", {"completed_at": stamp, **result})
         return result

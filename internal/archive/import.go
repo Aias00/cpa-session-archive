@@ -27,6 +27,20 @@ type ImportReport struct {
 // Existing target IDs win. Each bounded batch commits records, CAS dependencies,
 // browser projections and ingest events atomically. Rerunning safely resumes.
 func (s *Store) ImportSnapshot(ctx context.Context, path string, batchSize int) (report ImportReport, err error) {
+	return s.importSnapshot(ctx, path, batchSize, nil)
+}
+
+// ImportSnapshotRange selects source IDs changed in (after, through]. Use this
+// to export immutable native segments from an exclusively locked staging store;
+// it selects current retained records, not historical versions of mutable IDs.
+func (s *Store) ImportSnapshotRange(ctx context.Context, path string, batchSize int, after, through int64) (ImportReport, error) {
+	if after < 0 || through < after {
+		return ImportReport{}, fmt.Errorf("invalid source event range")
+	}
+	return s.importSnapshot(ctx, path, batchSize, &[2]int64{after, through})
+}
+
+func (s *Store) importSnapshot(ctx context.Context, path string, batchSize int, eventRange *[2]int64) (report ImportReport, err error) {
 	if batchSize < 1 || batchSize > 64 {
 		batchSize = 8
 	}
@@ -48,12 +62,27 @@ func (s *Store) ImportSnapshot(ctx context.Context, path string, batchSize int) 
 	}
 	defer sourceDB.Close()
 	source := &Store{DB: sourceDB, DBPath: path, StoreUpstream: true}
-	var check string
-	if err = sourceDB.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&check); err != nil {
-		return report, err
+	filter := "1=1"
+	var filterArgs []any
+	if eventRange != nil {
+		watermark, err := source.MemoryWatermark(ctx)
+		if err != nil {
+			return report, err
+		}
+		if eventRange[1] > watermark {
+			return report, fmt.Errorf("source event range exceeds committed watermark")
+		}
+		filter = `EXISTS(SELECT 1 FROM incoming.archive_ingest_events e WHERE e.request_id=s.request_id AND e.sequence>? AND e.sequence<=?)`
+		filterArgs = []any{eventRange[0], eventRange[1]}
 	}
-	if check != "ok" {
-		return report, fmt.Errorf("source SQLite integrity check failed")
+	if eventRange == nil {
+		var check string
+		if err = sourceDB.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&check); err != nil {
+			return report, err
+		}
+		if check != "ok" {
+			return report, fmt.Errorf("source SQLite integrity check failed")
+		}
 	}
 	connection, err := s.DB.Conn(ctx)
 	if err != nil {
@@ -95,10 +124,10 @@ func (s *Store) ImportSnapshot(ctx context.Context, path string, batchSize int) 
 		return report, err
 	}
 	statement.Close()
-	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM incoming.records`).Scan(&report.SourceRecords); err != nil {
+	if err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM incoming.records s WHERE `+filter, filterArgs...).Scan(&report.SourceRecords); err != nil {
 		return report, err
 	}
-	rows, err = connection.QueryContext(ctx, `SELECT s.request_id FROM incoming.records s WHERE NOT EXISTS(SELECT 1 FROM main.records d WHERE d.request_id=s.request_id) ORDER BY s.id`)
+	rows, err = connection.QueryContext(ctx, `SELECT s.request_id FROM incoming.records s WHERE `+filter+` AND NOT EXISTS(SELECT 1 FROM main.records d WHERE d.request_id=s.request_id) ORDER BY s.id`, filterArgs...)
 	if err != nil {
 		return report, err
 	}
@@ -121,7 +150,7 @@ func (s *Store) ImportSnapshot(ctx context.Context, path string, batchSize int) 
 	for _, column := range columns {
 		different = append(different, "s."+column+" IS NOT d."+column)
 	}
-	rows, err = connection.QueryContext(ctx, `SELECT s.request_id FROM incoming.records s JOIN main.records d USING(request_id) WHERE `+strings.Join(different, " OR "))
+	rows, err = connection.QueryContext(ctx, `SELECT s.request_id FROM incoming.records s JOIN main.records d USING(request_id) WHERE (`+strings.Join(different, " OR ")+`) AND `+filter, filterArgs...)
 	if err != nil {
 		return report, err
 	}
@@ -239,7 +268,7 @@ func (s *Store) ImportSnapshot(ctx context.Context, path string, batchSize int) 
 		report.Existing += len(batch) - added
 		report.CopiedBlobs += copied
 	}
-	err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM incoming.records s WHERE NOT EXISTS(SELECT 1 FROM main.records d WHERE d.request_id=s.request_id)`).Scan(&report.Remaining)
+	err = connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM incoming.records s WHERE `+filter+` AND NOT EXISTS(SELECT 1 FROM main.records d WHERE d.request_id=s.request_id)`, filterArgs...).Scan(&report.Remaining)
 	return report, err
 }
 
