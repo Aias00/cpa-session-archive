@@ -68,9 +68,6 @@ def sync(config_path):
         def remote(args):
             return run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", host, shlex.join(args)])
 
-        hardware = remote(["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string", "hw.model"])
-        if hardware.strip().splitlines() != ["Apple M4", "Mac16,10"]:
-            raise RuntimeError("M4 hardware verification failed; destination untouched")
         report = root / "reports" / (stamp + "-local.json")
         summary = json.loads(run([cfg["binary"], "--device", cfg["device"], "--archive", str(root / "staging.sqlite"), "--report", str(report)]))
         # A previous transfer may have failed after local commit. Always compare
@@ -84,6 +81,9 @@ def sync(config_path):
             private_json(root / "last-success.json", {"completed_at": stamp, **result})
             return result
 
+        hardware = remote(["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string", "hw.model"])
+        if hardware.strip().splitlines() != ["Apple M4", "Mac16,10"]:
+            raise RuntimeError("M4 hardware verification failed; destination untouched")
         transfer = root / "transfer.sqlite"
         snapshot(root / "staging.sqlite", transfer)
         remote_dir = "/Users/aias/Work/data/cpa-native-history/" + cfg["device"]
@@ -91,7 +91,9 @@ def sync(config_path):
         remote(["chmod", "700", remote_dir])
         # Delta transfer is safe here: only this locked job writes the private
         # snapshot, and the remote importer starts after rsync succeeds.
-        run(["rsync", "-t", "--inplace", "--no-whole-file", "--chmod=F600", str(transfer), host + ":" + remote_dir + "/source.sqlite"])
+        remote(["touch", remote_dir + "/source.sqlite"])
+        remote(["chmod", "600", remote_dir + "/source.sqlite"])
+        run(["rsync", "-t", "--inplace", "--no-whole-file", str(transfer), host + ":" + remote_dir + "/source.sqlite"])
         archive_root = "/Users/aias/Library/Application Support/CLIProxyAPI/session-archive"
         imported = json.loads(remote([archive_root + "/bin/cpa-session-import", "--source", remote_dir + "/source.sqlite", "--target", archive_root + "/data/archive.sqlite", "--report", remote_dir + "/" + stamp + "-import.json", "--batch", "8"]))
         if imported["remaining"] != 0 or imported["conflicts_preserved_on_target"] != 0:

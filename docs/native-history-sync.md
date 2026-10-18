@@ -71,8 +71,9 @@ file-failure count makes the command fail while preserving completed files.
 
 `scripts/sync_native_history.py --config /private/history/config.json` orchestrates:
 
-1. An exclusive job lock and actual M4 hardware check through the configured SSH alias.
-2. Local staging and a consistent SQLite online snapshot, verified with quick_check.
+1. An exclusive job lock and local staging, including when the M4 is offline.
+2. An actual M4 hardware check through the configured SSH alias, then a consistent
+   SQLite online snapshot verified with quick_check.
 3. Delta rsync to a private M4 staging directory, followed by the existing additive
    `cpa-session-import` into the live archive.
 4. Zero-conflict/full-import checks, collector readiness and authenticated recall

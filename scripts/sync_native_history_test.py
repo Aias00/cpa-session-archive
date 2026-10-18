@@ -3,6 +3,9 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
+import json
+import subprocess
 
 spec = importlib.util.spec_from_file_location("sync_native_history", Path(__file__).with_name("sync_native_history.py"))
 sync = importlib.util.module_from_spec(spec)
@@ -35,6 +38,28 @@ class SyncTests(unittest.TestCase):
             path.chmod(0o644)
             with self.assertRaises(ValueError):
                 sync.load_config(path)
+
+    def test_collects_locally_before_offline_transfer(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            config = root / "config.json"
+            sync.private_json(config, {"ssh_host": "mac-mini-m4", "device": "device", "state_dir": str(root), "binary": "/fixture/cpa-history-sync"})
+            with sqlite3.connect(root / "staging.sqlite") as db:
+                db.execute("CREATE TABLE archive_ingest_clock(id INTEGER, sequence INTEGER)")
+                db.execute("INSERT INTO archive_ingest_clock VALUES(1,10)")
+            calls = []
+
+            def fake_run(args, **kwargs):
+                calls.append(args[0])
+                if args[0] == "/fixture/cpa-history-sync":
+                    return json.dumps({"complete": True})
+                raise subprocess.CalledProcessError(255, args)
+
+            with patch.object(sync, "run", side_effect=fake_run):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    sync.sync(config)
+            self.assertEqual(calls, ["/fixture/cpa-history-sync", "ssh"])
+            self.assertFalse((root / "transfer-state.json").exists())
 
 
 if __name__ == "__main__":
