@@ -45,16 +45,19 @@ type Hit struct {
 }
 
 type Status struct {
-	BackfillDone    bool   `json:"backfill_done"`
-	BackfillAfterID int64  `json:"backfill_after_id"`
-	Checkpoint      int64  `json:"checkpoint"`
-	Watermark       int64  `json:"watermark"`
-	Lag             int64  `json:"lag"`
-	Sources         int64  `json:"sources"`
-	Chunks          int64  `json:"chunks"`
-	PartialSources  int64  `json:"partial_sources"`
-	Failures        int64  `json:"failures"`
-	LastError       string `json:"last_error,omitempty"`
+	UniqueChunks       int64  `json:"unique_chunks"`
+	DeduplicatedChunks int64  `json:"deduplicated_chunks"`
+	ScopeFiltered      bool   `json:"scope_filtered,omitempty"`
+	BackfillDone       bool   `json:"backfill_done"`
+	BackfillAfterID    int64  `json:"backfill_after_id"`
+	Checkpoint         int64  `json:"checkpoint"`
+	Watermark          int64  `json:"watermark"`
+	Lag                int64  `json:"lag"`
+	Sources            int64  `json:"sources"`
+	Chunks             int64  `json:"chunks"`
+	PartialSources     int64  `json:"partial_sources"`
+	Failures           int64  `json:"failures"`
+	LastError          string `json:"last_error,omitempty"`
 }
 
 type SearchResult struct {
@@ -64,10 +67,13 @@ type SearchResult struct {
 }
 
 type Evidence struct {
-	Citation Citation `json:"citation"`
-	Text     string   `json:"text"`
-	Partial  bool     `json:"partial"`
-	Issues   []string `json:"issues"`
+	ProjectID string   `json:"project_id"`
+	SessionID string   `json:"session_id"`
+	Client    string   `json:"client"`
+	Citation  Citation `json:"citation"`
+	Text      string   `json:"text"`
+	Partial   bool     `json:"partial"`
+	Issues    []string `json:"issues"`
 }
 
 type RecapResult struct {

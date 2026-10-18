@@ -50,9 +50,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	tokens := lexicalTokens(q.Text)
 	where := []string{}
 	args := []any{}
-	from := `chunks c JOIN sources s ON s.request_id=c.request_id`
+	from := `chunks c JOIN sources s ON s.request_id=c.request_id JOIN chunk_texts t ON t.id=c.text_id`
 	if len(tokens) > 0 {
-		from += ` JOIN chunk_search f ON f.docid=c.id`
+		from += ` JOIN chunk_search f ON f.docid=t.id`
 		where = append(where, `f.tokens MATCH ?`)
 		args = append(args, strings.Join(tokens, " "))
 	}
@@ -69,7 +69,7 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 			args = append(args, t.UnixNano())
 		}
 	}
-	query := `SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,c.text FROM ` + from
+	query := `SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text FROM ` + from
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -175,6 +175,8 @@ func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
 	if source.Revision != c.Revision || isInternal(source.Record) {
 		return out, ErrSourceUnavailable
 	}
+	out.ProjectID, out.Client = sourceScope(source.Record)
+	out.SessionID = source.Record.SessionID
 	doc := Normalize(source.Record)
 	for _, message := range doc.Messages {
 		if message.Side == c.Side && message.Pointer == c.Pointer {

@@ -5,10 +5,10 @@ request/response text and produces cited source excerpts without model calls,
 embeddings, another runtime or new dependencies. The archive remains the source
 of evidence; `memory.sqlite` is a separate derived projection.
 
-This is the first retrieval increment, not an automatic long-term memory agent.
-It does not yet provide MCP, curated memory editing, semantic retrieval, native
-thread restoration or automatic context injection. Cross-client use currently
-means searching in the Web page and copying a cited recap into another client.
+The [read-only MCP bridge](mcp-recall.md) now lets clients invoke search, source
+reads and recaps directly. The Web page remains available. Curated memory
+editing, semantic retrieval, native thread restoration and automatic context
+injection are not implemented.
 
 ## Enable on a development collector
 
@@ -131,7 +131,9 @@ sources even before the worker catches up.
 This does not make the plugin queue or collector HTTP 202 durable. Records lost
 before the archive commit cannot be recovered by the recall worker.
 
-The projection stores private plaintext. The main file is created/restricted to
+Projection v3 shares exact text and FTS entries while retaining every source
+occurrence; see the [MCP/shared-text guide](mcp-recall.md). The projection stores
+private plaintext. The main file is created/restricted to
 0600. Protect its directory and backups. Deletion immediately blocks API recall,
 but secure erasure from SQLite free pages, WAL files or backups is not promised.
 Do not delete only the projection to delete original evidence. The projection
@@ -157,4 +159,4 @@ Opening a v1 projection atomically resets its derived corpus and checkpoints for
 rebuild; old v1 citations return unavailable rather than changing meaning.
 
 Deployment status is recorded in [the Mac mini runbook](mac-mini-deployment.md).
-Real Codex/Claude MCP integration is not claimed.
+MCP protocol and client verification are recorded in the deployment runbook.

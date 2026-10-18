@@ -62,8 +62,10 @@ The [project recall and continuity plan](docs/plans/2026-10-17-project-memory-pr
 turns those evaluations into staged product outcomes and acceptance gates.
 The opt-in [built-in recall engine](docs/builtin-memory.md) now provides local
 literal search, checked source citations and copyable recap excerpts through a
-separate token-authenticated Web/API listener. MCP, curated long-term memory and
-semantic retrieval remain planned. The recall collector is deployed on the
+separate token-authenticated Web/API listener. The [MCP bridge](docs/mcp-recall.md)
+provides the same read-only tools to clients, and projection v3 shares repeated
+text/FTS while preserving citations. Curated long-term memory and semantic
+retrieval remain planned. The recall collector is deployed on the
 user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
 for access, verification and rollback.
 

@@ -19,15 +19,41 @@ var webHTML []byte
 // NewHandler exposes owner-wide, read-only recall. The caller must bind it to
 // loopback; this token is distinct from the proxy administration credential.
 func NewHandler(reader Reader, token string) (http.Handler, error) {
-	if reader == nil || len(token) < 32 || len(token) > 4096 {
-		return nil, fmt.Errorf("memory read token must contain 32 to 4096 non-whitespace characters")
+	return NewHandlerWithCredentials(reader, []Credential{{Token: token, Scope: Scope{AllowAll: true}}})
+}
+
+// NewHandlerWithCredentials authorizes every data read on the server side.
+func NewHandlerWithCredentials(reader Reader, credentials []Credential) (http.Handler, error) {
+	type access struct {
+		digest [32]byte
+		reader Reader
 	}
-	for _, r := range token {
-		if r <= 32 || r > 126 {
-			return nil, fmt.Errorf("memory read token must use printable ASCII without whitespace")
+	permissions := []access{}
+	seen := map[[32]byte]bool{}
+	if len(credentials) == 0 {
+		return nil, fmt.Errorf("at least one read credential is required")
+	}
+	for _, credential := range credentials {
+		token := credential.Token
+		if len(token) < 32 || len(token) > 4096 {
+			return nil, fmt.Errorf("read token must contain 32 to 4096 printable ASCII characters")
 		}
+		for _, r := range token {
+			if r <= 32 || r > 126 {
+				return nil, fmt.Errorf("invalid read token format")
+			}
+		}
+		digest := sha256.Sum256([]byte(token))
+		if seen[digest] {
+			return nil, fmt.Errorf("duplicate read credential")
+		}
+		seen[digest] = true
+		scoped, err := WithScope(reader, credential.Scope)
+		if err != nil {
+			return nil, err
+		}
+		permissions = append(permissions, access{digest: digest, reader: scoped})
 	}
-	want := sha256.Sum256([]byte(token))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -61,7 +87,13 @@ func NewHandler(reader Reader, token string) (http.Handler, error) {
 		}
 		supplied := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		got := sha256.Sum256([]byte(supplied))
-		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") || subtle.ConstantTimeCompare(got[:], want[:]) != 1 {
+		var reader Reader
+		for _, permission := range permissions {
+			if subtle.ConstantTimeCompare(got[:], permission.digest[:]) == 1 {
+				reader = permission.reader
+			}
+		}
+		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") || reader == nil {
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			fail(401, "read credential required")
 			return

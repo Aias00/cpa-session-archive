@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -16,7 +17,7 @@ import (
 	"cpa-session-archive/internal/storage"
 )
 
-type memoryConfig struct{ DB, Listen, TokenFile string }
+type memoryConfig struct{ DB, Listen, TokenFile, CredentialsFile string }
 type memoryService struct {
 	engine     *memory.Engine
 	listener   net.Listener
@@ -74,7 +75,33 @@ func startMemory(parent context.Context, feed storage.MemoryFeed, archivePath st
 	if err != nil {
 		return nil, fmt.Errorf("open memory projection: %w", err)
 	}
-	handler, err := memory.NewHandler(engine, token)
+	credentials := []memory.Credential{{Token: token, Scope: memory.Scope{AllowAll: true}}}
+	if cfg.CredentialsFile != "" {
+		file, err := os.Open(cfg.CredentialsFile)
+		if err != nil {
+			engine.Close()
+			return nil, fmt.Errorf("open additional recall credentials: %w", err)
+		}
+		info, statErr := file.Stat()
+		if statErr != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
+			file.Close()
+			engine.Close()
+			return nil, fmt.Errorf("additional recall credentials must be a private regular file (0600)")
+		}
+		raw, err := io.ReadAll(io.LimitReader(file, 65537))
+		file.Close()
+		if err != nil || len(raw) > 65536 {
+			engine.Close()
+			return nil, fmt.Errorf("invalid recall credentials file")
+		}
+		var extra []memory.Credential
+		if err := json.Unmarshal(raw, &extra); err != nil {
+			engine.Close()
+			return nil, fmt.Errorf("invalid recall credentials JSON")
+		}
+		credentials = append(credentials, extra...)
+	}
+	handler, err := memory.NewHandlerWithCredentials(engine, credentials)
 	if err != nil {
 		engine.Close()
 		return nil, err

@@ -148,9 +148,10 @@ func run() error {
 	), tickets: map[string]exportTicket{}, turnTextJobs: map[string]bool{}}
 	if env("MEMORY_ENABLED", "false") == "true" {
 		service, err := startMemory(context.Background(), st, dbPath, s.startupReady, memoryConfig{
-			DB:        env("MEMORY_DB", filepath.Join(filepath.Dir(dbPath), "memory.sqlite")),
-			Listen:    env("MEMORY_LISTEN_ADDR", "127.0.0.1:8319"),
-			TokenFile: os.Getenv("MEMORY_READ_TOKEN_FILE"),
+			DB:              env("MEMORY_DB", filepath.Join(filepath.Dir(dbPath), "memory.sqlite")),
+			Listen:          env("MEMORY_LISTEN_ADDR", "127.0.0.1:8319"),
+			TokenFile:       os.Getenv("MEMORY_READ_TOKEN_FILE"),
+			CredentialsFile: os.Getenv("MEMORY_READ_CREDENTIALS_FILE"),
 		})
 		if err != nil {
 			return fmt.Errorf("memory startup: %w", err)
