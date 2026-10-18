@@ -4,7 +4,8 @@ Date: 2026-10-17
 
 Status: partially implemented. The [built-in retrieval increment](../builtin-memory.md)
 provides local search, revision-checked source excerpts and a Web recap packet.
-Remaining release gates, MCP and durable curated memory are not implemented;
+Read-only MCP and shared text indexing are also implemented and deployed.
+Remaining release gates and durable curated memory are not implemented;
 the built-in collector is deployed on the Mac mini M4; see the
 [deployment record](../mac-mini-deployment.md).
 Baseline: fork commit `35cfaa281505c4008abae4613c64cedc05717b26`.

@@ -2,7 +2,8 @@
 
 The fork includes an opt-in Go + SQLite recall engine. It searches retained
 request/response text and produces cited source excerpts without model calls,
-embeddings, another runtime or new dependencies. The archive remains the source
+embeddings or another runtime. The optional stdio bridge uses the official MCP
+Go SDK. The archive remains the source
 of evidence; `memory.sqlite` is a separate derived projection.
 
 The [read-only MCP bridge](mcp-recall.md) now lets clients invoke search, source

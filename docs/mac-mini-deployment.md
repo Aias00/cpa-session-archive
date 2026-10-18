@@ -118,7 +118,8 @@ M4's first full startup repair took approximately 63 seconds and completed.
 The M4 projection is approximately 8.4 GiB, with approximately 140 GiB free at
 verification. Repeated context remains separately attributable across request
 snapshots; source-aware deduplication/retention is a subsequent improvement.
-MCP, semantic retrieval and automatic memory extraction are not deployed.
+At this initial rollout MCP was not deployed; its subsequent update is recorded
+below. Semantic retrieval and automatic memory extraction remain unimplemented.
 
 ## Legacy archive merge
 
@@ -127,3 +128,42 @@ The legacy M1 archive was subsequently merged into M4 with the standalone
 kept existing M4 rows intact, and completed memory-index catch-up. See the
 [migration record](archive-migration.md) for snapshot cutoff, backups and checks.
 The collector did not need a restart or executable update for this operation.
+
+## MCP and shared-text rollout (2026-10-18)
+
+Collector and stdio bridge source: `e2ce86c03fc442685082121464f90f61ba115819`.
+The official MCP Go SDK v1.8.0 requires Go 1.25+, satisfied by the M4's isolated
+Go 1.26.3 SDK. Both native full/race tests and vet passed.
+
+The collector now loads `MEMORY_READ_CREDENTIALS_FILE` from the private credential
+registry and serves independent owner-wide read credentials for the owner's
+Codex/Claude clients. Fixed project/session credentials are supported and tested
+server-side, including source reads. The old Web read credential still works.
+The local bridge is installed under `CLIProxyAPI Access/bin/cpa-memory`; the M4
+also has `session-archive/bin/cpa-memory`. Both clients have user-level stdio
+entries named `cpa_archive`. Tokens are referenced by private file path only.
+See [MCP setup](mcp-recall.md) for tools and scopes.
+
+Projection v3 shares exact text/FTS entries while preserving occurrence identity,
+source scope, revisions and normalizer-v2 citations. A separate preflight corpus
+completed before cutover. The old index and raw backups were preserved under
+`backups/before-mcp-dedup-20261018T072639Z`; the collector switched and became ready
+in approximately 8 seconds, without restarting CPA.
+
+Active index size at switch: 638,304,256 bytes versus 11,978,981,376 bytes before
+switch (94.67% smaller). The old bytes are still retained for rollback. Final
+verification recorded 8,401 sources, 3,231,486 occurrence chunks and 30,467 unique
+texts, zero lag and zero processing failures. Browser search/source/recap, both
+SQLite integrity checks, scoped source denial and old-citation reads passed.
+
+Real Codex and Claude CLI tests each called search and source-read tools and
+verified a known harmless historical marker. Claude's existing first-party
+model login returned HTTP403 before it could use tools; the successful Claude
+CLI test used a temporary M4-compatible model/API override. Its persistent
+login/model configuration was not changed. Newly started clients can discover
+the installed MCP entry; existing sessions may need to restart.
+
+User configuration backups live in the private workstation access directory
+under `backups/before-recall-mcp-20261018T003008`. Runtime artifact hashes,
+credential paths, verification counts and rollback paths are recorded in the
+private install manifest. No curated or generated long-term memory is claimed.
