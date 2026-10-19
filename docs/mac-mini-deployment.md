@@ -301,3 +301,12 @@ conversations or distinct facts. The additive backfill completed without changin
 the citation normalizer or rebuilding the v3 text schema. Detailed aggregate
 verification is retained privately on M4 in `magpie-history-verification.json` and
 the artifact manifest.
+
+
+After metadata completion, all three client search/source round trips passed
+again; the observed status had zero lag and zero failures. End-to-end search plus
+source-read checks took approximately 4.8 seconds for the selected Codex term,
+19.3 seconds for the Claude Code term and 64.8 seconds for the broad Kiro term.
+These are different query workloads, not a client speed comparison. Broad recall
+queries still need performance work; the subsecond unchanged-file scan does not
+imply subsecond retrieval. No semantic/vector retrieval was added in this change.
