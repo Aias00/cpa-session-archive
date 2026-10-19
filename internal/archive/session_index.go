@@ -148,6 +148,12 @@ func (s *Store) NormalizeHistoricalSSE(ctx context.Context) error {
 		if end > len(ids) {
 			end = len(ids)
 		}
+		// Reserve the WAL writer before reading response manifests. Otherwise
+		// live ingestion can invalidate the snapshot before the first write.
+		if _, err = tx.ExecContext(ctx, `UPDATE normalized_response_requests SET request_id=request_id WHERE request_id=?`, ids[offset]); err != nil {
+			tx.Rollback()
+			return err
+		}
 		for _, id := range ids[offset:end] {
 			var root string
 			if err = tx.QueryRowContext(ctx, `SELECT COALESCE(response_ref,'') FROM records WHERE request_id=?`, id).Scan(&root); err != nil {
