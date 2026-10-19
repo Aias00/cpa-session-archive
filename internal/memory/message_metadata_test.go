@@ -104,3 +104,27 @@ func TestHTTPToolMetadataAndBackfillSurvivesRestart(t *testing.T) {
 		t.Fatal("restart discarded durable metadata checkpoint")
 	}
 }
+
+func TestMetadataReupgradeRepairsRowsWrittenByOldCollector(t *testing.T) {
+	e, raw, path := testEngine(t)
+	raw.PutBatch([]archive.Record{sample("a", "s", "p", "needle")})
+	syncAll(t, e)
+	e.db.Exec("delete from message_meta_sources where request_id='a'")
+	e.Close()
+	next, err := Open(path, storage.NewSQLite(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Close()
+	var done bool
+	next.db.QueryRow("select done from message_meta_state").Scan(&done)
+	if done {
+		t.Fatal("missing metadata not queued after rollback")
+	}
+	syncAll(t, next)
+	var n int
+	next.db.QueryRow("select count(*) from message_meta_sources where request_id='a'").Scan(&n)
+	if n != 1 {
+		t.Fatal("missing metadata not restored")
+	}
+}

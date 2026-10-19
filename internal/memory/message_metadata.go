@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 )
 
 // This additive projection is versioned independently from shared text schema
@@ -14,6 +15,17 @@ func openMessageMetadata(db *sql.DB) error {
  CREATE TABLE IF NOT EXISTS message_meta_sources(request_id TEXT PRIMARY KEY REFERENCES sources(request_id) ON DELETE CASCADE,revision TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS message_meta_state(id INTEGER PRIMARY KEY CHECK(id=1),version INTEGER NOT NULL,after_id INTEGER NOT NULL DEFAULT 0,done INTEGER NOT NULL DEFAULT 0);
  INSERT OR IGNORE INTO message_meta_state(id,version) VALUES(1,1);`)
+	if err != nil {
+		return err
+	}
+	var version int
+	if err = db.QueryRow("select version from message_meta_state where id=1").Scan(&version); err != nil {
+		return err
+	}
+	if version != 1 {
+		return fmt.Errorf("unsupported message metadata version %d", version)
+	}
+	_, err = db.Exec(`UPDATE message_meta_state SET after_id=0,done=0 WHERE id=1 AND done=1 AND EXISTS(SELECT 1 FROM sources s LEFT JOIN message_meta_sources m ON m.request_id=s.request_id WHERE m.request_id IS NULL OR m.revision<>s.revision)`)
 	return err
 }
 func messageKind(m Message) string {

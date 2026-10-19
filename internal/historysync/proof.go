@@ -41,7 +41,7 @@ func fileSignature(info os.FileInfo) (string, time.Time) {
 		return "", time.Time{}
 	}
 	ino, ok := number("Ino")
-	if !ok {
+	if !ok || ino == 0 {
 		return "", time.Time{}
 	}
 	for _, key := range []string{"Ctimespec", "Ctim"} {
@@ -49,6 +49,9 @@ func fileSignature(info os.FileInfo) (string, time.Time) {
 		if c.IsValid() && c.Kind() == reflect.Struct {
 			sec, nsec := c.FieldByName("Sec"), c.FieldByName("Nsec")
 			if sec.CanInt() && nsec.CanInt() {
+				if sec.Int() == 0 && nsec.Int() == 0 {
+					return "", time.Time{}
+				}
 				stamp := time.Unix(sec.Int(), nsec.Int())
 				return fmt.Sprintf("%d:%d:%d:%d:%d", dev, ino, info.Size(), info.ModTime().UnixNano(), stamp.UnixNano()), stamp
 			}

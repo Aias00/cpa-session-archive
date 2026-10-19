@@ -54,7 +54,9 @@ func annotateMessages(messages []Message, root map[string]any, prefix, client, m
 	for i := range messages {
 		m := &messages[i]
 		m.Kind = "text"
-		m.Model = model
+		if m.Role == "assistant" && model != "<synthetic>" {
+			m.Model = model
+		}
 		m.MessageAt = at
 		switch m.Role {
 		case "system", "developer":
