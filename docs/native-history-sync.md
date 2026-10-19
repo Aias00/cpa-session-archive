@@ -40,8 +40,10 @@ text/time-based merging with CPA traffic occurs. The existing projection shares
 identical text storage without merging source occurrences.
 
 A private `native_sync_files` table in the staging archive records the committed
-byte offset, SHA256 of that entire prefix, and parsing context. Each pass verifies
-the full committed prefix before appending. A changed/truncated JSONL file is
+byte offset, SHA256 of that entire prefix, and parsing context. Changed files verify
+the full committed prefix before appending. Unchanged files can reuse a settled
+device/inode/size/mtime/ctime proof for up to 24 hours; missing change stamps,
+changed metadata, clock rollback and `--verify-all` force a full check. A changed/truncated JSONL file is
 reported for reconciliation and its existing archive remains intact. Kiro
 auxiliary files are mutable snapshots: changed versions are retained separately.
 Archive commit precedes checkpoint advancement; deterministic source IDs make a
@@ -124,3 +126,53 @@ owner-audited JSON manifest with `device`, `ambiguous_codex_sessions` (filename
 UUIDs), and `ambiguous_claude_files` (native basenames). It marks mixed-workspace
 sources with an ambiguous project ID and updates staging parsing contexts. It
 never changes original payloads or activates curated knowledge.
+
+
+## Magpie-informed compatibility and retrieval
+
+The reader now accepts absolute `CODEX_HOME` / `CLAUDE_CONFIG_DIR`, or explicit
+`--codex-home` / `--claude-home`. The periodic job may pin the same homes using
+`codex_home` / `claude_home` in its private configuration; launchd does not inherit
+interactive shell variables automatically. Relative configured homes fail rather
+than depend on a working directory. Only explicitly configured root directory
+symlinks are resolved; arbitrary nested symlinks are still excluded.
+
+Codex rollout filenames may include `_<segment>` and `.jsonl.zst`. The original
+logical filename, without `.zst`, keys the checkpoint, so plain-to-compressed
+moves preserve occurrence identity. If a plain twin exists it is preferred while
+compression is in progress. A compressed-only file requires the installed
+`zstd` executable (PATH, `/opt/homebrew/bin`, or `/usr/local/bin`). It is decoded
+to a private temporary spool and its complete frame must pass before any source
+commit. Offset/hash refer to decoded original bytes. Divergent same-name files
+fail explicitly for reconciliation; they are not guessed into one thread.
+Missing zstd or a corrupt/incomplete frame leaves checkpoints untouched.
+
+A settled filesystem signature can skip unchanged files. The two-second settle
+window and ctime reduce same-tick rewrite errors; cached proofs expire after
+24 hours and are stored separately from authoritative SHA256 checkpoints. A
+changed file still verifies its entire committed prefix. Filesystems without
+suitable stamps always perform the full check. Use `--verify-all` for an explicit
+integrity pass. This optimization is intended for ordinary local filesystems,
+not a defense against a privileged attacker controlling filesystem metadata.
+
+Messages expose additive `kind`, `tool_name`, `tool_call_id`, `model`, and
+`message_at` fields. Model and time come only from available recorded events;
+when a segment has no relevant model context the field stays empty. Existing
+normalizer-v2 text, pointer and rune ranges remain unchanged. Search ranks user
+and assistant text above summaries and tools, and excludes context/image parts;
+a direct valid older context citation can still be read. Native timelines expose
+the same metadata. Codex's structured subagent source and Claude subagent
+`.meta.json` sidecars enrich new segments without rewriting old evidence.
+
+The collector adds independently versioned `message_meta*` projection tables to
+`memory.sqlite`. It backfills existing sources in bounded idle batches and
+persists its checkpoint across restarts, leaving shared text and FTS unchanged.
+`message_metadata_done` reports completion. The archive change worker still runs
+first; changed/deleted sources invalidate metadata through the same lifecycle.
+Until backfill finishes, older sources may have fallback classification. The
+SQLite text projection schema remains v3 and citation normalizer remains v2.
+
+These compatibility rules reference the MIT-licensed Magpie session readers;
+see `third_party/README.md` and `third_party/magpie-LICENSE`. Magpie's UI excerpt
+limits and whole application dependencies were not imported. Additional clients
+(OpenCode, Cursor, Pi/OMP, Qoder, Kimi) remain future adapter work.

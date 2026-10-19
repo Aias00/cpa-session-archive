@@ -34,6 +34,12 @@ type Citation struct {
 }
 
 type Hit struct {
+	Kind       string `json:"kind,omitempty"`
+	ToolName   string `json:"tool_name,omitempty"`
+	ToolCallID string `json:"tool_call_id,omitempty"`
+	Model      string `json:"model,omitempty"`
+	MessageAt  string `json:"message_at,omitempty"`
+
 	Citation  Citation `json:"citation"`
 	Snippet   string   `json:"snippet"`
 	ProjectID string   `json:"project_id"`
@@ -45,19 +51,20 @@ type Hit struct {
 }
 
 type Status struct {
-	UniqueChunks       int64  `json:"unique_chunks"`
-	DeduplicatedChunks int64  `json:"deduplicated_chunks"`
-	ScopeFiltered      bool   `json:"scope_filtered,omitempty"`
-	BackfillDone       bool   `json:"backfill_done"`
-	BackfillAfterID    int64  `json:"backfill_after_id"`
-	Checkpoint         int64  `json:"checkpoint"`
-	Watermark          int64  `json:"watermark"`
-	Lag                int64  `json:"lag"`
-	Sources            int64  `json:"sources"`
-	Chunks             int64  `json:"chunks"`
-	PartialSources     int64  `json:"partial_sources"`
-	Failures           int64  `json:"failures"`
-	LastError          string `json:"last_error,omitempty"`
+	MessageMetadataDone bool   `json:"message_metadata_done"`
+	UniqueChunks        int64  `json:"unique_chunks"`
+	DeduplicatedChunks  int64  `json:"deduplicated_chunks"`
+	ScopeFiltered       bool   `json:"scope_filtered,omitempty"`
+	BackfillDone        bool   `json:"backfill_done"`
+	BackfillAfterID     int64  `json:"backfill_after_id"`
+	Checkpoint          int64  `json:"checkpoint"`
+	Watermark           int64  `json:"watermark"`
+	Lag                 int64  `json:"lag"`
+	Sources             int64  `json:"sources"`
+	Chunks              int64  `json:"chunks"`
+	PartialSources      int64  `json:"partial_sources"`
+	Failures            int64  `json:"failures"`
+	LastError           string `json:"last_error,omitempty"`
 }
 
 type SearchResult struct {
@@ -67,6 +74,12 @@ type SearchResult struct {
 }
 
 type Evidence struct {
+	Kind       string `json:"kind,omitempty"`
+	ToolName   string `json:"tool_name,omitempty"`
+	ToolCallID string `json:"tool_call_id,omitempty"`
+	Model      string `json:"model,omitempty"`
+	MessageAt  string `json:"message_at,omitempty"`
+
 	ProjectID string   `json:"project_id"`
 	SessionID string   `json:"session_id"`
 	Client    string   `json:"client"`

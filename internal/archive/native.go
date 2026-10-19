@@ -51,7 +51,7 @@ func nativeTimeline(r Record) RequestTimelineView {
 		if truncated {
 			runes = runes[:40000]
 		}
-		view.Entries = append(view.Entries, TimelineEntry{Role: message.Role, Text: string(runes), CallID: message.NativeID, Truncated: truncated})
+		view.Entries = append(view.Entries, TimelineEntry{Role: message.Role, Kind: message.Kind, Model: message.Model, MessageAt: message.MessageAt, Label: message.ToolName, Text: string(runes), CallID: firstNonEmpty(message.ToolCallID, message.NativeID), Truncated: truncated})
 	}
 	view.InputItems = len(view.Entries)
 	return view

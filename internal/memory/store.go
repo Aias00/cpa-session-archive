@@ -98,6 +98,9 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	} else if _, err = db.Exec(schema); err != nil {
 		return fail(err)
 	}
+	if err := openMessageMetadata(db); err != nil {
+		return fail(err)
+	}
 	return &Engine{db: db, feed: feed}, nil
 }
 func (e *Engine) Close() error { return e.db.Close() }
@@ -106,6 +109,9 @@ func (e *Engine) Status(ctx context.Context) (Status, error) {
 	var s Status
 	err := e.db.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint,failures,last_error,(SELECT COUNT(*) FROM sources),(SELECT COUNT(*) FROM chunks),(SELECT COUNT(*) FROM sources WHERE partial=1),(SELECT COUNT(*) FROM chunk_texts) FROM state WHERE id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint, &s.Failures, &s.LastError, &s.Sources, &s.Chunks, &s.PartialSources, &s.UniqueChunks)
 	if err != nil {
+		return s, err
+	}
+	if err := e.db.QueryRowContext(ctx, "select done from message_meta_state where id=1").Scan(&s.MessageMetadataDone); err != nil {
 		return s, err
 	}
 	s.DeduplicatedChunks = s.Chunks - s.UniqueChunks
@@ -127,7 +133,11 @@ func (e *Engine) Sync(ctx context.Context, limit int) (n int, err error) {
 	if limit < 1 || limit > 256 {
 		limit = 64
 	}
-	s, err := e.Status(ctx)
+	var s Status
+	err = e.db.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint FROM state WHERE id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint)
+	if err == nil {
+		s.Watermark, err = e.feed.MemoryWatermark(ctx)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -167,6 +177,9 @@ func (e *Engine) Sync(ctx context.Context, limit int) (n int, err error) {
 		// events. Only advance across an empty gap to the watermark captured
 		// BEFORE reading changes, never across a newly committed event.
 		_, err = e.db.ExecContext(ctx, `UPDATE state SET checkpoint=?,last_error='' WHERE id=1`, s.Watermark)
+	}
+	if n == 0 && err == nil {
+		return e.syncMessageMetadata(ctx, limit)
 	}
 	return n, err
 }
@@ -230,6 +243,9 @@ func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error
 		project, client := sourceScope(source.Record)
 		stamp := source.Record.StartedAt.UTC()
 		if _, err = tx.ExecContext(ctx, `INSERT INTO sources(request_id,revision,sequence,project_id,client,session_id,event_at,event_ns,partial,issues_text) VALUES(?,?,?,?,?,?,?,?,?,?)`, id, source.Revision, source.Sequence, project, client, source.Record.SessionID, stamp.Format(time.RFC3339Nano), stamp.UnixNano(), doc.Partial, strings.Join(doc.Issues, "\n")); err != nil {
+			return err
+		}
+		if err = putMessageMetadata(ctx, tx, id, source.Revision, doc.Messages); err != nil {
 			return err
 		}
 		for _, message := range doc.Messages {

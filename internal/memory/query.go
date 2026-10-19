@@ -48,9 +48,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	}
 	terms := strings.Fields(strings.ToLower(q.Text))
 	tokens := lexicalTokens(q.Text)
-	where := []string{}
+	where := []string{`c.role NOT IN ('system','developer')`, `COALESCE(m.kind,'') NOT IN ('context','image')`}
 	args := []any{}
-	from := `chunks c JOIN sources s ON s.request_id=c.request_id JOIN chunk_texts t ON t.id=c.text_id`
+	from := `chunks c JOIN sources s ON s.request_id=c.request_id JOIN chunk_texts t ON t.id=c.text_id LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer`
 	if len(tokens) > 0 {
 		from += ` JOIN chunk_search f ON f.docid=t.id`
 		where = append(where, `f.tokens MATCH ?`)
@@ -69,11 +69,11 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 			args = append(args, t.UnixNano())
 		}
 	}
-	query := `SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text FROM ` + from
+	query := `SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text,COALESCE(m.kind,CASE WHEN c.role='tool' THEN 'tool_result' ELSE 'text' END),COALESCE(m.tool_name,''),COALESCE(m.tool_call_id,''),COALESCE(m.model,''),COALESCE(m.message_at,'') FROM ` + from
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += ` ORDER BY s.event_ns DESC,s.request_id,c.id LIMIT 1001`
+	query += ` ORDER BY CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END,s.event_ns DESC,s.request_id,c.id LIMIT 1001`
 	rows, err := e.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return out, err
@@ -85,7 +85,7 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	candidates := []candidate{}
 	for rows.Next() {
 		var c candidate
-		err = rows.Scan(&c.hit.Citation.RequestID, &c.hit.Citation.Revision, &c.hit.ProjectID, &c.hit.Client, &c.hit.SessionID, &c.hit.EventAt, &c.hit.Partial, &c.hit.Citation.Side, &c.hit.Citation.Pointer, &c.hit.Role, &c.hit.Citation.Start, &c.hit.Citation.End, &c.text)
+		err = rows.Scan(&c.hit.Citation.RequestID, &c.hit.Citation.Revision, &c.hit.ProjectID, &c.hit.Client, &c.hit.SessionID, &c.hit.EventAt, &c.hit.Partial, &c.hit.Citation.Side, &c.hit.Citation.Pointer, &c.hit.Role, &c.hit.Citation.Start, &c.hit.Citation.End, &c.text, &c.hit.Kind, &c.hit.ToolName, &c.hit.ToolCallID, &c.hit.Model, &c.hit.MessageAt)
 		if err != nil {
 			rows.Close()
 			return out, err
@@ -184,6 +184,11 @@ func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
 			if c.End > len(runes) {
 				return out, ErrSourceUnavailable
 			}
+			out.Kind = messageKind(message)
+			out.ToolName = message.ToolName
+			out.ToolCallID = message.ToolCallID
+			out.Model = message.Model
+			out.MessageAt = message.MessageAt
 			out.Text = string(runes[c.Start:c.End])
 			out.Partial = doc.Partial
 			out.Issues = doc.Issues

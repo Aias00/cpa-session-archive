@@ -15,6 +15,9 @@ import (
 
 type TimelineEntry struct {
 	Role      string `json:"role"`
+	Kind      string `json:"kind,omitempty"`
+	Model     string `json:"model,omitempty"`
+	MessageAt string `json:"message_at,omitempty"`
 	Text      string `json:"text,omitempty"`
 	Label     string `json:"label,omitempty"`
 	CallID    string `json:"call_id,omitempty"`

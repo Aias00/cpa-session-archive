@@ -20,7 +20,7 @@ func normalizeNative(r archive.Record) Document {
 		d.issue("retained native history was truncated")
 	}
 	for _, message := range native.Messages {
-		d.add(message.Role, message.Text, "original_request", message.Pointer, message.NativeID)
+		d.Messages = append(d.Messages, Message{Role: message.Role, Text: message.Text, Side: "original_request", Pointer: message.Pointer, NativeID: message.NativeID, Kind: message.Kind, ToolName: message.ToolName, ToolCallID: message.ToolCallID, Model: message.Model, MessageAt: message.MessageAt})
 	}
 	return d
 }

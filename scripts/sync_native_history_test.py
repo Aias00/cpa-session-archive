@@ -35,6 +35,9 @@ class SyncTests(unittest.TestCase):
                 sync.load_config(path)
             sync.private_json(path, {"ssh_host": "mac-mini-m4", "device": "device"})
             self.assertEqual(sync.load_config(path)["device"], "device")
+            sync.private_json(path, {"ssh_host":"mac-mini-m4","device":"device","codex_home":"relative"})
+            with self.assertRaises(ValueError):
+                sync.load_config(path)
             path.chmod(0o644)
             with self.assertRaises(ValueError):
                 sync.load_config(path)
@@ -43,7 +46,7 @@ class SyncTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             config = root / "config.json"
-            sync.private_json(config, {"ssh_host": "mac-mini-m4", "device": "device", "state_dir": str(root), "binary": "/fixture/cpa-history-sync"})
+            sync.private_json(config, {"ssh_host": "mac-mini-m4", "device": "device", "state_dir": str(root), "binary": "/fixture/cpa-history-sync", "codex_home": str(root / "custom-codex")})
             with sqlite3.connect(root / "staging.sqlite") as db:
                 db.execute("CREATE TABLE archive_ingest_clock(id INTEGER, sequence INTEGER)")
                 db.execute("INSERT INTO archive_ingest_clock VALUES(1,10)")
@@ -51,6 +54,8 @@ class SyncTests(unittest.TestCase):
 
             def fake_run(args, **kwargs):
                 calls.append(args[0])
+                if args[0] == "/fixture/cpa-history-sync":
+                    self.assertEqual(args[-2:], ["--codex-home", str(root / "custom-codex")])
                 if args[0] == "/fixture/cpa-history-sync":
                     return json.dumps({"complete": True})
                 raise subprocess.CalledProcessError(255, args)

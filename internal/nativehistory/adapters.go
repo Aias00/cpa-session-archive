@@ -50,6 +50,7 @@ func Inspect(client string, raw []byte, c *Context) {
 		p := object(m["payload"])
 		switch text(m["type"]) {
 		case "session_meta":
+			inspectIdentity(c, p)
 			c.SessionID = first(text(p["id"]), text(p["session_id"]), c.SessionID)
 			c.ParentID = first(text(p["parent_thread_id"]), text(p["forked_from_id"]), c.ParentID)
 			c.Branch = first(text(p["agent_path"]), c.Branch)
@@ -76,6 +77,7 @@ func Inspect(client string, raw []byte, c *Context) {
 			c.ParentID = first(c.ParentID, p)
 		}
 	case "kiro-cli":
+		c.Title = first(text(m["title"]), c.Title)
 		c.SessionID = first(c.SessionID, text(m["session_id"]))
 		inspectWorkspace(c, text(m["cwd"]))
 		if t := timestamp(m["created_at"]); !t.IsZero() {
@@ -98,7 +100,7 @@ func (d *Document) issue(s string) {
 }
 func (d *Document) add(role, value, pointer, id string) {
 	if strings.TrimSpace(value) != "" {
-		d.Messages = append(d.Messages, Message{role, value, pointer, id})
+		d.Messages = append(d.Messages, Message{Role: role, Text: value, Pointer: pointer, NativeID: id})
 	}
 }
 func (d *Document) content(role string, v any, p, id string) {
@@ -167,6 +169,7 @@ func Normalize(e Envelope) Document {
 		d.issue("unsupported native envelope version")
 		return d
 	}
+	model := ""
 	for i, line := range e.Lines {
 		if len(bytes.TrimSpace([]byte(line.Raw))) == 0 {
 			continue
@@ -176,6 +179,10 @@ func Normalize(e Envelope) Document {
 		if json.Unmarshal([]byte(line.Raw), &m) != nil || m == nil {
 			d.issue("malformed or auxiliary native record retained")
 			continue
+		}
+		start := len(d.Messages)
+		if e.Client == "codex" && text(m["type"]) == "turn_context" {
+			model = text(object(m["payload"])["model"])
 		}
 		switch e.Client {
 		case "codex":
@@ -241,6 +248,7 @@ func Normalize(e Envelope) Document {
 		default:
 			d.issue("auxiliary native source retained without indexing")
 		}
+		annotateMessages(d.Messages[start:], m, p, e.Client, model)
 	}
 	return d
 }

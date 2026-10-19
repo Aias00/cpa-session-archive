@@ -47,6 +47,9 @@ def load_config(path):
         raise ValueError("only the standing M4 SSH aliases are permitted")
     if not re.fullmatch(r"[A-Za-z0-9_-]+", cfg["device"]):
         raise ValueError("device must be a stable simple identifier")
+    for key in ("codex_home", "claude_home"):
+        if cfg.get(key) and not Path(cfg[key]).is_absolute():
+            raise ValueError(key + " must be absolute")
     return cfg
 
 
@@ -69,7 +72,11 @@ def sync(config_path):
             return run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", host, shlex.join(args)])
 
         report = root / "reports" / (stamp + "-local.json")
-        summary = json.loads(run([cfg["binary"], "--device", cfg["device"], "--archive", str(root / "staging.sqlite"), "--report", str(report)]))
+        collect = [cfg["binary"], "--device", cfg["device"], "--archive", str(root / "staging.sqlite"), "--report", str(report)]
+        for key, flag in (("codex_home", "--codex-home"), ("claude_home", "--claude-home")):
+            if cfg.get(key):
+                collect.extend([flag, cfg[key]])
+        summary = json.loads(run(collect))
         # A previous transfer may have failed after local commit. Always compare
         # the durable local watermark with the last fully acknowledged transfer.
         with sqlite3.connect((root / "staging.sqlite").resolve().as_uri() + "?mode=ro", uri=True) as db:

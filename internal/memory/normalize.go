@@ -13,11 +13,16 @@ import (
 const NormalizerVersion = 2
 
 type Message struct {
-	Role     string `json:"role"`
-	Text     string `json:"text"`
-	Side     string `json:"side"`
-	Pointer  string `json:"pointer"`
-	NativeID string `json:"native_id,omitempty"`
+	Role       string `json:"role"`
+	Kind       string `json:"kind,omitempty"`
+	ToolName   string `json:"tool_name,omitempty"`
+	ToolCallID string `json:"tool_call_id,omitempty"`
+	Model      string `json:"model,omitempty"`
+	MessageAt  string `json:"message_at,omitempty"`
+	Text       string `json:"text"`
+	Side       string `json:"side"`
+	Pointer    string `json:"pointer"`
+	NativeID   string `json:"native_id,omitempty"`
 }
 type Document struct {
 	Messages []Message `json:"messages"`
@@ -36,7 +41,12 @@ func (d *Document) issue(s string) {
 }
 func (d *Document) add(role, text, side, pointer, id string) {
 	if strings.TrimSpace(text) != "" {
-		d.Messages = append(d.Messages, Message{Role: role, Text: text, Side: side, Pointer: pointer, NativeID: id})
+		m := Message{Role: role, Text: text, Side: side, Pointer: pointer, NativeID: id}
+		m.Kind = messageKind(m)
+		if role == "tool" {
+			m.ToolCallID = id
+		}
+		d.Messages = append(d.Messages, m)
 	}
 }
 func obj(v any) map[string]any { m, _ := v.(map[string]any); return m }
@@ -163,13 +173,16 @@ func (d *Document) message(m map[string]any, side, pointer string) {
 		role = "assistant"
 	}
 	id := str(m["id"])
+	if role == "tool" {
+		id = firstID(str(m["tool_call_id"]), id)
+	}
 	switch str(m["type"]) {
 	case "function_call", "custom_tool_call":
 		arguments := m["arguments"]
 		if str(m["type"]) == "custom_tool_call" {
 			arguments = m["input"]
 		}
-		d.add("assistant", str(m["name"])+"\n"+compact(arguments), side, pointer, id)
+		d.addTool(str(m["name"]), compact(arguments), side, pointer, id, firstID(str(m["call_id"]), id))
 		return
 	case "function_call_output", "custom_tool_call_output":
 		if output, ok := m["output"].(string); ok {
@@ -208,10 +221,10 @@ func (d *Document) message(m map[string]any, side, pointer string) {
 			d.issue("unsupported tool call")
 			continue
 		}
-		d.add("assistant", str(function["name"])+"\n"+compact(function["arguments"]), side, fmt.Sprintf("%s/tool_calls/%d", pointer, i), str(call["id"]))
+		d.addTool(str(function["name"]), compact(function["arguments"]), side, fmt.Sprintf("%s/tool_calls/%d", pointer, i), str(call["id"]), str(call["id"]))
 	}
 	if function := obj(m["function_call"]); function != nil {
-		d.add("assistant", str(function["name"])+"\n"+compact(function["arguments"]), side, pointer+"/function_call", "")
+		d.addTool(str(function["name"]), compact(function["arguments"]), side, pointer+"/function_call", "", "")
 	}
 }
 func (d *Document) content(role string, value any, side, pointer, id string) {
@@ -234,7 +247,7 @@ func (d *Document) content(role string, value any, side, pointer, id string) {
 		case "text", "input_text", "output_text":
 			d.add(role, str(block["text"]), side, p+"/text", id)
 		case "tool_use":
-			d.add("assistant", str(block["name"])+"\n"+compact(block["input"]), side, p, str(block["id"]))
+			d.addTool(str(block["name"]), compact(block["input"]), side, p, str(block["id"]), str(block["id"]))
 		case "tool_result":
 			d.content("tool", block["content"], side, p+"/content", str(block["tool_use_id"]))
 		case "refusal":
@@ -377,7 +390,7 @@ func (d *Document) stream(raw []byte) {
 			p := parts[key]
 			d.add(p.role, p.text, "response", p.pointer, "")
 			if p.name != "" || p.args != "" {
-				d.add("assistant", p.name+"\n"+p.args, "response", p.pointer+"/function", p.id)
+				d.addTool(p.name, p.args, "response", p.pointer+"/function", p.id, p.id)
 			}
 		}
 	}
@@ -387,4 +400,22 @@ func (d *Document) stream(raw []byte) {
 	if !complete {
 		d.issue("incomplete retained stream")
 	}
+}
+
+func firstID(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
+}
+func (d *Document) addTool(name, args, side, pointer, id, callID string) {
+	before := len(d.Messages)
+	d.add("assistant", name+"\n"+args, side, pointer, id)
+	if len(d.Messages) == before {
+		return
+	}
+	m := &d.Messages[len(d.Messages)-1]
+	m.Kind = "tool_use"
+	m.ToolName = name
+	m.ToolCallID = callID
 }

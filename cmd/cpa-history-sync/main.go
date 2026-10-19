@@ -30,6 +30,9 @@ func run() error {
 	home := flag.String("home", homeDefault, "client history home directory")
 	device := flag.String("device", "", "stable source device ID (required)")
 	target := flag.String("archive", "", "private staging SQLite archive (required)")
+	codexHome := flag.String("codex-home", "", "explicit absolute Codex home")
+	claudeHome := flag.String("claude-home", "", "explicit absolute Claude Code home")
+	verifyAll := flag.Bool("verify-all", false, "ignore unchanged-file proofs and verify every committed prefix")
 	reportPath := flag.String("report", "", "new private JSON report path")
 	exportPath := flag.String("export", "", "export a new delta archive instead of collecting")
 	after := flag.Int64("after", 0, "exclusive staging event watermark for export")
@@ -71,8 +74,25 @@ func run() error {
 	}
 	started := time.Now()
 	last := started
-	roots := []historysync.Root{{Client: "codex", Path: filepath.Join(*home, ".codex/sessions")}, {Client: "codex", Path: filepath.Join(*home, ".codex/archived_sessions")}, {Client: "claude-code", Path: filepath.Join(*home, ".claude/projects")}, {Client: "kiro-cli", Path: filepath.Join(*home, ".kiro/sessions/cli")}}
-	report, syncErr := historysync.Sync(ctx, historysync.Config{Store: store, Device: *device, Roots: roots, Progress: func(r historysync.Report) {
+	roots, err := historysync.DefaultRoots(*home)
+	if err != nil {
+		return err
+	}
+	if *codexHome != "" {
+		if !filepath.IsAbs(*codexHome) {
+			return fmt.Errorf("codex-home must be absolute")
+		}
+		roots[0].Path = filepath.Join(*codexHome, "sessions")
+		roots[1].Path = filepath.Join(*codexHome, "archived_sessions")
+	}
+	if *claudeHome != "" {
+		if !filepath.IsAbs(*claudeHome) {
+			return fmt.Errorf("claude-home must be absolute")
+		}
+		roots[2].Path = filepath.Join(*claudeHome, "projects")
+	}
+
+	report, syncErr := historysync.Sync(ctx, historysync.Config{Store: store, Device: *device, Roots: roots, VerifyAll: *verifyAll, Progress: func(r historysync.Report) {
 		if time.Since(last) >= 15*time.Second {
 			fmt.Fprintf(os.Stderr, "native sync: files=%d new_segments=%d bytes=%d failures=%d\n", r.Files, r.Segments, r.Bytes, r.Failures)
 			last = time.Now()
@@ -99,7 +119,7 @@ func run() error {
 		file.Close()
 	}
 	// Public progress contains only aggregate metadata; private reports hold paths.
-	summary := map[string]any{"complete": result.Complete, "elapsed_seconds": result.Elapsed, "files": report.Files, "segments": report.Segments, "existing_segments": report.Existing, "bytes": report.Bytes, "pending_tails": report.PendingTails, "failures": report.Failures}
+	summary := map[string]any{"complete": result.Complete, "elapsed_seconds": result.Elapsed, "unchanged_skipped": report.UnchangedSkipped, "files": report.Files, "segments": report.Segments, "existing_segments": report.Existing, "bytes": report.Bytes, "pending_tails": report.PendingTails, "failures": report.Failures}
 	if err := json.NewEncoder(os.Stdout).Encode(summary); err != nil {
 		return err
 	}

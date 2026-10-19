@@ -25,19 +25,22 @@ import (
 
 type Root struct{ Client, Path string }
 type Config struct {
-	Store    *archive.Store
-	Device   string
-	Roots    []Root
-	Progress func(Report)
+	Store     *archive.Store
+	Device    string
+	Roots     []Root
+	Progress  func(Report)
+	Now       func() time.Time
+	VerifyAll bool
 }
 type Report struct {
-	Files        int         `json:"files"`
-	Segments     int         `json:"segments"`
-	Existing     int         `json:"existing_segments"`
-	Bytes        int64       `json:"bytes"`
-	PendingTails int         `json:"pending_tails"`
-	Failures     int         `json:"failures"`
-	Errors       []FileError `json:"errors,omitempty"`
+	UnchangedSkipped int         `json:"unchanged_skipped"`
+	Files            int         `json:"files"`
+	Segments         int         `json:"segments"`
+	Existing         int         `json:"existing_segments"`
+	Bytes            int64       `json:"bytes"`
+	PendingTails     int         `json:"pending_tails"`
+	Failures         int         `json:"failures"`
+	Errors           []FileError `json:"errors,omitempty"`
 }
 type FileError struct {
 	Client string `json:"client"`
@@ -67,6 +70,9 @@ func Sync(ctx context.Context, cfg Config) (Report, error) {
 	if err != nil {
 		return report, err
 	}
+	if _, err := cfg.Store.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS native_file_proofs(source_key TEXT PRIMARY KEY,signature TEXT NOT NULL,offset INTEGER NOT NULL,prefix_sha256 TEXT NOT NULL,verified_ns INTEGER NOT NULL)`); err != nil {
+		return report, err
+	}
 	remotes := map[string]string{}
 	for _, root := range cfg.Roots {
 		if root.Client != "codex" && root.Client != "claude-code" && root.Client != "kiro-cli" {
@@ -79,10 +85,22 @@ func Sync(ctx context.Context, cfg Config) (Report, error) {
 		if err != nil {
 			return report, err
 		}
-		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		walkRoot := root.Path
+		if info.Mode()&os.ModeSymlink != 0 {
+			resolved, err := filepath.EvalSymlinks(root.Path)
+			if err != nil {
+				return report, err
+			}
+			walkRoot = resolved
+			info, err = os.Stat(resolved)
+			if err != nil {
+				return report, err
+			}
+		}
+		if !info.IsDir() {
 			return report, fmt.Errorf("history root must be a real directory")
 		}
-		err = filepath.WalkDir(root.Path, func(path string, entry os.DirEntry, walkErr error) error {
+		err = filepath.WalkDir(walkRoot, func(path string, entry os.DirEntry, walkErr error) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
@@ -94,13 +112,19 @@ func Sync(ctx context.Context, cfg Config) (Report, error) {
 			if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 				return nil
 			}
+			compressed := root.Client == "codex" && strings.HasSuffix(path, ".jsonl.zst")
+			if compressed {
+				if plain, e := os.Lstat(strings.TrimSuffix(path, ".zst")); e == nil && plain.Mode().IsRegular() {
+					return nil
+				}
+			}
 			ext := filepath.Ext(path)
-			if ext != ".jsonl" && !(root.Client == "kiro-cli" && (ext == ".json" || ext == ".history")) {
+			if !compressed && ext != ".jsonl" && !(root.Client == "kiro-cli" && (ext == ".json" || ext == ".history")) {
 				return nil
 			}
 			// A move from Codex active to archived history preserves source identity.
 			// Native session filenames are IDs; client and device keep their namespaces apart.
-			key := cfg.Device + "\x00" + root.Client + "\x00" + filepath.Base(path)
+			key := cfg.Device + "\x00" + root.Client + "\x00" + logicalName(path)
 			report.Files++
 			if err := syncFile(ctx, cfg, root.Client, path, key, remotes, &report); err != nil {
 				if ctx.Err() != nil {
@@ -177,9 +201,37 @@ func syncFile(ctx context.Context, cfg Config, client, path, key string, remotes
 	if err != nil {
 		return err
 	}
-	auxiliary := filepath.Ext(path) != ".jsonl"
+	if skipProof(ctx, cfg, key, cp, info) {
+		report.UnchangedSkipped++
+		return nil
+	}
+	encodedInfo := info
+	compressed := client == "codex" && strings.HasSuffix(path, ".jsonl.zst")
+	if compressed {
+		decoded, cleanup, err := decodeHistory(ctx, path)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		after, e := os.Stat(path)
+		beforeSignature, _ := fileSignature(encodedInfo)
+		afterSignature, _ := fileSignature(after)
+		if e != nil || beforeSignature == "" || beforeSignature != afterSignature {
+			return fmt.Errorf("compressed history changed during decoding")
+		}
+		file = decoded
+		info, err = file.Stat()
+		if err != nil {
+			return err
+		}
+	}
+	auxiliary := !compressed && filepath.Ext(path) != ".jsonl"
 	if auxiliary {
-		return syncAuxiliary(ctx, cfg, client, path, key, file, info.Size(), cp, remotes, report)
+		err := syncAuxiliary(ctx, cfg, client, path, key, file, info.Size(), cp, remotes, report)
+		if err == nil {
+			err = saveProof(ctx, cfg, key, path, encodedInfo)
+		}
+		return err
 	}
 	if info.Size() < cp.Offset {
 		return fmt.Errorf("source truncated; retained history preserved, reconciliation required")
@@ -194,7 +246,7 @@ func syncFile(ctx context.Context, cfg Config, client, path, key string, remotes
 		}
 	}
 	if info.Size() == cp.Offset {
-		return nil
+		return saveProof(ctx, cfg, key, path, encodedInfo)
 	}
 	c := cp.Context
 	if c.SessionID == "" {
@@ -229,7 +281,7 @@ func syncFile(ctx context.Context, cfg Config, client, path, key string, remotes
 	}
 	enrich(ctx, client, path, &c, remotes)
 	if c.CreatedAt.IsZero() {
-		c.CreatedAt = info.ModTime().UTC()
+		c.CreatedAt = encodedInfo.ModTime().UTC()
 	}
 	if _, err = file.Seek(cp.Offset, io.SeekStart); err != nil {
 		return err
@@ -280,22 +332,42 @@ func syncFile(ctx context.Context, cfg Config, client, path, key string, remotes
 		size += len(raw)
 		h.Write(raw)
 	}
-	return flush()
+	if err := flush(); err != nil {
+		return err
+	}
+	if offset == info.Size() {
+		return saveProof(ctx, cfg, key, path, encodedInfo)
+	}
+	return nil
 }
 func enrich(ctx context.Context, client, path string, c *nativehistory.Context, remotes map[string]string) {
 	if client == "codex" {
 		// Fork rollouts can contain only an inherited parent session_meta.
 		// The native file UUID identifies the independently retained thread.
-		if match := codexFileSession.FindStringSubmatch(filepath.Base(path)); len(match) == 2 && match[1] != c.SessionID {
+		if sid := fileSession(path); sid != "" && sid != c.SessionID {
 			if c.ParentID == "" && len(c.SessionID) == 36 {
 				c.ParentID = c.SessionID
 			}
-			c.SessionID = match[1]
+			c.SessionID = sid
 		}
 	}
 	stem := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	if client == "claude-code" && strings.Contains(filepath.ToSlash(path), "/subagents/") {
 		c.Branch = stem
+		meta, err := os.Open(strings.TrimSuffix(path, ".jsonl") + ".meta.json")
+		if err == nil {
+			raw, _ := io.ReadAll(io.LimitReader(meta, 65537))
+			meta.Close()
+			if len(raw) <= 65536 {
+				var fields struct{ AgentType, ParentAgentID, Description string }
+				if json.Unmarshal(raw, &fields) == nil {
+					c.AgentKind = fields.AgentType
+					c.ParentAgentID = fields.ParentAgentID
+					c.Title = fields.Description
+					c.AgentRole = "subagent"
+				}
+			}
+		}
 	}
 	if c.CWD != "" && c.GitRemote == "" {
 		remote, ok := remotes[c.CWD]
@@ -379,6 +451,14 @@ func commitSegment(ctx context.Context, cfg Config, key, path string, e nativehi
 	}
 	if c.Branch != "" {
 		facets["native.branch"] = []string{c.Branch}
+	}
+	for key, value := range map[string]string{"native.agent_role": c.AgentRole, "native.agent_kind": c.AgentKind, "native.parent_agent_id": c.ParentAgentID, "native.title": c.Title} {
+		if value != "" {
+			facets[key] = []string{value}
+		}
+	}
+	if c.IdentityConflict {
+		facets["native.identity_conflict"] = []string{"true"}
 	}
 	stamp := c.CreatedAt
 	for _, line := range e.Lines {
