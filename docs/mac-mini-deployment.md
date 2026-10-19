@@ -244,3 +244,60 @@ complete. Curated Git knowledge was not populated automatically.
 
 See [native history operation](native-history-sync.md) for replay, incremental
 exports, partial coverage, attribution repair and source-preserving behavior.
+
+
+## Magpie-informed history adapter rollout (2026-10-19)
+
+Collector, native history CLI and MCP bridge were built natively on the verified
+Apple M4 from `7480384` after workstation and M4 full/race Go suites, vet, Python
+sync tests and builds passed. The workstation sync CLI and bridge use the same
+source. Source changes include `c1dc1e4` and `362fa33`; the private manifest tracks
+artifact hashes independently. CPA and its routing/account configuration were
+retained. Online backups of both databases passed `quick_check`; previous
+binaries, LaunchAgent and manifest are retained under
+`backups/before-sse-wal-fix-20261019T065429Z`.
+
+An initial cutover failed readiness and rolled back. Investigation found a
+pre-existing SQLite deferred read-to-write upgrade race in historical SSE
+normalization; the old collector also hit it. A deterministic competing-writer
+regression failed before the fix and passed after reserving the WAL writer before
+manifest reads. The final collector completed 99,170 pending normalization checks
+with no response rewrites, then passed `/readyz`. Queued startup changes were
+drained with zero projection failures before the independently versioned message
+metadata idle backfill. Deployment readiness alone
+does not assert metadata completeness.
+
+A real incremental run scanned 5,435 files and skipped 5,433 unchanged files in
+0.491 seconds of local collection. It collected four new segments / 255,030 bytes;
+the M4 importer replayed 129 already-committed records and added four, with zero
+conflicts or remaining records. These timings measure local collection, not the
+complete SSH transfer or a cold integrity verification pass.
+
+Authenticated search/source round trips passed for Codex, Claude Code and Kiro
+history. The saved pre-upgrade normalizer-v2 citation returned identical text and
+additive kind metadata; unauthenticated recall remained denied. A real ephemeral,
+read-only Codex run through the M4 provider called `archive_status`,
+`archive_search` and `archive_read_source`, with all four structured acceptance
+checks true. Claude was not invoked. Existing curated Git knowledge and client
+configuration were retained. Segmented/compressed histories were exercised with
+synthetic fixtures because this installation currently has no real compressed
+rollouts; other clients remain future adapter work.
+
+
+A subsequent incremental run scanned the same 5,435 files in 0.541 seconds, skipped
+5,426 unchanged files and imported nine new segments with zero conflicts. At that
+check, index lag was one and failures were zero. Frequent live traffic can add new
+sources between observations; source counts and lag are point-in-time values.
+
+
+Final verification at `2026-10-19T07:29:57Z` confirmed
+`message_metadata_done=true`, zero missing/stale metadata markers, and all 111,893
+native archive segments present under the correct client/project/session scope.
+The projection held 123,955 total sources, with zero failures and a live lag of
+two. Message classification included 880,907 text, 105,193 context, 1,409 summary,
+1,728,018 tool-use and 2,495,640 tool-result messages; 4,223,658 messages carried a
+tool name or call identifier. These are retained message occurrences, not unique
+conversations or distinct facts. The additive backfill completed without changing
+the citation normalizer or rebuilding the v3 text schema. Detailed aggregate
+verification is retained privately on M4 in `magpie-history-verification.json` and
+the artifact manifest.

@@ -176,3 +176,15 @@ These compatibility rules reference the MIT-licensed Magpie session readers;
 see `third_party/README.md` and `third_party/magpie-LICENSE`. Magpie's UI excerpt
 limits and whole application dependencies were not imported. Additional clients
 (OpenCode, Cursor, Pi/OMP, Qoder, Kimi) remain future adapter work.
+
+
+### Startup repair during live ingestion
+
+Collector startup completes the historical SSE repair before opening the memory
+change worker. Each repair batch reserves the SQLite WAL writer before reading
+response manifests. This prevents a concurrent ingestion commit from turning a
+deferred read snapshot into `SQLITE_BUSY_SNAPSHOT`. Existing normalization markers
+remain resumable; repair failures keep `/readyz` false instead of advertising an
+incomplete startup. The collector remains able to receive queued ingestion while
+startup repairs run. Deployment readiness must account for historical backlogs;
+inspect repair progress rather than repeatedly restarting a working batch.
