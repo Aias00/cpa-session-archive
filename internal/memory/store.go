@@ -78,6 +78,7 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
  CREATE INDEX IF NOT EXISTS idx_chunks_text ON chunks(text_id);
  CREATE INDEX IF NOT EXISTS idx_memory_scope_time ON sources(project_id,event_ns);
  CREATE INDEX IF NOT EXISTS idx_memory_session ON sources(session_id,event_ns);
+ CREATE INDEX IF NOT EXISTS idx_memory_event ON sources(event_ns DESC,request_id);
  CREATE VIRTUAL TABLE IF NOT EXISTS chunk_search USING fts4(tokens,tokenize=unicode61);
  CREATE TRIGGER IF NOT EXISTS memory_chunk_delete AFTER DELETE ON chunks BEGIN DELETE FROM chunk_texts WHERE id=OLD.text_id AND NOT EXISTS(SELECT 1 FROM chunks WHERE text_id=OLD.text_id); END;
  CREATE TRIGGER IF NOT EXISTS memory_text_delete AFTER DELETE ON chunk_texts BEGIN DELETE FROM chunk_search WHERE docid=OLD.id; END;`

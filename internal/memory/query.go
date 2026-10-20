@@ -72,15 +72,48 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	// Materialize only IDs and sort keys before loading potentially large text.
 	// Otherwise SQLite reads each occurrence's text before its top-N sort, even
 	// when thousands of occurrences share the same text and will be discarded.
-	query := `WITH candidates AS MATERIALIZED (SELECT c.id,s.request_id,s.event_ns,CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END AS kind_rank FROM ` + from
+	const kindRank = `CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END`
+	selection := `SELECT c.id,s.request_id,s.event_ns,` + kindRank + ` AS kind_rank FROM ` + from
+	query := `WITH candidates AS MATERIALIZED (` + selection
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += ` ORDER BY kind_rank,s.event_ns DESC,s.request_id,c.id LIMIT 1001)
+	const selectionOrder = ` ORDER BY kind_rank,s.event_ns DESC,s.request_id,c.id LIMIT 1001)`
+	const resultQuery = `
  SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text,COALESCE(m.kind,CASE WHEN c.role='tool' THEN 'tool_result' ELSE 'text' END),COALESCE(m.tool_name,''),COALESCE(m.tool_call_id,''),COALESCE(m.model,''),COALESCE(m.message_at,'')
  FROM candidates x JOIN chunks c ON c.id=x.id JOIN sources s ON s.request_id=x.request_id JOIN chunk_texts t ON t.id=c.text_id
+ LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer`
+	const resultOrder = ` ORDER BY x.kind_rank,x.event_ns DESC,x.request_id,x.id`
+	query += selectionOrder + resultQuery + resultOrder
+	fullQuery := query
+	// A complete rank-zero prefix inside the newest sources is also the global
+	// prefix: every excluded source sorts later. Incomplete prefixes must fall
+	// back to the full query, including summary/tool ranks and older evidence.
+	if len(tokens) > 0 {
+		var matches int
+		if err := e.readDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM (SELECT docid FROM chunk_search WHERE tokens MATCH ? LIMIT 1024)`, args[0]).Scan(&matches); err != nil {
+			return out, err
+		}
+		if matches == 1024 {
+			recentWhere := append([]string(nil), where...)
+			for i, clause := range recentWhere {
+				if clause == `f.tokens MATCH ?` {
+					recentWhere[i] = `c.text_id IN (SELECT docid FROM matched_texts)`
+				}
+			}
+			recentWhere = append(recentWhere, `(`+kindRank+`)=0`)
+			recentQuery := `WITH recent_sources AS MATERIALIZED (SELECT request_id,event_ns,project_id,client,session_id FROM sources ORDER BY event_ns DESC,request_id LIMIT 4096),
+ matched_texts AS MATERIALIZED (SELECT docid FROM chunk_search WHERE tokens MATCH ?),
+ candidates AS MATERIALIZED (SELECT c.id,s.request_id,s.event_ns,` + kindRank + ` AS kind_rank
+ FROM recent_sources s CROSS JOIN chunks c ON c.request_id=s.request_id
  LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer
- ORDER BY x.kind_rank,x.event_ns DESC,x.request_id,x.id`
+ WHERE ` + strings.Join(recentWhere, " AND ") + selectionOrder
+			// Keep the count guard inside this same statement/read snapshot.
+			recentQuery += resultQuery + ` WHERE (SELECT COUNT(*) FROM candidates)=1001` + resultOrder
+			query = recentQuery
+			// An empty result from the guarded query triggers the original path.
+		}
+	}
 	rows, err := e.readDB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return out, err
@@ -90,7 +123,20 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 		text string
 	}
 	candidates := []candidate{}
-	for rows.Next() {
+	first := rows.Next()
+	if !first && query != fullQuery {
+		readErr := rows.Err()
+		rows.Close()
+		if readErr != nil {
+			return out, readErr
+		}
+		rows, err = e.readDB.QueryContext(ctx, fullQuery, args...)
+		if err != nil {
+			return out, err
+		}
+		first = rows.Next()
+	}
+	for next := first; next; next = rows.Next() {
 		var c candidate
 		err = rows.Scan(&c.hit.Citation.RequestID, &c.hit.Citation.Revision, &c.hit.ProjectID, &c.hit.Client, &c.hit.SessionID, &c.hit.EventAt, &c.hit.Partial, &c.hit.Citation.Side, &c.hit.Citation.Pointer, &c.hit.Role, &c.hit.Citation.Start, &c.hit.Citation.End, &c.text, &c.hit.Kind, &c.hit.ToolName, &c.hit.ToolCallID, &c.hit.Model, &c.hit.MessageAt)
 		if err != nil {

@@ -40,6 +40,17 @@ before loading text. This avoids reading large shared payloads for every matchin
 occurrence that will be discarded by the sort. Match rules, ordering, the 1,000
 candidate cap, truncation reporting and source citation semantics are preserved.
 
+Broad lexical queries first probe at most 1,024 matching unique text IDs. When
+that probe is full, a recent-source path considers the newest 4,096 sources and
+only ordinary-text rank candidates. The additive `idx_memory_event` index makes
+source selection ordered. A count guard in the same SQL statement accepts this
+path only if it produces the complete 1,001-candidate prefix; otherwise search
+runs the original full query. Sources outside that recent window necessarily
+sort after this complete rank-zero prefix. Summary/tool ranks, sparse results,
+older matches and scope filters retain the full-query fallback. The probe is a
+planning hint, never a permission or freshness cache. Returned sources still
+undergo live revision validation. No projection or normalizer version changes.
+
 Corpus counts are stored in the additive `corpus_stats` table. Triggers maintain
 sources, partial sources, chunk occurrences and unique text in the same
 transaction as inserts, deletions, cascades and partial-state updates. Counts
