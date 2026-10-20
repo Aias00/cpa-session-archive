@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 )
@@ -119,7 +120,7 @@ func (s *Store) BackfillSessionIndex(ctx context.Context) error {
 // uses the small request projection as a work list, so it never scans the
 // payload-heavy records table. Failed and partial streams are retained.
 func (s *Store) NormalizeHistoricalSSE(ctx context.Context) error {
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.request_id FROM session_indexed_requests i LEFT JOIN normalized_response_requests n ON n.request_id=i.request_id WHERE n.request_id IS NULL ORDER BY i.request_id`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.request_id FROM session_indexed_requests i JOIN records r ON r.request_id=i.request_id LEFT JOIN normalized_response_requests n ON n.request_id=i.request_id WHERE n.request_id IS NULL ORDER BY i.request_id`)
 	if err != nil {
 		return err
 	}
@@ -156,7 +157,13 @@ func (s *Store) NormalizeHistoricalSSE(ctx context.Context) error {
 		}
 		for _, id := range ids[offset:end] {
 			var root string
-			if err = tx.QueryRowContext(ctx, `SELECT COALESCE(response_ref,'') FROM records WHERE request_id=?`, id).Scan(&root); err != nil {
+			err = tx.QueryRowContext(ctx, `SELECT COALESCE(response_ref,'') FROM records WHERE request_id=?`, id).Scan(&root)
+			if errors.Is(err, sql.ErrNoRows) {
+				// Deletion can commit after the work list was read. Do not let a
+				// stale derived index block startup or recreate a deleted source.
+				continue
+			}
+			if err != nil {
 				tx.Rollback()
 				return err
 			}

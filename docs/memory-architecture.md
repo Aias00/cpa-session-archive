@@ -64,6 +64,9 @@ increase write work; test indexing throughput as well as query latency.
 - Uncommitted index changes are invisible to readers.
 - Source invalidation and project/session authorization apply to all retrieval
   implementations, including any future vector candidate path.
+- Startup repair work lists are derived hints: missing/deleted records are
+  skipped, including deletion after enumeration. They must not block readiness
+  or recreate deleted sources.
 - Historical output is evidence, not instructions. Generated summaries and
   proposals cannot activate reviewed memory.
 - In-memory plugin/collector acceptance is not durable. Current queue overflow
