@@ -69,13 +69,21 @@ func Inspect(client string, raw []byte, c *Context) {
 		case "response_item":
 			c.CodexResponses = true
 		}
-	case "claude-code":
+	case "claude-code", "qoder", "qoder-cn":
 		c.SessionID = first(text(m["sessionId"]), c.SessionID)
 		inspectWorkspace(c, text(m["cwd"]))
 		c.Model = first(c.Model, text(object(m["message"])["model"]))
 		if p := text(m["sourceToolAssistantUUID"]); p != "" {
 			c.ParentID = first(c.ParentID, p)
 		}
+	case "workbuddy", "codebuddy":
+		c.SessionID = first(text(m["sessionId"]), c.SessionID)
+		inspectWorkspace(c, text(m["cwd"]))
+		c.Model = first(c.Model, text(object(m["providerData"])["model"]))
+		if c.CreatedAt.IsZero() {
+			c.CreatedAt = additionalTime(m["timestamp"])
+		}
+		c.Title = first(text(m["customTitle"]), text(m["aiTitle"]), c.Title)
 	case "kiro-cli":
 		c.Title = first(text(m["title"]), c.Title)
 		c.SessionID = first(c.SessionID, text(m["session_id"]))
@@ -211,7 +219,7 @@ func Normalize(e Envelope) Document {
 			default:
 				d.issue("unsupported Codex event retained")
 			}
-		case "claude-code":
+		case "claude-code", "qoder", "qoder-cn":
 			switch text(m["type"]) {
 			case "user", "assistant":
 				v := object(m["message"])
@@ -230,6 +238,11 @@ func Normalize(e Envelope) Document {
 			default:
 				d.issue("unsupported Claude event retained")
 			}
+		case "opencode", "zcode":
+			d.databaseEvent(m, p)
+			continue
+		case "workbuddy", "codebuddy":
+			d.buddyEvent(m, p)
 		case "kiro-cli":
 			v := object(m["data"])
 			switch text(m["kind"]) {

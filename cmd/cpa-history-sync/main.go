@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +33,7 @@ func run() error {
 	target := flag.String("archive", "", "private staging SQLite archive (required)")
 	codexHome := flag.String("codex-home", "", "explicit absolute Codex home")
 	claudeHome := flag.String("claude-home", "", "explicit absolute Claude Code home")
+	clients := flag.String("clients", "", "optional comma-separated native client IDs to collect")
 	verifyAll := flag.Bool("verify-all", false, "ignore unchanged-file proofs and verify every committed prefix")
 	reportPath := flag.String("report", "", "new private JSON report path")
 	exportPath := flag.String("export", "", "export a new delta archive instead of collecting")
@@ -92,6 +94,29 @@ func run() error {
 		roots[2].Path = filepath.Join(*claudeHome, "projects")
 	}
 
+	if *clients != "" {
+		selected := map[string]bool{}
+		for _, id := range strings.Split(*clients, ",") {
+			id = strings.TrimSpace(id)
+			found := false
+			for _, root := range roots {
+				if root.Client == id {
+					found = true
+				}
+			}
+			if !found {
+				return fmt.Errorf("unknown native client filter")
+			}
+			selected[id] = true
+		}
+		filtered := roots[:0]
+		for _, root := range roots {
+			if selected[root.Client] {
+				filtered = append(filtered, root)
+			}
+		}
+		roots = filtered
+	}
 	report, syncErr := historysync.Sync(ctx, historysync.Config{Store: store, Device: *device, Roots: roots, VerifyAll: *verifyAll, Progress: func(r historysync.Report) {
 		if time.Since(last) >= 15*time.Second {
 			fmt.Fprintf(os.Stderr, "native sync: files=%d new_segments=%d bytes=%d failures=%d\n", r.Files, r.Segments, r.Bytes, r.Failures)

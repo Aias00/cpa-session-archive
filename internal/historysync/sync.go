@@ -75,7 +75,7 @@ func Sync(ctx context.Context, cfg Config) (Report, error) {
 	}
 	remotes := map[string]string{}
 	for _, root := range cfg.Roots {
-		if root.Client != "codex" && root.Client != "claude-code" && root.Client != "kiro-cli" {
+		if !supportedClient(root.Client) {
 			return report, fmt.Errorf("unsupported native client")
 		}
 		info, err := os.Lstat(root.Path)
@@ -96,6 +96,17 @@ func Sync(ctx context.Context, cfg Config) (Report, error) {
 			if err != nil {
 				return report, err
 			}
+		}
+		if root.Client == "opencode" || root.Client == "zcode" {
+			report.Files++
+			if err := syncDatabase(ctx, cfg, root, remotes, &report); err != nil {
+				if ctx.Err() != nil {
+					return report, ctx.Err()
+				}
+				report.Failures++
+				report.Errors = append(report.Errors, FileError{root.Client, root.Path, err.Error()})
+			}
+			continue
 		}
 		if !info.IsDir() {
 			return report, fmt.Errorf("history root must be a real directory")
@@ -351,8 +362,18 @@ func enrich(ctx context.Context, client, path string, c *nativehistory.Context, 
 			c.SessionID = sid
 		}
 	}
+	if client == "qoder" || client == "qoder-cn" || client == "workbuddy" || client == "codebuddy" {
+		if !strings.Contains(filepath.ToSlash(path), "/subagents/") {
+			c.SessionID = strings.TrimSuffix(filepath.Base(path), ".jsonl")
+			c.AgentRole = "main"
+		}
+	}
 	stem := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	if client == "claude-code" && strings.Contains(filepath.ToSlash(path), "/subagents/") {
+	if (client == "claude-code" || client == "qoder" || client == "qoder-cn" || client == "workbuddy" || client == "codebuddy") && strings.Contains(filepath.ToSlash(path), "/subagents/") {
+		if client != "claude-code" {
+			c.ParentID = filepath.Base(filepath.Dir(filepath.Dir(path)))
+			c.AgentRole = "subagent"
+		}
 		c.Branch = stem
 		meta, err := os.Open(strings.TrimSuffix(path, ".jsonl") + ".meta.json")
 		if err == nil {
@@ -465,6 +486,11 @@ func commitSegment(ctx context.Context, cfg Config, key, path string, e nativehi
 		var m map[string]any
 		if json.Unmarshal([]byte(line.Raw), &m) == nil {
 			t := timestamp(m["timestamp"])
+			if t.IsZero() && (e.Client == "workbuddy" || e.Client == "codebuddy") {
+				if ms, ok := m["timestamp"].(float64); ok && ms > 0 {
+					t = time.UnixMilli(int64(ms)).UTC()
+				}
+			}
 			if t.IsZero() {
 				t = timestamp(object(object(m["data"])["meta"])["timestamp"])
 			}

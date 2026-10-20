@@ -188,3 +188,47 @@ remain resumable; repair failures keep `/readyz` false instead of advertising an
 incomplete startup. The collector remains able to receive queued ingestion while
 startup repairs run. Deployment readiness must account for historical backlogs;
 inspect repair progress rather than repeatedly restarting a working batch.
+
+## Additional native clients
+
+The built-in roots also include Qoder (`QODER_CONFIG_DIR`, otherwise
+`~/.qoder/projects`), Qoder CN (`QODERCN_CONFIG_DIR`, otherwise
+`~/.qoder-cn/projects`), WorkBuddy (`WORKBUDDY_CONFIG_DIR`, otherwise
+`~/.workbuddy/projects`) and CodeBuddy (`CODEBUDDY_CONFIG_DIR`, otherwise
+`~/.codebuddy/projects`). Configured client homes must be absolute. Qoder uses
+Claude-compatible event records; Buddy clients use SDK message/function-call
+records. Tool result objects and arrays are retained and indexed, while opaque
+reasoning/media stays retained with partial-coverage reporting. Logs, audit traces
+and unrelated application files are excluded by selecting the projects roots.
+
+OpenCode is read from `$XDG_DATA_HOME/opencode/opencode.db` (default
+`~/.local/share/opencode/opencode.db`); ZCode from `~/.zcode/cli/db/db.sqlite`.
+Only known session/message/part tables are read through a single read-only SQLite
+transaction per pass, including committed WAL data. No account/share/secret
+lookup tables are copied. Source JSON data strings are retained verbatim in the
+native envelope; pointers address the decoded row JSON, as with native JSONL
+`raw` strings. Tool kind/name/call ID and recorded model/time remain available.
+
+If OpenCode v2 is present, sessions present in `session_v2` use
+`session_message`; only unmigrated session IDs use legacy `message`/`part`.
+ZCode uses the legacy schema. Stage row digests are acknowledged after archive
+commit. Replaying identical rows adds nothing; changed rows/parts/session context
+produce explicit immutable historical snapshots. Old revisions remain available
+as historical evidence, including after deletion in the client; the archive is
+not a live mirror. Revision snapshots may both appear in search until a future
+revision-aware presentation layer groups them. They must not be treated as
+independent corroboration of a claim. Native session/parent IDs preserve the
+client and source-device namespaces, with subagents kept distinct.
+
+For an isolated capture or verification, select client IDs explicitly:
+
+```sh
+cpa-history-sync --device workstation --archive /private/stage.sqlite \
+  --clients qoder,workbuddy,codebuddy,opencode,zcode
+```
+
+Omitting `--clients` scans all bundled roots, so the existing scheduled job
+includes these clients after updating its binary. Existing Codex/Claude/Kiro IDs,
+normalizer-v2 citations and the v3 projection schema remain compatible. Source
+SQLite rows are inspected each pass; unchanged-file proof caching applies to
+JSONL, not live databases. No model CLI is launched to collect history.

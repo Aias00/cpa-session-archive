@@ -70,6 +70,9 @@ using existing canonical Git repositories. The recall collector is deployed on t
 user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
 for access, verification and rollback.
 
+Native history synchronization also supports Qoder, WorkBuddy, CodeBuddy,
+OpenCode and ZCode; see [client roots and database revision semantics](docs/native-history-sync.md#additional-native-clients).
+
 The request path never waits for disk I/O. A full queue or unavailable
 collector does not fail the model request and is retried with bounded
 backpressure. Accepted collector batches wait through transient SQLite locks

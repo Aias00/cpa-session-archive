@@ -32,7 +32,20 @@ func DefaultRoots(home string) ([]Root, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []Root{{"codex", filepath.Join(codex, "sessions")}, {"codex", filepath.Join(codex, "archived_sessions")}, {"claude-code", filepath.Join(claude, "projects")}, {"kiro-cli", filepath.Join(home, ".kiro/sessions/cli")}}, nil
+	roots := []Root{{"codex", filepath.Join(codex, "sessions")}, {"codex", filepath.Join(codex, "archived_sessions")}, {"claude-code", filepath.Join(claude, "projects")}, {"kiro-cli", filepath.Join(home, ".kiro/sessions/cli")}}
+	for _, client := range []struct{ id, env, dir string }{{"qoder", "QODER_CONFIG_DIR", ".qoder"}, {"qoder-cn", "QODERCN_CONFIG_DIR", ".qoder-cn"}, {"workbuddy", "WORKBUDDY_CONFIG_DIR", ".workbuddy"}, {"codebuddy", "CODEBUDDY_CONFIG_DIR", ".codebuddy"}} {
+		dir, err := resolve(client.env, client.dir)
+		if err != nil {
+			return nil, err
+		}
+		roots = append(roots, Root{client.id, filepath.Join(dir, "projects")})
+	}
+	data, err := resolve("XDG_DATA_HOME", ".local/share")
+	if err != nil {
+		return nil, err
+	}
+	roots = append(roots, Root{"opencode", filepath.Join(data, "opencode/opencode.db")}, Root{"zcode", filepath.Join(home, ".zcode/cli/db/db.sqlite")})
+	return roots, nil
 }
 
 // Rollout/segment recognition follows Magpie's MIT-licensed sessions reader.
@@ -85,4 +98,12 @@ func decodeHistory(ctx context.Context, path string) (*os.File, func(), error) {
 		return nil, nil, err
 	}
 	return file, cleanup, nil
+}
+
+func supportedClient(client string) bool {
+	switch client {
+	case "codex", "claude-code", "kiro-cli", "qoder", "qoder-cn", "workbuddy", "codebuddy", "opencode", "zcode":
+		return true
+	}
+	return false
 }

@@ -3,6 +3,7 @@ package nativehistory
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 func inspectIdentity(c *Context, p map[string]any) {
@@ -48,8 +49,14 @@ func annotateMessages(messages []Message, root map[string]any, prefix, client, m
 	if client == "kiro-cli" {
 		at = text(object(object(root["data"])["meta"])["timestamp"])
 	}
-	if client == "claude-code" {
+	if client == "claude-code" || client == "qoder" || client == "qoder-cn" {
 		model = text(object(root["message"])["model"])
+	}
+	if client == "workbuddy" || client == "codebuddy" {
+		model = first(text(object(root["providerData"])["model"]), text(object(root["providerData"])["requestModelId"]))
+		if t := additionalTime(root["timestamp"]); !t.IsZero() {
+			at = t.UTC().Format(time.RFC3339Nano)
+		}
 	}
 	for i := range messages {
 		m := &messages[i]
@@ -78,15 +85,16 @@ func annotateMessages(messages []Message, root map[string]any, prefix, client, m
 			case "function_call", "custom_tool_call", "local_shell_call", "tool_use":
 				m.Kind = "tool_use"
 				m.ToolName = text(b["name"])
-				m.ToolCallID = first(text(b["call_id"]), text(b["id"]))
+				m.ToolCallID = first(text(b["callId"]), text(b["call_id"]), text(b["id"]))
 			case "toolUse":
 				v := object(b["data"])
 				m.Kind = "tool_use"
 				m.ToolName = text(v["name"])
 				m.ToolCallID = text(v["toolUseId"])
-			case "function_call_output", "custom_tool_call_output":
+			case "function_call_output", "custom_tool_call_output", "function_call_result":
+				m.ToolName = text(b["name"])
 				m.Kind = "tool_result"
-				m.ToolCallID = text(b["call_id"])
+				m.ToolCallID = first(text(b["callId"]), text(b["call_id"]))
 			case "tool_result":
 				m.Kind = "tool_result"
 				m.ToolCallID = text(b["tool_use_id"])
