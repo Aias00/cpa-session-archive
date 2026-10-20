@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/boundedqueue"
 	"cpa-session-archive/internal/memory"
 )
 
@@ -40,21 +42,41 @@ func (m *ingestionMetrics) invalid() {
 	m.state.InvalidRequests++
 }
 
-func (m *ingestionMetrics) enqueue(q chan archive.Record, rec archive.Record) bool {
+func (m *ingestionMetrics) enqueue(q *boundedqueue.Queue[archive.Record], rec archive.Record) boundedqueue.Rejection {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.initializeLocked()
-	select {
-	case q <- rec:
+	weight, err := archive.QueueWeight(rec)
+	if err != nil {
+		m.state.QueueRejected++
+		m.state.OversizeRejected++
+		return boundedqueue.Oversize
+	}
+	reason := q.TryPush(rec, weight)
+	switch reason {
+	case boundedqueue.Accepted:
 		m.state.EnqueuedDeliveries++
 		if rec.Truncated {
 			m.state.TruncatedDeliveries++
 		}
-		return true
+		return boundedqueue.Accepted
 	default:
 		m.state.QueueRejected++
-		return false
+		if reason == boundedqueue.ByteLimit {
+			m.state.ByteRejected++
+		}
+		if reason == boundedqueue.Oversize {
+			m.state.OversizeRejected++
+		}
+		return reason
 	}
+}
+
+func (m *ingestionMetrics) busy() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.initializeLocked()
+	m.state.BusyRejected++
 }
 
 func (m *ingestionMetrics) bufferRecord() {
@@ -98,6 +120,36 @@ func (s *server) ingestionStatus() memory.IngestionStatus {
 	defer m.mu.Unlock()
 	m.initializeLocked()
 	out := m.state
-	out.QueueDepth, out.QueueCapacity = len(s.q), cap(s.q)
+	queue := s.q.Snapshot()
+	out.QueueDepth, out.QueueCapacity = queue.Depth, queue.Capacity
+	out.QueueBytes, out.QueueMaxBytes = queue.RetainedBytes, queue.MaxBytes
 	return out
+}
+
+// Reports are best-effort loopback telemetry, not authenticated durability ACKs.
+// Keep only the most recently reporting producer and expose its observation time.
+func (m *ingestionMetrics) observeProducer(header string) {
+	if header == "" {
+		return
+	}
+	var report archive.CaptureStatus
+	if len(header) > 4096 || json.Unmarshal([]byte(header), &report) != nil || report.Version != 1 || report.Epoch == "" || len(report.Epoch) > 128 {
+		return
+	}
+	for _, r := range report.Epoch {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' || r == '.') {
+			return
+		}
+	}
+	if report.Queue.Depth < 0 || report.Queue.Capacity < 0 || report.Queue.RetainedBytes < 0 || report.Queue.MaxBytes < 0 || report.InFlight < 0 || report.ActiveRequests < 0 {
+		return
+	}
+	if _, err := time.Parse(time.RFC3339Nano, report.Since); err != nil {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.initializeLocked()
+	m.state.ProducerObserved = true
+	m.state.Producer = &memory.ProducerObservation{Capture: report, ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 }

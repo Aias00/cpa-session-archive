@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"cpa-session-archive/internal/boundedqueue"
+
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
 )
@@ -25,6 +27,7 @@ type pluginConfig struct {
 	Enabled              bool   `yaml:"enabled"`
 	Endpoint             string `yaml:"endpoint"`
 	QueueSize            int    `yaml:"queue_size"`
+	QueueMaxBytes        int64  `yaml:"queue_max_bytes"`
 	MaxBodyBytes         int    `yaml:"max_body_bytes"`
 	Timeout              string `yaml:"timeout"`
 	StoreUpstreamRequest bool   `yaml:"store_upstream_request"`
@@ -34,12 +37,20 @@ type lifecycle struct {
 }
 type state struct {
 	Record
-	chunks bytes.Buffer
+	chunks  bytes.Buffer
+	catalog bool
 }
 type Plugin struct {
 	mu            sync.Mutex
 	active        map[string]*state
-	q             chan Record
+	q             *boundedqueue.Queue[Record]
+	metrics       captureMetrics
+	closed        bool
+	finished      map[[32]byte]struct{}
+	finishOrder   [4096][32]byte
+	finishCursor  int
+	ctx           context.Context
+	cancel        context.CancelFunc
 	stop          chan struct{}
 	client        *http.Client
 	endpoint      string
@@ -75,7 +86,8 @@ func NewPlugin() *Plugin {
 		Proxy:       nil,
 		DialContext: (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 	}
-	return &Plugin{active: map[string]*state{}, stop: make(chan struct{}), client: &http.Client{Timeout: 5 * time.Second, Transport: transport}, max: 64 << 20}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Plugin{active: map[string]*state{}, finished: make(map[[32]byte]struct{}), stop: make(chan struct{}), client: &http.Client{Timeout: 5 * time.Second, Transport: transport}, max: 64 << 20, ctx: ctx, cancel: cancel}
 }
 func ok(v any) ([]byte, error) { return json.Marshal(envelope{OK: true, Result: v}) }
 func (p *Plugin) Handle(method string, raw []byte) ([]byte, error) {
@@ -127,17 +139,28 @@ func (p *Plugin) Handle(method string, raw []byte) ([]byte, error) {
 }
 func (p *Plugin) configure(raw []byte) ([]byte, error) {
 	var l lifecycle
-	_ = json.Unmarshal(raw, &l)
-	c := pluginConfig{Enabled: true, QueueSize: 2048, MaxBodyBytes: 64 << 20, Timeout: "5s"}
-	_ = yaml.Unmarshal(l.ConfigYAML, &c)
+	if json.Unmarshal(raw, &l) != nil {
+		return nil, errors.New("invalid plugin lifecycle")
+	}
+	c := pluginConfig{Enabled: true, QueueSize: 2048, QueueMaxBytes: 256 << 20, MaxBodyBytes: 64 << 20, Timeout: "5s"}
+	if yaml.Unmarshal(l.ConfigYAML, &c) != nil || c.QueueMaxBytes <= 0 {
+		return nil, errors.New("invalid archive queue configuration")
+	}
 	if c.QueueSize < 64 {
 		c.QueueSize = 64
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return nil, errors.New("archive plugin is stopped")
 	}
 	if c.MaxBodyBytes > 0 {
 		p.max = c.MaxBodyBytes
 	}
 	if d, e := time.ParseDuration(c.Timeout); e == nil {
-		p.client.Timeout = d
+		client := *p.client
+		client.Timeout = d
+		p.client = &client
 	}
 	endpoint := strings.TrimRight(strings.TrimSpace(c.Endpoint), "/")
 	if endpoint == "" {
@@ -146,11 +169,19 @@ func (p *Plugin) configure(raw []byte) ([]byte, error) {
 	p.endpoint = endpoint + "/ingest"
 	p.storeUpstream = c.StoreUpstreamRequest
 	if p.q == nil {
-		p.q = make(chan Record, c.QueueSize)
+		queue, err := boundedqueue.New[Record](c.QueueSize, c.QueueMaxBytes)
+		if err != nil {
+			return nil, err
+		}
+		p.q = queue
 		p.wg.Add(1)
 		go p.sender()
+	} else {
+		if err := p.q.SetMaxBytes(c.QueueMaxBytes); err != nil {
+			return nil, err
+		}
 	}
-	reg := map[string]any{"schema_version": 2, "metadata": map[string]any{"Name": "cpa-session-archive", "Version": Version, "Author": "OneTwo", "GitHubRepository": "https://github.com/linonetwo/cpa-session-archive", "ConfigFields": []any{}}, "capabilities": map[string]any{"request_interceptor": true, "request_lifecycle_plugin": true, "response_interceptor": true, "response_stream_interceptor": true, "management_api": true}}
+	reg := map[string]any{"schema_version": 5, "metadata": map[string]any{"Name": "cpa-session-archive", "Version": Version, "Author": "OneTwo", "GitHubRepository": "https://github.com/linonetwo/cpa-session-archive", "ConfigFields": []any{}}, "capabilities": map[string]any{"request_interceptor": true, "request_lifecycle_plugin": true, "response_interceptor": true, "response_stream_interceptor": true, "management_api": true}}
 	return ok(reg)
 }
 func (p *Plugin) captureRequest(r intercept, afterAuth bool) {
@@ -159,6 +190,9 @@ func (p *Plugin) captureRequest(r intercept, afterAuth bool) {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if p.closed || p.requestFinished(r.RequestID) {
+		return
+	}
 	s := p.active[r.RequestID]
 	if s == nil {
 		s = &state{}
@@ -216,21 +250,37 @@ func (p *Plugin) captureRequest(r intercept, afterAuth bool) {
 	}
 }
 func (p *Plugin) captureResponse(r intercept) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if s := p.active[r.RequestID]; s != nil {
-		s.StatusCode = r.StatusCode
-		s.Response = limit(r.Body, p.max, &s.Truncated)
-		s.ResponseID = firstJSON(r.Body, "id")
-	}
-}
-func (p *Plugin) captureChunk(r intercept) {
-	if r.ChunkIndex < 0 {
+	if r.RequestID == "" {
 		return
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if s := p.active[r.RequestID]; s != nil {
+	if p.closed || p.requestFinished(r.RequestID) {
+		return
+	}
+	if p.active[r.RequestID] == nil && modelCatalogResponse(r) {
+		p.active[r.RequestID] = &state{catalog: true}
+		return
+	}
+	s := p.responseState(r, false)
+	s.StatusCode = r.StatusCode
+	s.Response = limit(r.Body, p.max, &s.Truncated)
+	s.ResponseID = firstJSON(r.Body, "id")
+}
+func (p *Plugin) captureChunk(r intercept) {
+	if r.ChunkIndex < -1 || r.RequestID == "" {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed || p.requestFinished(r.RequestID) {
+		return
+	}
+	s := p.responseState(r, true)
+	if r.ChunkIndex == -1 {
+		return
+	}
+	if s != nil {
 		remaining := p.max - s.chunks.Len()
 		if remaining <= 0 {
 			s.Truncated = true
@@ -245,12 +295,28 @@ func (p *Plugin) captureChunk(r intercept) {
 	}
 }
 func (p *Plugin) complete(r completion) {
+	if r.RequestID == "" {
+		p.metrics.update(func(s *CaptureStatus) { s.InvalidDropped++ })
+		return
+	}
+	p.metrics.update(func(s *CaptureStatus) { s.Completed++ })
 	p.mu.Lock()
+	if p.requestFinished(r.RequestID) {
+		p.mu.Unlock()
+		p.metrics.update(func(s *CaptureStatus) { s.DuplicateCompletions++ })
+		return
+	}
+	p.rememberFinished(r.RequestID)
 	s := p.active[r.RequestID]
 	delete(p.active, r.RequestID)
 	p.mu.Unlock()
 	if s == nil {
+		p.metrics.update(func(s *CaptureStatus) { s.MissingRequestState++ })
 		s = &state{Record: Record{RequestID: r.RequestID}}
+	}
+	if s.catalog {
+		p.metrics.update(func(s *CaptureStatus) { s.CatalogSkipped++ })
+		return
 	}
 	s.TraceID = r.TraceID
 	s.SourceFormat = r.SourceFormat
@@ -278,10 +344,7 @@ func (p *Plugin) complete(r completion) {
 		s.ResponsePreview = extractResponsePreview(s.Response)
 	}
 	addCompletionFacets(&s.Record)
-	select {
-	case p.q <- s.Record:
-	default:
-	}
+	p.enqueue(s.Record)
 }
 
 func extractResponsePreview(body []byte) string {
@@ -389,29 +452,71 @@ func (p *Plugin) sender() {
 	defer p.wg.Done()
 	for {
 		select {
-		case rec := <-p.q:
-			p.sendWithRetry(rec)
+		case item := <-p.q.Items():
+			p.metrics.update(func(s *CaptureStatus) { s.InFlight++ })
+			result := p.sendWithRetry(item.Value)
+			item.Done()
+			p.metrics.update(func(s *CaptureStatus) {
+				s.InFlight--
+				switch result {
+				case deliveryAccepted:
+					s.HTTPAccepted++
+				case deliveryRejected:
+					s.DeliveryRejected++
+				case deliveryStopped:
+					s.ShutdownDiscarded++
+				}
+			})
 		case <-p.stop:
 			return
 		}
 	}
 }
 
-func (p *Plugin) sendWithRetry(rec Record) {
-	b, _ := json.Marshal(rec)
+type deliveryResult int
+
+const (
+	deliveryAccepted deliveryResult = iota
+	deliveryRejected
+	deliveryStopped
+)
+
+func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
+	b, err := json.Marshal(rec)
+	if err != nil {
+		return deliveryRejected
+	}
 	backoff := 250 * time.Millisecond
 	for {
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, p.endpoint, bytes.NewReader(b))
+		select {
+		case <-p.stop:
+			return deliveryStopped
+		default:
+		}
+		p.mu.Lock()
+		endpoint, client, ctx := p.endpoint, p.client, p.ctx
+		p.mu.Unlock()
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
+		if err != nil {
+			return deliveryRejected
+		}
 		req.Header.Set("Content-Type", "application/json")
-		resp, err := p.client.Do(req)
+		status, _ := json.Marshal(p.CaptureStatus())
+		req.Header.Set(CaptureStatusHeader, string(status))
+		resp, err := client.Do(req)
+		code := 0
 		if err == nil {
 			resp.Body.Close()
+			code = resp.StatusCode
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				return
+				return deliveryAccepted
 			}
-			err = fmt.Errorf("collector returned HTTP %d", resp.StatusCode)
+			if code == 400 || code == 413 || code == 422 {
+				return deliveryRejected
+			}
 		}
-		log.Printf("archive delivery failed request_id=%s endpoint=%s: %v; retrying in %s", rec.RequestID, p.endpoint, err, backoff)
+		p.metrics.update(func(s *CaptureStatus) { s.DeliveryRetries++ })
+		log.Printf("archive delivery retry: status=%d backoff=%s", code, backoff)
 		timer := time.NewTimer(backoff)
 		select {
 		case <-timer.C:
@@ -419,7 +524,7 @@ func (p *Plugin) sendWithRetry(rec Record) {
 			if !timer.Stop() {
 				<-timer.C
 			}
-			return
+			return deliveryStopped
 		}
 		if backoff < 30*time.Second {
 			backoff *= 2
@@ -430,12 +535,27 @@ func (p *Plugin) sendWithRetry(rec Record) {
 	}
 }
 func (p *Plugin) Shutdown() {
+	p.mu.Lock()
 	select {
 	case <-p.stop:
 	default:
+		p.closed = true
+		p.metrics.update(func(s *CaptureStatus) { s.ShutdownActiveDiscarded += uint64(len(p.active)) })
+		clear(p.active)
 		close(p.stop)
+		p.cancel()
 	}
+	p.mu.Unlock()
 	p.wg.Wait()
+	for {
+		select {
+		case item := <-p.q.Items():
+			item.Done()
+			p.metrics.update(func(s *CaptureStatus) { s.ShutdownDiscarded++ })
+		default:
+			return
+		}
+	}
 }
 func limit(b []byte, n int, t *bool) []byte {
 	if len(b) > n {

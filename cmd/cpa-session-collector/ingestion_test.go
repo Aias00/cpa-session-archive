@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +11,90 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/boundedqueue"
 	"cpa-session-archive/internal/storage"
 )
+
+func TestIngestionByteBudgetIncludesPendingWrite(t *testing.T) {
+	rec := archive.Record{RequestID: "one", SessionID: "request:one"}
+	weight, err := archive.QueueWeight(rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q, err := boundedqueue.New[archive.Record](4, weight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &server{q: q, s: &metricBackend{put: func([]archive.Record) error { return nil }}}
+	post := func(body string) int {
+		w := httptest.NewRecorder()
+		s.ingest(w, httptest.NewRequest(http.MethodPost, "/ingest", strings.NewReader(body)))
+		return w.Code
+	}
+	if got := post(`{"request_id":"one"}`); got != 202 {
+		t.Fatalf("admission: %d", got)
+	}
+	item := <-q.Items()
+	if got := post(`{"request_id":"two"}`); got != 503 {
+		t.Fatalf("in-flight reservation: %d", got)
+	}
+	if got := post(`{"request_id":"much-longer-record"}`); got != 413 {
+		t.Fatalf("oversize: %d", got)
+	}
+	entries := []*boundedqueue.Item[archive.Record]{item}
+	s.flushEntries(entries)
+	if entries[0] != nil || item.Value.RequestID != "" || q.Snapshot().RetainedBytes != 0 {
+		t.Fatal("completed batch retains payload or reservation")
+	}
+	if got := post(`{"request_id":"two"}`); got != 202 {
+		t.Fatalf("released reservation: %d", got)
+	}
+	(<-q.Items()).Done()
+	status := s.ingestionStatus()
+	if status.ByteRejected != 1 || status.OversizeRejected != 1 || status.CommittedDeliveries != 1 {
+		t.Fatalf("unexpected counters: %+v", status)
+	}
+}
+
+type unreadableBody struct{ t *testing.T }
+
+func (b unreadableBody) Read([]byte) (int, error) {
+	b.t.Error("busy admission read request body")
+	return 0, errors.New("unexpected read")
+}
+func (b unreadableBody) Close() error { return nil }
+
+func TestIngestionBusyRejectsBeforeDecode(t *testing.T) {
+	s := &server{q: testRecordQueue(t, 1), decodeSlots: make(chan struct{}, 1)}
+	s.decodeSlots <- struct{}{}
+	r := httptest.NewRequest(http.MethodPost, "/ingest", nil)
+	r.Body = unreadableBody{t}
+	w := httptest.NewRecorder()
+	s.ingest(w, r)
+	if w.Code != 503 || s.ingestionStatus().BusyRejected != 1 {
+		t.Fatal("busy decoder was not rejected")
+	}
+}
+
+func TestProducerObservationValidation(t *testing.T) {
+	report := archive.CaptureStatus{Version: 1, Epoch: "fixture-1", Since: time.Now().UTC().Format(time.RFC3339Nano), Enqueued: 7}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m ingestionMetrics
+	m.observeProducer(string(encoded))
+	if !m.state.ProducerObserved || m.state.Producer.Capture.Enqueued != 7 || m.state.Producer.ReceivedAt == "" {
+		t.Fatal("valid producer report missing")
+	}
+	original := m.state.Producer
+	for _, input := range []string{"{", strings.Repeat("x", 4097), strings.Replace(string(encoded), "fixture-1", "invalid epoch", 1), strings.Replace(string(encoded), `"version":1`, `"version":2`, 1), strings.Replace(string(encoded), `"in_flight":0`, `"in_flight":-1`, 1)} {
+		m.observeProducer(input)
+		if m.state.Producer != original {
+			t.Fatal("invalid report replaced valid observation")
+		}
+	}
+}
 
 type metricBackend struct {
 	storage.Backend
@@ -34,7 +117,7 @@ func awaitMetricWrite(t *testing.T, ch <-chan struct{}) {
 func TestIngestionDiagnosticsSeparateAdmissionFromCommit(t *testing.T) {
 	entered, release, done := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	backend := &metricBackend{put: func([]archive.Record) error { close(entered); <-release; return nil }}
-	s := &server{s: backend, q: make(chan archive.Record, 1)}
+	s := &server{s: backend, q: testRecordQueue(t, 1)}
 	for _, input := range []struct {
 		method, body string
 		code         int
@@ -54,8 +137,9 @@ func TestIngestionDiagnosticsSeparateAdmissionFromCommit(t *testing.T) {
 	if before.ReceivedRequests != 4 || before.InvalidRequests != 2 || before.EnqueuedDeliveries != 1 || before.QueueRejected != 1 || before.TruncatedDeliveries != 1 || before.CommittedDeliveries != 0 || before.QueueDepth != 1 || before.ProducerObserved || before.Acknowledgement != "in_memory_queue" {
 		t.Fatalf("admission was mistaken for commit or producer observation: %+v", before)
 	}
-	batch := []archive.Record{<-s.q}
-	go func() { defer close(done); s.flush(batch) }()
+	entry := <-s.q.Items()
+	batch := []archive.Record{entry.Value}
+	go func() { defer close(done); s.flush(batch); clear(batch); entry.Done() }()
 	awaitMetricWrite(t, entered)
 	inFlight := s.ingestionStatus()
 	if inFlight.WriteInFlight != 1 || inFlight.CommittedDeliveries != 0 {
@@ -108,4 +192,13 @@ func TestIngestionDiagnosticsRetryAndDiscard(t *testing.T) {
 			t.Fatalf("retry completion: %+v", got)
 		}
 	})
+}
+
+func testRecordQueue(t *testing.T, capacity int) *boundedqueue.Queue[archive.Record] {
+	t.Helper()
+	q, err := boundedqueue.New[archive.Record](capacity, 512<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return q
 }

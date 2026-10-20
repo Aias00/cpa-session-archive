@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -93,7 +92,10 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 	default:
 		return ok(managementResponse{StatusCode: 404, Body: []byte("{\"error\":\"not found\"}")})
 	}
-	u := strings.TrimSuffix(p.endpoint, "/ingest") + target
+	p.mu.Lock()
+	endpoint, client := p.endpoint, p.client
+	p.mu.Unlock()
+	u := strings.TrimSuffix(endpoint, "/ingest") + target
 	if len(r.Query) > 0 {
 		q := url.Values{}
 		for k, v := range r.Query {
@@ -109,13 +111,21 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 	if len(r.Body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, e := p.client.Do(req)
+	resp, e := client.Do(req)
 	if e != nil {
-		body, _ := json.Marshal(map[string]string{"error": "collector unavailable", "detail": fmt.Sprintf("%s: %v", u, e)})
+		body, _ := json.Marshal(map[string]any{"error": "collector unavailable", "capture": p.CaptureStatus()})
 		return ok(managementResponse{StatusCode: 502, Headers: http.Header{"Content-Type": []string{"application/json"}}, Body: body})
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
+	if target == "/v1/stats" {
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(body, &fields) == nil && fields != nil {
+			capture, _ := json.Marshal(p.CaptureStatus())
+			fields["capture"] = capture
+			body, _ = json.Marshal(fields)
+		}
+	}
 	headers := http.Header{"Content-Type": []string{resp.Header.Get("Content-Type")}}
 	if v := resp.Header.Get("Content-Disposition"); v != "" {
 		headers.Set("Content-Disposition", v)

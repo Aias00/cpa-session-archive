@@ -81,6 +81,14 @@ increase write work; test indexing throughput as well as query latency.
   and collector 202 semantics remain reliability gaps; no storage abstraction
   claims to recover traffic lost before archive commit.
 
+Delivery admission uses a small generic count/weight queue. Reservations survive
+dequeue, storage retry and HTTP retry until the consumer releases the item.
+Archive-specific retained-weight estimation belongs to the archive package, not
+the queue or storage backend. Collector decoding has a separate concurrency
+bound. These controls bound pending payload retention without pretending to bound
+active capture or total RSS. Process-local producer observations remain delivery
+diagnostics attached outside the projection engine.
+
 Online archive backups pin a read transaction across backup steps, preventing
 concurrent commits from repeatedly restarting the copy. WAL writers remain
 available; the pinned snapshot temporarily retains WAL history until copying

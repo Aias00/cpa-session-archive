@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/boundedqueue"
 	"cpa-session-archive/internal/storage"
 )
 
@@ -25,7 +26,8 @@ type server struct {
 	ingestion           ingestionMetrics
 	s                   storage.Backend
 	exportDir           string
-	q                   chan archive.Record
+	q                   *boundedqueue.Queue[archive.Record]
+	decodeSlots         chan struct{}
 	startupReady        <-chan struct{}
 	ticketMu            sync.Mutex
 	tickets             map[string]exportTicket
@@ -66,6 +68,18 @@ func main() {
 }
 
 func run() error {
+	queueLimit, errQueue := strconv.ParseInt(env("ARCHIVE_QUEUE_MAX_BYTES", "536870912"), 10, 64)
+	if errQueue != nil || queueLimit <= 0 {
+		return fmt.Errorf("invalid ARCHIVE_QUEUE_MAX_BYTES")
+	}
+	queue, errQueue := boundedqueue.New[archive.Record](4096, queueLimit)
+	if errQueue != nil {
+		return errQueue
+	}
+	decodeLimit, errDecode := strconv.Atoi(env("ARCHIVE_INGEST_CONCURRENCY", "2"))
+	if errDecode != nil || decodeLimit < 1 || decodeLimit > 64 {
+		return fmt.Errorf("invalid ARCHIVE_INGEST_CONCURRENCY")
+	}
 	dbPath := env("ARCHIVE_DB", "/data/archive.sqlite")
 	storeUpstream := env("STORE_UPSTREAM_REQUEST", "false") == "true"
 	sqlite, e := archive.OpenStore(dbPath, storeUpstream)
@@ -142,7 +156,7 @@ func run() error {
 			return nil
 		}
 	}
-	s := &server{s: st, exportDir: env("ARCHIVE_EXPORT_DIR", filepath.Dir(dbPath)), q: make(chan archive.Record, 4096), startupReady: startStartupTasks(
+	s := &server{s: st, exportDir: env("ARCHIVE_EXPORT_DIR", filepath.Dir(dbPath)), q: queue, decodeSlots: make(chan struct{}, decodeLimit), startupReady: startStartupTasks(
 		startupTask{name: "repair chain", run: repairChain},
 		startupTask{name: "turn projection", run: turnProjection},
 		startupTask{name: "turn facet projection", run: turnFacets},
@@ -303,6 +317,17 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method", 405)
 		return
 	}
+	s.ingestion.observeProducer(r.Header.Get(archive.CaptureStatusHeader))
+	if s.decodeSlots != nil {
+		select {
+		case s.decodeSlots <- struct{}{}:
+			defer func() { <-s.decodeSlots }()
+		default:
+			s.ingestion.busy()
+			http.Error(w, "ingestion busy", http.StatusServiceUnavailable)
+			return
+		}
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 192<<20)
 	var rec archive.Record
 	if e := json.NewDecoder(r.Body).Decode(&rec); e != nil || rec.RequestID == "" {
@@ -313,8 +338,10 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request) {
 	if rec.SessionID == "" {
 		rec.SessionID = "request:" + rec.RequestID
 	}
-	if s.ingestion.enqueue(s.q, rec) {
+	if reason := s.ingestion.enqueue(s.q, rec); reason == boundedqueue.Accepted {
 		w.WriteHeader(202)
+	} else if reason == boundedqueue.Oversize {
+		http.Error(w, "record exceeds queue budget", http.StatusRequestEntityTooLarge)
 	} else {
 		http.Error(w, "queue full", 503)
 	}
@@ -330,25 +357,40 @@ func (s *server) ingestStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.ingestionStatus())
 }
 func (s *server) writer() {
-	batch := make([]archive.Record, 0, 64)
+	batch := make([]*boundedqueue.Item[archive.Record], 0, 64)
 	tick := time.NewTicker(250 * time.Millisecond)
 	defer tick.Stop()
 	for {
 		select {
-		case r := <-s.q:
+		case r := <-s.q.Items():
 			batch = append(batch, r)
 			s.ingestion.bufferRecord()
 			if len(batch) >= 64 {
-				s.flush(batch)
+				s.flushEntries(batch)
 				batch = batch[:0]
 			}
 		case <-tick.C:
 			if len(batch) > 0 {
-				s.flush(batch)
+				s.flushEntries(batch)
 				batch = batch[:0]
 			}
 		}
 	}
+}
+
+func (s *server) flushEntries(entries []*boundedqueue.Item[archive.Record]) {
+	records := make([]archive.Record, len(entries))
+	for i, item := range entries {
+		records[i] = item.Value
+	}
+	defer func() {
+		clear(records)
+		for _, item := range entries {
+			item.Done()
+		}
+		clear(entries)
+	}()
+	s.flush(records)
 }
 func (s *server) flush(batch []archive.Record) {
 	if len(batch) == 0 {

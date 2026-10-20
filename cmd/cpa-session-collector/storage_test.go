@@ -45,13 +45,15 @@ func (b *collectorTestBackend) SessionsFiltered(_ context.Context, limit int, fi
 
 func TestCollectorUsesInjectedStorage(t *testing.T) {
 	backend := &collectorTestBackend{exists: true}
-	s := &server{s: backend, q: make(chan archive.Record, 1), tickets: map[string]exportTicket{}}
+	s := &server{s: backend, q: testRecordQueue(t, 1), tickets: map[string]exportTicket{}}
 	response := httptest.NewRecorder()
 	s.ingest(response, httptest.NewRequest(http.MethodPost, "/ingest", strings.NewReader(`{"request_id":"request","session_id":"backend-session"}`)))
 	if response.Code != http.StatusAccepted || backend.writes != 0 {
 		t.Fatalf("ingest status=%d writes=%d", response.Code, backend.writes)
 	}
-	s.flush([]archive.Record{<-s.q})
+	entry := <-s.q.Items()
+	s.flush([]archive.Record{entry.Value})
+	entry.Done()
 	if backend.writes != 1 || len(backend.rows) != 1 || backend.rows[0].SessionID != "backend-session" {
 		t.Fatalf("writes=%d rows=%+v", backend.writes, backend.rows)
 	}

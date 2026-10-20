@@ -77,10 +77,37 @@ diagnostics, not a durable loss ledger and not an acknowledgement upgrade.
 HTTP 202 still precedes archive commit. A crash can lose admitted work, and a
 queue rejection may later succeed through sender retries.
 
-`producer_observed=false` explicitly means plugin-side queue loss is not measured
-by this increment. Zero collector discards must not be reported as end-to-end
-zero loss. Producer telemetry and negotiated durable delivery remain separate
-reliability work.
+`producer_observed=false` means no valid producer report has been observed in
+this collector epoch. With a compatible plugin, `producer` contains the latest
+process-local capture snapshot and its collector `received_at` timestamp. Only
+the most recently reporting producer is retained; this is not an all-producer
+aggregate. Reports travel in the bounded `X-CPA-Archive-Capture` header and are
+best-effort loopback telemetry, not authenticated delivery receipts. There is no
+heartbeat: a report may become stale when no records are delivered. The snapshot
+precedes the current HTTP acknowledgement, so `http_accepted` can lag the current
+delivery. Zero collector discards must not be reported as end-to-end zero loss.
+
+Producer counters distinguish count-limit, byte-limit, oversize and invalid
+record drops, permanent HTTP rejections, retries, and shutdown discards. Their
+epoch resets with the plugin process. New explicit model-catalog callbacks are
+skipped rather than archived as empty conversations; historical records are not
+reclassified or deleted by this filter.
+
+Both delivery queues bound retained record weight, including dequeued entries
+waiting for a write or retry. Plugin `queue_max_bytes` defaults to 268435456;
+collector `ARCHIVE_QUEUE_MAX_BYTES` defaults to 536870912. These are estimated
+payload/metadata budgets, not total process RSS limits. Active request capture,
+HTTP serialization and database caches have separate allocations. Lowering the
+plugin limit does not evict already admitted entries; new admissions wait for
+the retained work to drain below the limit.
+
+Collector JSON decoding concurrency is bounded by `ARCHIVE_INGEST_CONCURRENCY`
+(default 2, range 1–64). Busy decoding and temporary queue pressure return 503;
+a single record exceeding the queue budget returns 413. Status exposes
+`busy_rejected`, `byte_rejected`, `oversize_rejected`, `queue_bytes` and
+`queue_max_bytes`. The plugin retries temporary delivery failures and treats
+400/413/422 as permanent rejections. None of these limits upgrades the volatile
+202 acknowledgement to a durable commit acknowledgement.
 
 ## Read and authorization architecture
 

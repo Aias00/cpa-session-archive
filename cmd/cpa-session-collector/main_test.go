@@ -337,7 +337,7 @@ func TestExpiredExportTicketReturnsMachineReadableGone(t *testing.T) {
 }
 
 func TestIngestValidatesAndQueuesWithoutWriting(t *testing.T) {
-	s := &server{q: make(chan archive.Record, 1)}
+	s := &server{q: testRecordQueue(t, 1)}
 	for _, test := range []struct {
 		method string
 		body   string
@@ -355,7 +355,9 @@ func TestIngestValidatesAndQueuesWithoutWriting(t *testing.T) {
 			t.Fatalf("%s %s: status=%d, want %d", test.method, test.body, response.Code, test.status)
 		}
 	}
-	record := <-s.q
+	entry := <-s.q.Items()
+	record := entry.Value
+	defer entry.Done()
 	if record.RequestID != "request-1" || record.SessionID != "request:request-1" {
 		t.Fatalf("unexpected queued record: %+v", record)
 	}

@@ -1,6 +1,8 @@
 enabled: true
 endpoint: http://cpa-session-collector:8080
 queue_size: 2048
+# Retained queued and in-flight payload budget; not a process RSS limit.
+queue_max_bytes: 268435456
 max_body_bytes: 67108864
 timeout: 5s
 store_upstream_request: false

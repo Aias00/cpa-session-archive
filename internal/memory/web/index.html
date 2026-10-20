@@ -22,7 +22,7 @@ body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:
 <div class="actions"><button type="submit">搜索</button><button type="button" id="recap">生成续接摘录</button><button type="button" id="refresh">刷新索引状态</button></div>
 </form>
 <p id="message" role="alert"></p>
-<section class="panel" aria-label="索引状态"><strong>索引状态</strong><div id="status" class="meta" aria-live="polite">输入专用令牌后刷新。令牌拥有本机全部归档的只读访问权限。</div></section>
+<section class="panel" aria-label="索引状态"><strong>索引状态</strong><div id="status" class="meta" aria-live="polite">输入专用只读令牌后刷新；可见范围由令牌权限决定。</div></section>
 <section id="results" aria-label="搜索结果" aria-live="polite"></section>
 </main>
 <script>
@@ -36,7 +36,8 @@ function status(data){
  if(data.scope_filtered){lines.push('全库统计已按凭据权限隐藏。');}
  else{lines.push('已索引来源 '+data.sources+' · 文本块 '+data.chunks+' · 唯一文本块 '+data.unique_chunks+' · 共享节省 '+data.deduplicated_chunks+' · 部分覆盖来源 '+data.partial_sources);}
  if(data.coverage){const c=data.coverage;lines.push('覆盖说明：仅有预期省略 '+c.expected_omissions_only_sources+' · 需要核查 '+c.needs_investigation_sources+'（包含类型不明，不等于数据丢失）');if(c.reasons.length)lines.push(c.reasons.map(r=>(coverageLabels[r.code]||'其他原因')+' '+r.sources).join(' · ')+'；同一来源可能有多种原因。');}
- if(data.ingestion){const i=data.ingestion;lines.push('本次采集运行（自 '+i.since+'）：收到请求 '+i.received_requests+' · 无效请求 '+i.invalid_requests+' · 接收入队 '+i.enqueued_deliveries+' · 确认写入 '+i.committed_deliveries+' · 拒绝入队 '+i.queue_rejected+' · 写入失败后放弃 '+i.discarded_deliveries+' · 重试 '+i.retries+' · 等待写入 '+(i.queue_depth+i.buffered)+' · 正在写入 '+i.write_in_flight);lines.push('入队成功不等于落盘。上述统计按投递计数，重启后重新开始，不包含原生历史直接导入。');if(!i.producer_observed)lines.push('到达采集器之前的插件侧丢弃尚不可见。');}
+ if(data.ingestion){const i=data.ingestion;lines.push('本次采集运行（自 '+i.since+'）：收到请求 '+i.received_requests+' · 无效请求 '+i.invalid_requests+' · 接收入队 '+i.enqueued_deliveries+' · 确认写入 '+i.committed_deliveries+' · 拒绝入队 '+i.queue_rejected+' · 写入失败后放弃 '+i.discarded_deliveries+' · 重试 '+i.retries+' · 等待写入 '+(i.queue_depth+i.buffered)+' · 正在写入 '+i.write_in_flight);lines.push('入队成功不等于落盘。上述统计按投递计数，重启后重新开始，不包含原生历史直接导入。');if('queue_max_bytes' in i)lines.push('采集队列保留字节 '+i.queue_bytes+' / '+i.queue_max_bytes+' · 解码繁忙拒绝 '+i.busy_rejected+' · 字节额度拒绝 '+i.byte_rejected+' · 单条超限 '+i.oversize_rejected);
+ if(i.producer_observed&&i.producer){const p=i.producer.capture;lines.push('最近报告的插件进程（自 '+p.since+'；采集器观测于 '+i.producer.received_at+'）：完成 '+p.completed+' · 入队 '+p.enqueued+' · 条数限制丢弃 '+p.queue_dropped+' · 字节限制丢弃 '+p.byte_dropped+' · 单条超限丢弃 '+p.oversize_dropped+' · 无效记录丢弃 '+p.invalid_dropped+' · 永久投递拒绝 '+p.delivery_rejected+' · 关闭丢弃 '+p.shutdown_discarded+' · 关闭时未完成请求 '+p.shutdown_active_discarded);lines.push('插件队列保留字节 '+p.queue.retained_bytes+' / '+p.queue.max_bytes+'；仅展示最近报告进程，无心跳，报告可能过期；计数不代表持久投递凭证。');}else lines.push('到达采集器之前的插件侧丢弃尚不可见。');}
  lines.push('此状态不代表客户端历史已被完整采集。');$('status').replaceChildren();for(const line of lines)node('div',line,$('status'));
 }
 function node(tag,text,parent,cls){const element=document.createElement(tag);element.textContent=text;if(cls)element.className=cls;parent.append(element);return element;}
