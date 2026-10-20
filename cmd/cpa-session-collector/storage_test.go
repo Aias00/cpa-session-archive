@@ -52,7 +52,7 @@ func TestCollectorUsesInjectedStorage(t *testing.T) {
 		t.Fatalf("ingest status=%d writes=%d", response.Code, backend.writes)
 	}
 	entry := <-s.q.Items()
-	s.flush([]archive.Record{entry.Value})
+	s.flush([]archive.Record{entry.Value.Record})
 	entry.Done()
 	if backend.writes != 1 || len(backend.rows) != 1 || backend.rows[0].SessionID != "backend-session" {
 		t.Fatalf("writes=%d rows=%+v", backend.writes, backend.rows)

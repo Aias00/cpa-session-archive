@@ -559,3 +559,28 @@ retired only after proving that the new raw backup contains every old record ID
 and CAS hash and that no retired file was open. Binaries/configuration and
 migration baselines were retained. Aggregate reports, backup hashes, rollback
 provenance and removal evidence are in the private release directory.
+
+## Broad-query candidate rollout (2026-10-20)
+
+Collector source `9e32762` was built from its exact archived commit and deployed
+without restarting CPA or changing the native plugin. The private release root
+is `/Volumes/data/build/cpa-session-archive/search-9e32762`. Online backups were
+verified before replacement: projection checkpoint 298212, raw fence 298213,
+140,776 raw records. The raw backup contains every record ID and CAS hash in the
+superseded capture-reliability backup; that older database pair was retired only
+after live acceptance and open-file checks. Its binaries/configuration remain.
+
+The additive event-order index occupied 11.4 MiB in the isolated production-sized
+projection. Regression tests exercise a complete recent prefix, older-only
+matches requiring fallback, summary-only fallback, ordering, scope and citations.
+Full race/vet checks passed. Isolated old/new result hashes matched: the broad
+`sqlite` query improved from about 1.12–1.14 s to 0.23–0.30 s for three hits.
+
+Live acceptance verified readiness, invalid-token denial, three revision-checked
+citations, MCP owner/scoped diagnostics and actual Chromium. Startup indexing
+lag reached zero with zero failures. The first cold `sqlite` request took 4.18 s.
+Ten subsequent requests had median 239 ms and maximum 404 ms. Ten
+`queue_max_bytes` requests had median 150 ms, but their first request took 1.84 s.
+This verifies the sampled warm improvement, not a universal subsecond or cold
+latency SLO. Capacity, query distribution and concurrent capture still require
+continued observation. Aggregate evidence is retained in the private reports.

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -22,11 +23,18 @@ import (
 	"cpa-session-archive/internal/storage"
 )
 
+// A receipt belongs to one admitted delivery, never to a shared request ID.
+// Buffered notification lets storage finish after the HTTP client disconnects.
+type ingestDelivery struct {
+	archive.Record
+	committed chan error
+}
+
 type server struct {
 	ingestion           ingestionMetrics
 	s                   storage.Backend
 	exportDir           string
-	q                   *boundedqueue.Queue[archive.Record]
+	q                   *boundedqueue.Queue[ingestDelivery]
 	decodeSlots         chan struct{}
 	startupReady        <-chan struct{}
 	ticketMu            sync.Mutex
@@ -72,7 +80,7 @@ func run() error {
 	if errQueue != nil || queueLimit <= 0 {
 		return fmt.Errorf("invalid ARCHIVE_QUEUE_MAX_BYTES")
 	}
-	queue, errQueue := boundedqueue.New[archive.Record](4096, queueLimit)
+	queue, errQueue := boundedqueue.New[ingestDelivery](4096, queueLimit)
 	if errQueue != nil {
 		return errQueue
 	}
@@ -317,6 +325,12 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method", 405)
 		return
 	}
+	ack := r.Header.Get(archive.CommitAckHeader)
+	if ack != "" && ack != archive.CommitAckRequest {
+		s.ingestion.invalid()
+		http.Error(w, "unsupported acknowledgement", http.StatusBadRequest)
+		return
+	}
 	s.ingestion.observeProducer(r.Header.Get(archive.CaptureStatusHeader))
 	if s.decodeSlots != nil {
 		select {
@@ -330,16 +344,50 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 192<<20)
 	var rec archive.Record
-	if e := json.NewDecoder(r.Body).Decode(&rec); e != nil || rec.RequestID == "" {
+	digest := sha256.New()
+	var body io.Reader = r.Body
+	if ack != "" {
+		body = io.TeeReader(body, digest)
+	}
+	decoder := json.NewDecoder(body)
+	if e := decoder.Decode(&rec); e != nil || rec.RequestID == "" {
 		s.ingestion.invalid()
 		http.Error(w, "invalid record", 400)
 		return
 	}
+	if ack != "" {
+		var trailing any
+		if err := decoder.Decode(&trailing); err != io.EOF {
+			s.ingestion.invalid()
+			http.Error(w, "invalid record", http.StatusBadRequest)
+			return
+		}
+	}
 	if rec.SessionID == "" {
 		rec.SessionID = "request:" + rec.RequestID
 	}
-	if reason := s.ingestion.enqueue(s.q, rec); reason == boundedqueue.Accepted {
-		w.WriteHeader(202)
+	delivery := ingestDelivery{Record: rec}
+	if ack != "" {
+		delivery.committed = make(chan error, 1)
+	}
+	if reason := s.ingestion.admit(s.q, delivery); reason == boundedqueue.Accepted {
+		if delivery.committed == nil {
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
+		select {
+		case err := <-delivery.committed:
+			if err != nil {
+				http.Error(w, "archive commit failed", http.StatusServiceUnavailable)
+				return
+			}
+			w.Header().Set(archive.CommitAckHeader, archive.CommitAckResponse)
+			w.Header().Set(archive.CommitDigestHeader, hex.EncodeToString(digest.Sum(nil)))
+			w.WriteHeader(http.StatusOK)
+		case <-r.Context().Done():
+			// Admission survives cancellation; no receipt is fabricated.
+			return
+		}
 	} else if reason == boundedqueue.Oversize {
 		http.Error(w, "record exceeds queue budget", http.StatusRequestEntityTooLarge)
 	} else {
@@ -357,7 +405,7 @@ func (s *server) ingestStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.ingestionStatus())
 }
 func (s *server) writer() {
-	batch := make([]*boundedqueue.Item[archive.Record], 0, 64)
+	batch := make([]*boundedqueue.Item[ingestDelivery], 0, 64)
 	tick := time.NewTicker(250 * time.Millisecond)
 	defer tick.Stop()
 	for {
@@ -378,10 +426,10 @@ func (s *server) writer() {
 	}
 }
 
-func (s *server) flushEntries(entries []*boundedqueue.Item[archive.Record]) {
+func (s *server) flushEntries(entries []*boundedqueue.Item[ingestDelivery]) {
 	records := make([]archive.Record, len(entries))
 	for i, item := range entries {
-		records[i] = item.Value
+		records[i] = item.Value.Record
 	}
 	defer func() {
 		clear(records)
@@ -390,24 +438,29 @@ func (s *server) flushEntries(entries []*boundedqueue.Item[archive.Record]) {
 		}
 		clear(entries)
 	}()
-	s.flush(records)
+	err := s.flush(records)
+	for _, item := range entries {
+		if receipt := item.Value.committed; receipt != nil {
+			receipt <- err
+		}
+	}
 }
-func (s *server) flush(batch []archive.Record) {
+func (s *server) flush(batch []archive.Record) error {
 	if len(batch) == 0 {
-		return
+		return nil
 	}
 	s.ingestion.beginWrite(len(batch))
 	for attempt := 1; ; attempt++ {
 		e := s.s.PutBatch(batch)
 		if e == nil {
 			s.ingestion.committed(len(batch))
-			return
+			return nil
 		}
 		retryable := s.s.RetryableWrite(e)
 		s.ingestion.writeError(len(batch), retryable)
 		if !retryable {
-			log.Printf("archive batch dropped after non-retryable error: %v", e)
-			return
+			log.Printf("archive batch dropped after non-retryable error")
+			return e
 		}
 		if attempt == 1 || attempt%10 == 0 {
 			log.Printf("archive batch waiting for storage retry: attempt=%d records=%d", attempt, len(batch))

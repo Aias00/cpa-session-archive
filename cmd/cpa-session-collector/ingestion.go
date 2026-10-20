@@ -42,7 +42,12 @@ func (m *ingestionMetrics) invalid() {
 	m.state.InvalidRequests++
 }
 
-func (m *ingestionMetrics) enqueue(q *boundedqueue.Queue[archive.Record], rec archive.Record) boundedqueue.Rejection {
+func (m *ingestionMetrics) enqueue(q *boundedqueue.Queue[ingestDelivery], rec archive.Record) boundedqueue.Rejection {
+	return m.admit(q, ingestDelivery{Record: rec})
+}
+
+func (m *ingestionMetrics) admit(q *boundedqueue.Queue[ingestDelivery], delivery ingestDelivery) boundedqueue.Rejection {
+	rec := delivery.Record
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.initializeLocked()
@@ -52,7 +57,7 @@ func (m *ingestionMetrics) enqueue(q *boundedqueue.Queue[archive.Record], rec ar
 		m.state.OversizeRejected++
 		return boundedqueue.Oversize
 	}
-	reason := q.TryPush(rec, weight)
+	reason := q.TryPush(delivery, weight)
 	switch reason {
 	case boundedqueue.Accepted:
 		m.state.EnqueuedDeliveries++

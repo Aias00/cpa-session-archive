@@ -21,7 +21,7 @@ func TestIngestionByteBudgetIncludesPendingWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q, err := boundedqueue.New[archive.Record](4, weight)
+	q, err := boundedqueue.New[ingestDelivery](4, weight)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestIngestionByteBudgetIncludesPendingWrite(t *testing.T) {
 	if got := post(`{"request_id":"much-longer-record"}`); got != 413 {
 		t.Fatalf("oversize: %d", got)
 	}
-	entries := []*boundedqueue.Item[archive.Record]{item}
+	entries := []*boundedqueue.Item[ingestDelivery]{item}
 	s.flushEntries(entries)
 	if entries[0] != nil || item.Value.RequestID != "" || q.Snapshot().RetainedBytes != 0 {
 		t.Fatal("completed batch retains payload or reservation")
@@ -138,7 +138,7 @@ func TestIngestionDiagnosticsSeparateAdmissionFromCommit(t *testing.T) {
 		t.Fatalf("admission was mistaken for commit or producer observation: %+v", before)
 	}
 	entry := <-s.q.Items()
-	batch := []archive.Record{entry.Value}
+	batch := []archive.Record{entry.Value.Record}
 	go func() { defer close(done); s.flush(batch); clear(batch); entry.Done() }()
 	awaitMetricWrite(t, entered)
 	inFlight := s.ingestionStatus()
@@ -194,9 +194,9 @@ func TestIngestionDiagnosticsRetryAndDiscard(t *testing.T) {
 	})
 }
 
-func testRecordQueue(t *testing.T, capacity int) *boundedqueue.Queue[archive.Record] {
+func testRecordQueue(t *testing.T, capacity int) *boundedqueue.Queue[ingestDelivery] {
 	t.Helper()
-	q, err := boundedqueue.New[archive.Record](capacity, 512<<20)
+	q, err := boundedqueue.New[ingestDelivery](capacity, 512<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
