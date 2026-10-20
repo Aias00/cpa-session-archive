@@ -1,5 +1,60 @@
 # Mac mini M4 deployment
 
+## Memory performance and stability rollout, 2026-10-20
+
+Collector and online backup tool source: `59d60bd` in the user's fork. Built
+from the committed source archive on Apple M4 / Mac16,10 using the isolated
+Go SDK at its current `/Volumes/data/tools/cpa-go-sdk` location. The collector
+was replaced and restarted; CPA remained PID 637. Accounts, routing, listener
+addresses and client configuration were preserved.
+
+The [memory architecture](memory-architecture.md) now documents archive,
+retrieval and reviewed-Git boundaries. This rollout adds transactional corpus
+counts, a bounded read-only WAL pool, candidate-ID materialization before text
+loading, a pinned online-backup snapshot and deletion-safe historical SSE repair.
+Projection version remains 3 and citation normalizer version remains 2.
+
+Controlled preflight used independent production-sized snapshots with 139,806
+sources and 17,189,795 chunk occurrences. No live conversation text was printed.
+
+| Check | Installed baseline | Candidate |
+| --- | --- | --- |
+| Status median / p95, 20 reads | 113.91 / 128.23 ms | 0.38 / 0.70 ms |
+| `SQLITE_BUSY` warm median, 3 reads | 266.18 ms | 126.59 ms |
+| 100 synthetic records accepted and indexed | 0.54 s | 0.58 s |
+| Five search results, including citations | Identical result hash | Identical result hash |
+
+These are bounded smoke measurements, not a labeled search-quality evaluation
+or an all-query latency SLO. Ingestion timing includes worker polling. Both
+versions converged after synthetic deletion. Preflight exposed orphaned session
+work items blocking SSE startup repair; regression tests now cover deletion both
+before enumeration and between enumeration and processing. The repaired binary
+started against the same affected snapshot successfully.
+
+Full Go tests with race detection, vet and native builds passed. A disposable
+new/old/new binary test verified schema reopening and aggregate maintenance by
+the older writer. Live health/readiness, Web delivery, unauthorized access
+rejection, stale-source rejection and HTTP/MCP search/source roundtrips passed.
+Actual newly committed OpenAI/Responses records confirmed capture continued.
+The workstation tunnel configuration was not changed; this rollout verified the
+M4 loopback endpoints rather than claiming a remote-workstation browser test.
+
+Live status median/p95 measured 0.48/0.60 ms. The example search first took
+2.86 seconds, followed by a three-read warm median of 105.90 ms. Cold query
+latency remains a measured improvement area; no global subsecond claim is made.
+At the live check, backfill and metadata were complete, lag was zero and
+projection failures were zero.
+
+Before replacement, a verified online raw/projection pair and previous binaries,
+LaunchAgent and manifest were preserved. The installed manifest and
+`memory-architecture-rollback-dir.txt` identify the private rollback directory
+on the external volume; mount that volume before using it. External copies were
+hash-checked against the verified snapshots. Two superseded database pairs were
+retired only after checking retained record IDs and CAS hashes and confirming
+no open files. Their binaries/configuration and required migration baselines
+remain. Generated preflight databases were removed. Final capacity inventory
+reported about 80 GiB free, no warnings and sufficient backup headroom.
+
 The user authorized the Mac mini M4 as the standing deployment target on
 2026-10-17. After code verification, deploy and check the live service without
 another routine permission handoff.

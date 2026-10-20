@@ -28,6 +28,9 @@ Exports transparently rehydrate the JSON structure, including repeated reference
 
 ## Architecture
 
+See [memory architecture and storage boundaries](docs/memory-architecture.md)
+for retrieval lifecycle, SQLite concurrency and criteria for replacing a store.
+
     CPA native plugin -> bounded memory queue -> collector -> SQLite WAL + CAS blobs
 
 ### Collector storage boundary
