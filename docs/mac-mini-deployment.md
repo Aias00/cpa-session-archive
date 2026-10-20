@@ -146,7 +146,7 @@ Future updates target the M4.
 - Ingestion/query listener: `127.0.0.1:8318`; recall: `127.0.0.1:8319`.
 - Raw archive: `data/archive.sqlite`; recall projection: `data/memory.sqlite`.
 - Read token: `private/memory-read.token`; launchd receives its path only.
-- Native Go SDK: `/Users/aias/Work/tools/cpa-go-sdk/bin/go`, version 1.26.3.
+- Native Go SDK: `/Volumes/data/tools/cpa-go-sdk/bin/go`, version 1.26.3.
   This isolated user SDK and verified module cache avoid system PATH changes.
 - Workstation recall: <http://127.0.0.1:18319/>.
 - Workstation M4 archive:
@@ -169,7 +169,7 @@ exit. It does not start before user login. Logs are under `session-archive/logs`
 1. Verify the M4 hardware before any service mutation. Run targeted/full tests,
    race checks and vet; commit the source in the user's fork.
 2. Transfer a `git archive` of the exact commit into
-   `/Users/aias/Work/build/cpa-session-archive/<commit>` on the M4.
+   `/Volumes/data/build/cpa-session-archive/<release>/source` on the M4.
 3. Run native full/race tests and vet, then build on the target. Set `GOROOT` to
    the isolated SDK and invoke its `bin/go`; use the verified module cache with
    `GOPROXY=off`, `GOSUMDB=off`, `GOTOOLCHAIN=local`, `CGO_ENABLED=1` when
@@ -514,3 +514,48 @@ removal evidence were retained; the newest complete rollback pair remains under
 `before-additional-native-20261020T083356Z`. Approximately 28.55 GiB was removed,
 leaving about 43.14 GiB free at that check. Raw source histories and active
 archive/projection databases were retained.
+
+## Capture queue and producer diagnostics rollout (2026-10-20)
+
+Source `10042d2` was built from a clean `git archive` on the Apple M4. Collector,
+MCP bridge and native plugin were deployed together. The installed CPA executable
+first loaded the release-identical plugin in an isolated configuration with a
+synthetic provider: stream/nonstream capture retained inputs and replies, model
+catalog callbacks were skipped, and capture telemetry reached the mock collector.
+Full Go race tests and vet passed. Synthetic Chromium checks covered owner,
+scoped and legacy status rendering.
+
+The private release directory is
+`/Volumes/data/build/cpa-session-archive/capture-10042d2`. Its verified rollback
+pair has raw/projection checkpoint 297502. The raw copy contains 140,553 records;
+the projection passed SQLite quick_check. Old plugin, CPA executable, collector,
+bridge, configuration, manifest and LaunchAgents are retained there. The
+projection verification on the external volume took about 725 seconds; do not
+interpret a slow verification as process termination or restart a live copy.
+
+The first cutover was automatically rolled back because its 30-second readiness
+window expired during normal startup repair. The second cutover used a longer
+readiness window and succeeded. CPA was stopped before draining the collector;
+new artifacts were installed atomically and CPA restarted after collector
+readiness. No account/routing settings or active database files were replaced.
+Native plugin mapping and all three installed artifact hashes were checked.
+
+Live acceptance verified authenticated status, invalid-token denial, three
+revision-checked source excerpts, MCP owner metrics and scoped diagnostic
+omission, and actual Chromium rendering. Initial producer observation reported
+five admitted records, no count/byte/oversize/invalid drops or permanent HTTP
+rejections, and 92 skipped catalog callbacks. These are process-local samples,
+not a durable no-loss guarantee. Collector rejection/discard counters were zero
+and projection lag/failures were zero at the observation.
+
+Status requests took approximately 1.5–7 ms. A cold broad `sqlite` search took
+16.2 seconds; two warm repeats took 1.14 and 1.12 seconds. A `queue_max_bytes`
+search took 1.06 seconds. These measurements leave the subsecond search target
+unproven and identify cold/broad candidate retrieval as follow-up performance
+work. They must not be replaced by the faster earlier query baseline.
+
+After successful live checks, the superseded observability database pair was
+retired only after proving that the new raw backup contains every old record ID
+and CAS hash and that no retired file was open. Binaries/configuration and
+migration baselines were retained. Aggregate reports, backup hashes, rollback
+provenance and removal evidence are in the private release directory.
