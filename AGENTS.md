@@ -34,3 +34,10 @@
   facts use registered project Git contexts. Do not create a second memory
   authority in SQLite or auto-push private knowledge. Preserve unrelated dirty
   Git work; model tools may draft but never confirm/activate their own proposals.
+
+- Backup retention: the user requested on 2026-10-20 that superseded deployment
+  backups be deleted after use. Keep the newest verified complete rollback pair
+  and required migration baselines. Before retiring an older database pair,
+  confirm the newer raw backup contains its record IDs and CAS hashes, no file
+  is open, and preserve binaries/configuration plus an aggregate removal record.
+  This does not authorize deleting active data, source histories, or Git knowledge.

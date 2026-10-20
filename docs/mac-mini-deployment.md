@@ -339,3 +339,65 @@ operator must run the preflight before another whole-database backup. Further
 retention/off-host backup work is still required before routine full backups can
 resume on the same volume. Final service checks returned readyz 200,
 `message_metadata_done=true`, zero projection failures and live lag four.
+
+
+## Additional native adapters (2026-10-20)
+
+Reader and history-sync binaries from `bda3826` passed full/race Go tests, vet,
+Python tests and builds on workstation and verified M4. The collector was
+restarted and became ready after 9,624 historical normalization checks; CPA was
+not restarted. An online raw/memory backup pair passed SQLite integrity checks
+under `before-additional-native-20261020T083356Z`, with old binaries/configuration
+retained for rollback. Following the user's instruction to remove old backups
+after use, the raw database from `before-native-attribution-20261018T144747Z` and
+the raw/memory databases from `before-magpie-adapters-20261019T042236Z` were
+removed with their sidecars. Configuration/binaries and the newer complete
+`before-sse-wal-fix` pair were retained; this cleanup recovered about 45 GiB.
+
+An isolated real workstation corpus captured 650 native files/databases and
+3,741 segments (1,237,906,627 original JSON bytes) without collection failures.
+Client segment counts were Qoder 1,872, WorkBuddy 1,492, CodeBuddy 243,
+OpenCode 62 and ZCode 72. Isolated search/source checks passed for all five,
+metadata backfill finished and index failures/lag were zero. An unchanged replay
+added zero segments in 0.217 seconds: 647 JSONL files were proof-skipped and
+134 existing database rows were recognized. Source databases were opened read-only.
+These are source segments/message snapshots, not conversation counts.
+
+The formal periodic-job capture also completed without failures (3,758 segments,
+including new original-client history), and its immutable delta was sent to M4.
+Transfer/import/live indexing and Codex acceptance are recorded separately below
+when verified. The deployed workstation binary now discovers the additional roots
+without changing existing credentials, model configuration or curated Git memory.
+
+
+The initial delta import committed all 3,758 records in 20.5 seconds, copying
+7,516 CAS blobs with zero conflicts or remaining records. Projection checks
+found zero missing records and zero client/project/session scope mismatches.
+Five-client Web/API search/source round trips and the saved old citation passed.
+A real read-only ephemeral Codex run called status, five searches and a source
+read and returned all three acceptance booleans true. The observed live status
+had both backfills complete, zero failures and zero lag. No Claude test was run.
+
+The original SSH upload was slow over a DERP relay. An authenticated temporary
+transport served only an AES-encrypted snapshot; the decryption key and expected
+hashes traveled through SSH. A truncated first response was rejected, then range
+requests resumed the ciphertext. Ciphertext/plaintext SHA256 and SQLite integrity
+checks passed before import. The temporary tunnel/server and ephemeral keys were
+removed. The source event range was reconstructed against the immutable exported
+IDs and required exact set equality before acknowledging its transfer watermark.
+The archive/import/index checks were required before that acknowledgement.
+No private source rows, credentials or transport keys were written to Git.
+
+A follow-up regular sync scanned 6,124 files/databases in 1.279 seconds, skipped
+6,115 unchanged files and recognized 134 existing database rows. It collected
+eight new local segments and transferred 51 pending segments, all imported with
+zero conflicts or remaining records. Live recall then had lag one and zero
+failures. The 30-minute workstation LaunchAgent was restored after the cutover.
+
+Following the user's backup-retention instruction, the old `before-sse-wal-fix`
+database pair and sidecars were retired after the new verified backup was shown
+to include every old archive request ID and CAS hash. Binaries/configuration and
+removal evidence were retained; the newest complete rollback pair remains under
+`before-additional-native-20261020T083356Z`. Approximately 28.55 GiB was removed,
+leaving about 43.14 GiB free at that check. Raw source histories and active
+archive/projection databases were retained.
