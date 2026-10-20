@@ -70,6 +70,12 @@ increase write work; test indexing throughput as well as query latency.
   and collector 202 semantics remain reliability gaps; no storage abstraction
   claims to recover traffic lost before archive commit.
 
+Online archive backups pin a read transaction across backup steps, preventing
+concurrent commits from repeatedly restarting the copy. WAL writers remain
+available; the pinned snapshot temporarily retains WAL history until copying
+finishes. The configured backup deadline bounds the copy lifetime. Integrity
+verification runs on the completed copy after the source snapshot is released.
+
 ## Choosing another store
 
 First measure end-to-end search, source reads, status, indexing throughput,

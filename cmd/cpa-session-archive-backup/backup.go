@@ -191,6 +191,12 @@ func copySQLiteOnline(ctx context.Context, sourcePath, destinationPath string, p
 		return err
 	}
 	defer sourceConnection.Close()
+	// Hold one read snapshot across steps. Without it, writes from another
+	// connection can restart SQLite's backup repeatedly on a busy archive.
+	if err := beginSQLiteReadSnapshot(ctx, sourceConnection, retryInterval); err != nil {
+		return err
+	}
+	defer sourceConnection.ExecContext(context.Background(), `ROLLBACK`)
 	destinationConnection, err := acquireSQLiteConnection(ctx, destinationDB, retryInterval)
 	if err != nil {
 		return err
@@ -224,6 +230,29 @@ func copySQLiteOnline(ctx context.Context, sourcePath, destinationPath string, p
 			return stepSQLiteBackup(ctx, backup, pagesPerStep, retryInterval)
 		})
 	})
+}
+
+// A WAL read snapshot permits concurrent writers but temporarily pins WAL
+// history. The caller's backup deadline bounds that retention.
+func beginSQLiteReadSnapshot(ctx context.Context, connection *sql.Conn, retryInterval time.Duration) error {
+	if _, err := connection.ExecContext(ctx, `BEGIN`); err != nil {
+		return err
+	}
+	for {
+		var tables int
+		err := connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema`).Scan(&tables)
+		if err == nil {
+			return nil
+		}
+		if !isSQLiteBusy(err) {
+			connection.ExecContext(context.Background(), `ROLLBACK`)
+			return err
+		}
+		if err := waitForRetry(ctx, retryInterval); err != nil {
+			connection.ExecContext(context.Background(), `ROLLBACK`)
+			return err
+		}
+	}
 }
 
 func acquireSQLiteConnection(ctx context.Context, db *sql.DB, retryInterval time.Duration) (*sql.Conn, error) {

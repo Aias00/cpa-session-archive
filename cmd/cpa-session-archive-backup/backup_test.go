@@ -84,6 +84,36 @@ func TestCreateOnlineBackupIncludesLiveWALAndSafeSummary(t *testing.T) {
 	}
 }
 
+func TestPinnedBackupSnapshotPermitsWALWritesAndExcludesLaterCommits(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "active.sqlite")
+	writer := createTestArchive(t, source, "WAL")
+	defer writer.Close()
+	insertTestRecord(t, writer, "before", "session")
+	reader := openTestDatabase(t, source, "ro")
+	defer reader.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	connection, err := reader.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+	if err := beginSQLiteReadSnapshot(ctx, connection, time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	defer connection.ExecContext(context.Background(), `ROLLBACK`)
+	if _, err := writer.ExecContext(ctx, `INSERT INTO records(request_id,session_id) VALUES('after','session')`); err != nil {
+		t.Fatalf("snapshot blocked WAL writer: %v", err)
+	}
+	var count int
+	if err := connection.QueryRowContext(ctx, `SELECT COUNT(*) FROM records`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("snapshot advanced during backup: count=%d err=%v", count, err)
+	}
+	if err := writer.QueryRowContext(ctx, `SELECT COUNT(*) FROM records`).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("live writer did not retain later commit: count=%d err=%v", count, err)
+	}
+}
+
 func TestCreateOnlineBackupRefusesExistingDestinationWithoutChangingIt(t *testing.T) {
 	directory := t.TempDir()
 	source := filepath.Join(directory, "source.sqlite")
