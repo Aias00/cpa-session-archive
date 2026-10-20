@@ -32,6 +32,7 @@ function params(){const p=new URLSearchParams();for(const [key,id] of [['q','que
 const coverageLabels={tool_declarations_excluded:'工具声明省略',reasoning_excluded:'推理省略',media_excluded:'媒体未索引',internal_request_excluded:'内部任务排除',auxiliary_source_unclassified:'辅助来源待核查',compacted_context:'上下文压缩',codex_item_unclassified:'Codex 条目待核查',content_unclassified:'内容类型待核查',native_record_unclassified:'原生记录待核查',kiro_event_unclassified:'Kiro 事件待核查',missing_payload:'正文缺失',retained_payload_truncated:'内容截断',upstream_failure:'上游失败',incomplete_stream:'流未完成',malformed_payload:'解析失败',unsupported_protocol:'协议未支持',unsupported_content:'内容未支持',unclassified:'原因未知'};
 function status(data){
  const lines=['历史回填：'+(data.backfill_done?'完成':'进行中')+' · 变更延迟 '+data.lag+' · 累计索引失败 '+data.failures+(data.last_error?' · '+data.last_error:'')];
+ if('message_metadata_done' in data)lines.push('消息分类与覆盖回填：'+(data.message_metadata_done?'完成':'进行中'));
  if(data.scope_filtered){lines.push('全库统计已按凭据权限隐藏。');}
  else{lines.push('已索引来源 '+data.sources+' · 文本块 '+data.chunks+' · 唯一文本块 '+data.unique_chunks+' · 共享节省 '+data.deduplicated_chunks+' · 部分覆盖来源 '+data.partial_sources);}
  if(data.coverage){const c=data.coverage;lines.push('覆盖说明：仅有预期省略 '+c.expected_omissions_only_sources+' · 需要核查 '+c.needs_investigation_sources+'（包含类型不明，不等于数据丢失）');if(c.reasons.length)lines.push(c.reasons.map(r=>(coverageLabels[r.code]||'其他原因')+' '+r.sources).join(' · ')+'；同一来源可能有多种原因。');}

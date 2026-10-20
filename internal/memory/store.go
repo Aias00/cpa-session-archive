@@ -274,10 +274,7 @@ func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error
 		return err
 	}
 	if !missing {
-		doc := Normalize(source.Record)
-		if isInternal(source.Record) {
-			doc = Document{Partial: true, Issues: []string{"internal memory request excluded"}}
-		}
+		doc := projectionDocument(source.Record)
 		project, client := sourceScope(source.Record)
 		stamp := source.Record.StartedAt.UTC()
 		if _, err = tx.ExecContext(ctx, `INSERT INTO sources(request_id,revision,sequence,project_id,client,session_id,event_at,event_ns,partial,issues_text) VALUES(?,?,?,?,?,?,?,?,?,?)`, id, source.Revision, source.Sequence, project, client, source.Record.SessionID, stamp.Format(time.RFC3339Nano), stamp.UnixNano(), doc.Partial, strings.Join(doc.Issues, "\n")); err != nil {
@@ -337,6 +334,13 @@ func isInternal(r archive.Record) bool {
 		}
 	}
 	return false
+}
+
+func projectionDocument(r archive.Record) Document {
+	if isInternal(r) {
+		return Document{Partial: true, Issues: []string{"internal memory request excluded"}}
+	}
+	return Normalize(r)
 }
 
 // Physical sharing does not merge occurrence identity or scope.

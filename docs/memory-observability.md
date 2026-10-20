@@ -25,10 +25,14 @@ unclassified, not silently treated as complete.
 | `ambiguous` / `unknown` | Existing diagnostics do not establish the cause |
 
 Legacy “opaque or unsupported” diagnostics stay ambiguous. The summary describes
-diagnostics saved at the source's last projection; it does not claim that old
-payloads have been reread. Fresh source reads and new projections distinguish
-known reasoning/media from unknown types. No full historical reclassification
-is added to the request path. Checked source responses also include
+diagnostics saved at the source's last projection. Fresh source reads and new
+projections distinguish known reasoning/media from unknown types. The existing
+resumable metadata worker refreshes ambiguous historical diagnostics in bounded
+batches when change ingestion is caught up; `message_metadata_done` reports
+completion. Coverage-only refreshes update source diagnostics and a per-source
+policy marker, without rewriting existing message metadata or FTS text. Sources
+with already definitive reasons need no raw payload reread. No historical
+reclassification is added to the request path. Checked source responses also include
 `coverage_issues`; legacy human-readable `issues` remain available.
 
 `coverage_groups` is a small transactional aggregate over stored source diagnostics.
