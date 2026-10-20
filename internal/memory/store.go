@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,11 +25,13 @@ const ProjectionVersion = 3
 
 type Engine struct {
 	db     *sql.DB
+	readDB *sql.DB
 	feed   storage.MemoryFeed
 	syncMu sync.Mutex
 }
 
 var _ Reader = (*Engine)(nil)
+var _ Projection = (*Engine)(nil)
 
 func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if feed == nil || path == "" || path == ":memory:" {
@@ -48,7 +51,12 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err = f.Close(); err != nil {
 		return nil, err
 	}
-	db, err := sql.Open("sqlite3", path+"?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL&_foreign_keys=on")
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	location := url.URL{Scheme: "file", Path: abs}
+	db, err := sql.Open("sqlite3", location.String()+"?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL&_foreign_keys=on")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +88,7 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 		}
 		// Only derived data lives here. Drop the old layout without running
 		// millions of per-row delete triggers, then restart its checkpoints.
-		if _, err = tx.Exec(`DROP TRIGGER IF EXISTS memory_chunk_delete; DROP TRIGGER IF EXISTS memory_text_delete; DROP TABLE IF EXISTS chunks; DROP TABLE IF EXISTS sources; DROP TABLE IF EXISTS chunk_texts; DROP TABLE IF EXISTS chunk_search; DROP TABLE IF EXISTS state;`); err != nil {
+		if _, err = tx.Exec(`DROP TRIGGER IF EXISTS memory_chunk_delete; DROP TRIGGER IF EXISTS memory_text_delete; DROP TABLE IF EXISTS chunks; DROP TABLE IF EXISTS sources; DROP TABLE IF EXISTS chunk_texts; DROP TABLE IF EXISTS chunk_search; DROP TABLE IF EXISTS state; DROP TABLE IF EXISTS corpus_stats;`); err != nil {
 			tx.Rollback()
 			return fail(err)
 		}
@@ -101,17 +109,32 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err := openMessageMetadata(db); err != nil {
 		return fail(err)
 	}
-	return &Engine{db: db, feed: feed}, nil
+	if err := openCorpusStats(db); err != nil {
+		return fail(err)
+	}
+	// WAL readers use a bounded, read-only pool so a projection transaction does
+	// not monopolize the connection required by interactive searches.
+	readDB, err := sql.Open("sqlite3", location.String()+"?mode=ro&_query_only=on&_busy_timeout=5000")
+	if err != nil {
+		return fail(err)
+	}
+	readDB.SetMaxOpenConns(4)
+	readDB.SetMaxIdleConns(4)
+	if err := readDB.Ping(); err != nil {
+		readDB.Close()
+		return fail(err)
+	}
+	return &Engine{db: db, readDB: readDB, feed: feed}, nil
 }
-func (e *Engine) Close() error { return e.db.Close() }
+func (e *Engine) Close() error { return errors.Join(e.readDB.Close(), e.db.Close()) }
 
 func (e *Engine) Status(ctx context.Context) (Status, error) {
 	var s Status
-	err := e.db.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint,failures,last_error,(SELECT COUNT(*) FROM sources),(SELECT COUNT(*) FROM chunks),(SELECT COUNT(*) FROM sources WHERE partial=1),(SELECT COUNT(*) FROM chunk_texts) FROM state WHERE id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint, &s.Failures, &s.LastError, &s.Sources, &s.Chunks, &s.PartialSources, &s.UniqueChunks)
+	err := e.readDB.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint,failures,last_error,cs.sources,cs.chunks,cs.partial_sources,cs.unique_chunks FROM state JOIN corpus_stats cs ON cs.id=state.id WHERE state.id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint, &s.Failures, &s.LastError, &s.Sources, &s.Chunks, &s.PartialSources, &s.UniqueChunks)
 	if err != nil {
 		return s, err
 	}
-	if err := e.db.QueryRowContext(ctx, "select done from message_meta_state where id=1").Scan(&s.MessageMetadataDone); err != nil {
+	if err := e.readDB.QueryRowContext(ctx, "select done from message_meta_state where id=1").Scan(&s.MessageMetadataDone); err != nil {
 		return s, err
 	}
 	s.DeduplicatedChunks = s.Chunks - s.UniqueChunks

@@ -74,7 +74,7 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
 	query += ` ORDER BY CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END,s.event_ns DESC,s.request_id,c.id LIMIT 1001`
-	rows, err := e.db.QueryContext(ctx, query, args...)
+	rows, err := e.readDB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return out, err
 	}

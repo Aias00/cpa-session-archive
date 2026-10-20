@@ -19,7 +19,7 @@ import (
 
 type memoryConfig struct{ DB, Listen, TokenFile, CredentialsFile string }
 type memoryService struct {
-	engine     *memory.Engine
+	engine     memory.Projection
 	listener   net.Listener
 	server     *http.Server
 	cancel     context.CancelFunc

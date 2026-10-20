@@ -95,10 +95,33 @@ type RecapResult struct {
 	Status Status `json:"status"`
 }
 
+// SearchReader retrieves scoped evidence without owning projection lifecycle.
+type SearchReader interface {
+	Search(context.Context, Query) (SearchResult, error)
+	Recap(context.Context, Query) (RecapResult, error)
+}
+
+// SourceReader validates evidence against retained source revisions.
+type SourceReader interface {
+	ReadSource(context.Context, Citation) (Evidence, error)
+}
+
+type StatusReader interface {
+	Status(context.Context) (Status, error)
+}
+
 // Reader is the capability an HTTP/MCP frontend needs from a recall engine.
 type Reader interface {
-	Search(context.Context, Query) (SearchResult, error)
-	ReadSource(context.Context, Citation) (Evidence, error)
-	Recap(context.Context, Query) (RecapResult, error)
-	Status(context.Context) (Status, error)
+	SearchReader
+	SourceReader
+	StatusReader
+}
+
+// Projection is owned by the collector, not by HTTP/MCP callers. Alternative
+// retrieval implementations must preserve Reader's scope and citation contract.
+// Run processes retained changes until cancellation; Close follows Run's return.
+type Projection interface {
+	Reader
+	Run(context.Context)
+	Close() error
 }
