@@ -310,3 +310,32 @@ source-read checks took approximately 4.8 seconds for the selected Codex term,
 These are different query workloads, not a client speed comparison. Broad recall
 queries still need performance work; the subsecond unchanged-file scan does not
 imply subsecond retrieval. No semantic/vector retrieval was added in this change.
+
+
+## Capacity guard rollout (2026-10-19)
+
+The read-only `archive-capacity.py` operational tool was deployed from `d1ea91f`
+after all 14 Python tests passed on workstation and native M4 Python. It runs at
+login and every six hours through `com.router-for-me.cpa-archive-capacity`;
+capacity and error logs remain private. No Go artifact, CPA/collector listener,
+Git knowledge authority or database schema changed; services were not restarted.
+See [capacity operations](archive-capacity.md) for exit codes and backup preflight.
+
+Both databases in `before-sse-wal-fix-20261019T065429Z` and
+`before-magpie-adapters-20261019T042236Z` passed fresh read-only SQLite integrity
+checks. With explicit user approval, exactly the old `memory-v2.sqlite`,
+`memory-v2.sqlite-wal` and `memory-v2.sqlite-shm` files were removed from
+`before-mcp-dedup-20261018T072639Z`. Their combined logical size was 12.01 GiB;
+observed available space increased from 1.13 to 13.14 GiB immediately afterward.
+The old v2 projection rollback copy is no longer available. Active v3/raw data,
+the two complete verified backup pairs and old binaries/configuration remain.
+Deletion evidence is retained in that backup's `v2-projection-removal.json`.
+
+The final capacity report observed 11.09 GiB free, approximately 79.48 GiB of
+logical backup data, no inventory warnings, and a 42.70 GiB conservative
+new-backup requirement including reserve. The scheduled job correctly exits 1
+for this space warning. It does not automatically block backup programs; the
+operator must run the preflight before another whole-database backup. Further
+retention/off-host backup work is still required before routine full backups can
+resume on the same volume. Final service checks returned readyz 200,
+`message_metadata_done=true`, zero projection failures and live lag four.

@@ -75,6 +75,9 @@ collector does not fail the model request and is retried with bounded
 backpressure. Accepted collector batches wait through transient SQLite locks
 instead of being silently discarded.
 
+For read-only disk/backup inventory and deployment capacity preflight, see
+[archive capacity operations](docs/archive-capacity.md).
+
 ## Build
 
 The protected `main` branch runs the complete Go, race, TypeScript, browser,
