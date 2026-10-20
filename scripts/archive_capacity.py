@@ -99,12 +99,20 @@ def report(root, free_bytes=None, reserve_bytes=10 * GIB):
         except (OSError, ValueError):
             warnings.append("rollback_pointer_unreadable")
     backups = []
+    loose = []
     backup_root = root / "backups"
     if backup_root.is_symlink():
         warnings.append("backup_root_is_symlink")
     elif backup_root.exists():
         for path in sorted(backup_root.iterdir()):
-            if path.is_symlink() or not path.is_dir():
+            if path.is_symlink():
+                warnings.append("backup_entry_not_directory")
+                continue
+            if path.is_file():
+                loose.append({"name": path.name, "protection": ["unclassified_backup_file"],
+                              **inventory(path)})
+                continue
+            if not path.is_dir():
                 warnings.append("backup_entry_not_directory")
                 continue
             size = inventory(path)
@@ -147,7 +155,8 @@ def report(root, free_bytes=None, reserve_bytes=10 * GIB):
     return {"schema_version": 1, "status": status, "free_bytes": free,
             "reserve_bytes": reserve_bytes, "conservative_backup_pair_bytes": pair_bytes,
             "backup_headroom_bytes": headroom, "can_create_backup_pair": free >= headroom and not warnings,
-            "data": data, "databases": databases, "backups": backups, "warnings": warnings,
+            "data": data, "databases": databases, "backups": backups,
+            "loose_backup_files": loose, "warnings": warnings,
             "cleanup_review_candidates": [item["name"] for item in backups if not item["protection"] and not warnings],
             "integrity_basis": "recorded metadata only; no fresh database validation",
             "reclaim_basis": "allocated bytes are estimates; APFS sharing/snapshots can reduce reclaimed space"}

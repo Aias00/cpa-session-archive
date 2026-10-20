@@ -107,6 +107,20 @@ class CapacityTests(unittest.TestCase):
             self.assertEqual(result["backups"], [])
             self.assertIn("backup_root_is_symlink", result["warnings"])
 
+    def test_loose_backup_files_are_inventoried_and_retained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.pair(root, "complete", 10)
+            path = root / "backups" / "old-collector"
+            path.write_bytes(b"retained executable")
+            result = capacity.report(root)
+            loose = result["loose_backup_files"]
+            self.assertEqual(len(loose), 1)
+            self.assertEqual(loose[0]["name"], "old-collector")
+            self.assertEqual(loose[0]["logical_bytes"], path.stat().st_size)
+            self.assertIn("unclassified_backup_file", loose[0]["protection"])
+            self.assertNotIn("backup_entry_not_directory", result["warnings"])
+
     def test_report_does_not_change_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
