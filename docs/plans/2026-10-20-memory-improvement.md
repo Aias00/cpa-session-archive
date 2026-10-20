@@ -7,7 +7,10 @@ Implementation update: the architecture/performance foundation and two stability
 fixes have since been implemented and deployed. See the
 [architecture contract](../memory-architecture.md) and
 [verified rollout](../mac-mini-deployment.md#memory-performance-and-stability-rollout-2026-10-20).
-The remaining quality, ranking, continuation and extraction increments below
+Coverage classification, resumable historical diagnostic refresh and collector
+delivery counters are also deployed; see [observability](../memory-observability.md).
+Producer-side loss visibility and queue memory bounds remain the next reliability
+work. Quality evaluation, ranking, continuation and extraction increments below
 remain planned. The baseline section records the state before these changes.
 
 ## Outcome and authority

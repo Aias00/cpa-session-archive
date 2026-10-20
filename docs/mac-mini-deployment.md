@@ -1,5 +1,63 @@
 # Mac mini M4 deployment
 
+## Coverage and delivery diagnostics rollout, 2026-10-20
+
+Collector and MCP bridge source: `7a88d15`. Both were built from the committed
+source archive and installed on Apple M4 / Mac16,10. Only the collector was
+restarted; CPA remained PID 637, and accounts/routing/client configuration were
+preserved. Existing bridge processes can continue with their previous schema;
+fresh bridge processes expose the new optional diagnostic fields.
+
+The [observability contract](memory-observability.md) defines conservative
+coverage categories, resumable historical metadata refresh, collector HTTP
+delivery counters, epoch boundaries and credential scoping. Normalizer v2 and
+projection v3 citations/text remain compatible. The per-source coverage policy
+marker is additive and does not change message-metadata schema version 1.
+
+Production-sized preflight used 140,096 sources and 17,276,810 chunk occurrences.
+Coverage refresh completed in approximately seven minutes without rewriting FTS
+or existing message metadata. Search result/citation hashes matched the previous
+binary. The final snapshot classified 107,342 sources as having only expected
+omissions and 22,205 as needing investigation; this is not a loss estimate.
+Source reason counts can overlap.
+
+The contention test held the archive WAL writer while posting 4,300 synthetic
+deliveries: 4,160 were admitted, 140 were refused by the full queue, one storage
+retry was observed, and no admitted delivery was discarded. Every admitted
+delivery committed and indexed after releasing the lock; deletion then restored
+the original corpus and coverage counts. Invalid input and truncation counters
+were also checked. All fixtures used isolated databases and ports.
+
+Full Go race/vet/build checks passed. A real new/old/new collector sequence
+verified old-writer compatibility and subsequent coverage refresh. Chromium
+checked owner/scoped presentation, legacy API responses and authentication
+errors; live Chromium checked the deployed page without displaying transcripts
+or credentials. Live MCP preserved the new owner fields and omitted them for a
+project-scoped bridge. Search/source roundtrips and stale-citation rejection
+passed, and further real records committed after the convergence check.
+
+Live historical refresh completed with zero change-feed lag and zero projection
+failures. At the recorded check, all 18 admitted deliveries in the new epoch had
+committed, with no invalid requests, queue refusals, write failures or discards.
+Status p95 measured 3.67 ms and the example warm search median was 144.91 ms.
+The counters cover this collector HTTP boundary only; plugin-side drops remain
+unobserved and HTTP 202 remains a volatile queue acknowledgement.
+
+A new verified online raw/projection pair, old collector/bridge, LaunchAgent and
+manifest were preserved before replacement. The archive fence followed the
+projection snapshot fence; external copies were hash-verified. The installed
+manifest and `memory-observability-rollback-dir.txt` identify the newest private
+external-volume rollback pair. Its predecessor's database pair was retired only
+after zero missing record IDs/CAS hashes and no open files were confirmed; old
+binaries/configuration and migration baselines remain. Generated preflight
+databases were removed. Final capacity checks had no warnings.
+
+Follow-up diagnosis found that the dominant missing-payload bucket consists of
+non-streaming successful OpenAI records with no model identity. The host's
+model-list lifecycle has that shape. Verify explicit control-operation tagging
+with synthetic lifecycle events before changing collection or relabeling old
+records; do not infer conversation loss from these counts alone.
+
 ## Memory performance and stability rollout, 2026-10-20
 
 Collector and online backup tool source: `59d60bd` in the user's fork. Built
