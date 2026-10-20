@@ -11,6 +11,17 @@ func openCorpusStats(db *sql.DB) error {
 		return err
 	}
 	defer tx.Rollback()
+	var triggers int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE type='trigger' AND tbl_name IN ('sources','chunks','chunk_texts') AND name IN ('corpus_sources_insert','corpus_sources_delete','corpus_sources_update','corpus_chunks_insert','corpus_chunks_delete','corpus_text_insert','corpus_text_delete')`).Scan(&triggers); err != nil {
+		return err
+	}
+	if triggers != 7 {
+		// A legacy projection rebuild can remove owner-table triggers while
+		// retaining this extension table. Reinitialize instead of serving stale counts.
+		if _, err := tx.Exec(`DROP TABLE IF EXISTS corpus_stats`); err != nil {
+			return err
+		}
+	}
 	_, err = tx.Exec(`CREATE TABLE IF NOT EXISTS corpus_stats(
  id INTEGER PRIMARY KEY CHECK(id=1),
  sources INTEGER NOT NULL, chunks INTEGER NOT NULL,

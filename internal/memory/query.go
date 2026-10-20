@@ -199,6 +199,7 @@ func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
 			out.Text = string(runes[c.Start:c.End])
 			out.Partial = doc.Partial
 			out.Issues = doc.Issues
+			out.CoverageIssues = classifyCoverage(doc.Issues)
 			return out, nil
 		}
 	}

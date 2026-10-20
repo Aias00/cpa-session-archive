@@ -135,6 +135,8 @@ func (d *Document) databasePart(role string, m map[string]any, p, id string) {
 			d.Messages[i].ToolCallID = call
 		}
 	case "step-start", "step-finish":
+	case "reasoning", "thinking":
+		d.issue("opaque reasoning omitted")
 	default:
 		d.issue("opaque or unsupported database part retained")
 	}

@@ -143,6 +143,10 @@ func (d *Document) content(role string, v any, p, id string) {
 			d.content("tool", data["content"], q+"/data/content", text(data["toolUseId"]))
 		case "refusal":
 			d.add(role, text(b["refusal"]), q, id)
+		case "reasoning", "thinking", "redacted_thinking":
+			d.issue("opaque reasoning omitted")
+		case "image", "input_image", "output_image", "image_url", "audio", "input_audio", "video":
+			d.issue("media content omitted")
 		default:
 			d.issue("opaque or unsupported native content omitted")
 		}
@@ -167,6 +171,8 @@ func (d *Document) codexItem(m map[string]any, p string) {
 		d.add("assistant", text(m["name"])+"\n"+compact(m["input"]), p, id)
 	case "function_call_output", "custom_tool_call_output":
 		d.content("tool", m["output"], p+"/output", id)
+	case "reasoning":
+		d.issue("opaque reasoning omitted")
 	default:
 		d.issue("opaque or unsupported Codex response item omitted")
 	}

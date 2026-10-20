@@ -252,6 +252,10 @@ func (d *Document) content(role string, value any, side, pointer, id string) {
 			d.content("tool", block["content"], side, p+"/content", str(block["tool_use_id"]))
 		case "refusal":
 			d.add(role, str(block["refusal"]), side, p+"/refusal", id)
+		case "reasoning", "thinking", "redacted_thinking":
+			d.issue("opaque reasoning omitted")
+		case "image", "input_image", "output_image", "image_url", "audio", "input_audio", "video":
+			d.issue("media content omitted")
 		default:
 			d.issue("opaque or unsupported content block omitted")
 		}
@@ -333,6 +337,8 @@ func (d *Document) stream(raw []byte) {
 				if input := obj(block["input"]); len(input) > 0 {
 					p.args = compact(input)
 				}
+			case "thinking", "redacted_thinking":
+				d.issue("opaque reasoning omitted")
 			default:
 				d.issue("opaque SSE content omitted")
 			}
@@ -346,6 +352,8 @@ func (d *Document) stream(raw []byte) {
 				p.text += str(delta["text"])
 			case "input_json_delta":
 				p.args += str(delta["partial_json"])
+			case "thinking_delta", "signature_delta":
+				d.issue("opaque reasoning omitted")
 			default:
 				d.issue("opaque SSE delta omitted")
 			}

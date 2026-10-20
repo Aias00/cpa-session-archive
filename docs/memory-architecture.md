@@ -46,6 +46,14 @@ transaction as inserts, deletions, cascades and partial-state updates. Counts
 are exact committed aggregates, not approximate cache values. Status reads a
 single aggregate row instead of scanning the corpus on every search.
 
+The small `coverage_groups` extension groups stored diagnostics with transactional
+source triggers. Counts, metadata state and coverage use one read snapshot.
+Both aggregate extensions recalibrate when their maintenance triggers are missing
+after a legacy rebuild. Collector-owned delivery counters attach through a read
+decorator outside the engine; scoped readers omit global diagnostic objects.
+See [coverage and ingestion diagnostics](memory-observability.md) for exact
+counting, ambiguity, epoch and durability semantics.
+
 Opening an existing v3 projection initializes these counts once transactionally.
 It does not rebuild FTS, change normalizer v2 citations, or change projection
 version 3. A projection rebuild also resets aggregates. A normal older v3

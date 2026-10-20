@@ -22,6 +22,7 @@ import (
 )
 
 type server struct {
+	ingestion           ingestionMetrics
 	s                   storage.Backend
 	exportDir           string
 	q                   chan archive.Record
@@ -146,12 +147,14 @@ func run() error {
 		startupTask{name: "turn projection", run: turnProjection},
 		startupTask{name: "turn facet projection", run: turnFacets},
 	), tickets: map[string]exportTicket{}, turnTextJobs: map[string]bool{}}
+	s.ingestionStatus()
 	if env("MEMORY_ENABLED", "false") == "true" {
 		service, err := startMemory(context.Background(), st, dbPath, s.startupReady, memoryConfig{
 			DB:              env("MEMORY_DB", filepath.Join(filepath.Dir(dbPath), "memory.sqlite")),
 			Listen:          env("MEMORY_LISTEN_ADDR", "127.0.0.1:8319"),
 			TokenFile:       os.Getenv("MEMORY_READ_TOKEN_FILE"),
 			CredentialsFile: os.Getenv("MEMORY_READ_CREDENTIALS_FILE"),
+			Diagnostics:     s.ingestionStatus,
 		})
 		if err != nil {
 			return fmt.Errorf("memory startup: %w", err)
@@ -164,6 +167,7 @@ func run() error {
 	http.HandleFunc("/healthz", s.health)
 	http.HandleFunc("/readyz", s.ready)
 	http.HandleFunc("/ingest", s.ingest)
+	http.HandleFunc("/v1/ingest-status", s.ingestStatus)
 	http.HandleFunc("/v1/stats", s.stats)
 	http.HandleFunc("/v1/facets", s.facets)
 	http.HandleFunc("/v1/identity-mappings", s.identityMappings)
@@ -293,25 +297,37 @@ func (s *server) ready(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("ok"))
 }
 func (s *server) ingest(w http.ResponseWriter, r *http.Request) {
+	s.ingestion.received()
 	if r.Method != http.MethodPost {
+		s.ingestion.invalid()
 		http.Error(w, "method", 405)
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 192<<20)
 	var rec archive.Record
 	if e := json.NewDecoder(r.Body).Decode(&rec); e != nil || rec.RequestID == "" {
+		s.ingestion.invalid()
 		http.Error(w, "invalid record", 400)
 		return
 	}
 	if rec.SessionID == "" {
 		rec.SessionID = "request:" + rec.RequestID
 	}
-	select {
-	case s.q <- rec:
+	if s.ingestion.enqueue(s.q, rec) {
 		w.WriteHeader(202)
-	default:
+	} else {
 		http.Error(w, "queue full", 503)
 	}
+}
+
+func (s *server) ingestStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "GET required", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, s.ingestionStatus())
 }
 func (s *server) writer() {
 	batch := make([]archive.Record, 0, 64)
@@ -321,6 +337,7 @@ func (s *server) writer() {
 		select {
 		case r := <-s.q:
 			batch = append(batch, r)
+			s.ingestion.bufferRecord()
 			if len(batch) >= 64 {
 				s.flush(batch)
 				batch = batch[:0]
@@ -334,12 +351,19 @@ func (s *server) writer() {
 	}
 }
 func (s *server) flush(batch []archive.Record) {
+	if len(batch) == 0 {
+		return
+	}
+	s.ingestion.beginWrite(len(batch))
 	for attempt := 1; ; attempt++ {
 		e := s.s.PutBatch(batch)
 		if e == nil {
+			s.ingestion.committed(len(batch))
 			return
 		}
-		if !s.s.RetryableWrite(e) {
+		retryable := s.s.RetryableWrite(e)
+		s.ingestion.writeError(len(batch), retryable)
+		if !retryable {
 			log.Printf("archive batch dropped after non-retryable error: %v", e)
 			return
 		}

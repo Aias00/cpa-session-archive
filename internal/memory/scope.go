@@ -49,6 +49,8 @@ func (s *scopedReader) status(status Status) Status {
 		status.UniqueChunks = 0
 		status.DeduplicatedChunks = 0
 		status.PartialSources = 0
+		status.Coverage = nil
+		status.Ingestion = nil
 	}
 	return status
 }

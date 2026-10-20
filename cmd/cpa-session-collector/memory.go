@@ -17,7 +17,10 @@ import (
 	"cpa-session-archive/internal/storage"
 )
 
-type memoryConfig struct{ DB, Listen, TokenFile, CredentialsFile string }
+type memoryConfig struct {
+	DB, Listen, TokenFile, CredentialsFile string
+	Diagnostics                            func() memory.IngestionStatus
+}
 type memoryService struct {
 	engine     memory.Projection
 	listener   net.Listener
@@ -101,7 +104,8 @@ func startMemory(parent context.Context, feed storage.MemoryFeed, archivePath st
 		}
 		credentials = append(credentials, extra...)
 	}
-	handler, err := memory.NewHandlerWithCredentials(engine, credentials)
+	reader := memory.WithIngestionStatus(engine, cfg.Diagnostics)
+	handler, err := memory.NewHandlerWithCredentials(reader, credentials)
 	if err != nil {
 		engine.Close()
 		return nil, err

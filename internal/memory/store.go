@@ -88,7 +88,7 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 		}
 		// Only derived data lives here. Drop the old layout without running
 		// millions of per-row delete triggers, then restart its checkpoints.
-		if _, err = tx.Exec(`DROP TRIGGER IF EXISTS memory_chunk_delete; DROP TRIGGER IF EXISTS memory_text_delete; DROP TABLE IF EXISTS chunks; DROP TABLE IF EXISTS sources; DROP TABLE IF EXISTS chunk_texts; DROP TABLE IF EXISTS chunk_search; DROP TABLE IF EXISTS state; DROP TABLE IF EXISTS corpus_stats;`); err != nil {
+		if _, err = tx.Exec(`DROP TRIGGER IF EXISTS memory_chunk_delete; DROP TRIGGER IF EXISTS memory_text_delete; DROP TABLE IF EXISTS chunks; DROP TABLE IF EXISTS sources; DROP TABLE IF EXISTS chunk_texts; DROP TABLE IF EXISTS chunk_search; DROP TABLE IF EXISTS state; DROP TABLE IF EXISTS corpus_stats; DROP TABLE IF EXISTS coverage_groups;`); err != nil {
 			tx.Rollback()
 			return fail(err)
 		}
@@ -112,6 +112,9 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err := openCorpusStats(db); err != nil {
 		return fail(err)
 	}
+	if err := openCoverageStats(db); err != nil {
+		return fail(err)
+	}
 	// WAL readers use a bounded, read-only pool so a projection transaction does
 	// not monopolize the connection required by interactive searches.
 	readDB, err := sql.Open("sqlite3", location.String()+"?mode=ro&_query_only=on&_busy_timeout=5000")
@@ -130,14 +133,26 @@ func (e *Engine) Close() error { return errors.Join(e.readDB.Close(), e.db.Close
 
 func (e *Engine) Status(ctx context.Context) (Status, error) {
 	var s Status
-	err := e.readDB.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint,failures,last_error,cs.sources,cs.chunks,cs.partial_sources,cs.unique_chunks FROM state JOIN corpus_stats cs ON cs.id=state.id WHERE state.id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint, &s.Failures, &s.LastError, &s.Sources, &s.Chunks, &s.PartialSources, &s.UniqueChunks)
+	tx, err := e.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return s, err
 	}
-	if err := e.readDB.QueryRowContext(ctx, "select done from message_meta_state where id=1").Scan(&s.MessageMetadataDone); err != nil {
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint,failures,last_error,cs.sources,cs.chunks,cs.partial_sources,cs.unique_chunks FROM state JOIN corpus_stats cs ON cs.id=state.id WHERE state.id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint, &s.Failures, &s.LastError, &s.Sources, &s.Chunks, &s.PartialSources, &s.UniqueChunks)
+	if err != nil {
+		return s, err
+	}
+	if err := tx.QueryRowContext(ctx, "select done from message_meta_state where id=1").Scan(&s.MessageMetadataDone); err != nil {
 		return s, err
 	}
 	s.DeduplicatedChunks = s.Chunks - s.UniqueChunks
+	s.Coverage, err = coverageStatus(ctx, tx, s.PartialSources)
+	if err != nil {
+		return s, err
+	}
+	if err := tx.Commit(); err != nil {
+		return s, err
+	}
 	s.Watermark, err = e.feed.MemoryWatermark(ctx)
 	s.Lag = max(0, s.Watermark-s.Checkpoint)
 	return s, err

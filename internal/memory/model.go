@@ -51,20 +51,22 @@ type Hit struct {
 }
 
 type Status struct {
-	MessageMetadataDone bool   `json:"message_metadata_done"`
-	UniqueChunks        int64  `json:"unique_chunks"`
-	DeduplicatedChunks  int64  `json:"deduplicated_chunks"`
-	ScopeFiltered       bool   `json:"scope_filtered,omitempty"`
-	BackfillDone        bool   `json:"backfill_done"`
-	BackfillAfterID     int64  `json:"backfill_after_id"`
-	Checkpoint          int64  `json:"checkpoint"`
-	Watermark           int64  `json:"watermark"`
-	Lag                 int64  `json:"lag"`
-	Sources             int64  `json:"sources"`
-	Chunks              int64  `json:"chunks"`
-	PartialSources      int64  `json:"partial_sources"`
-	Failures            int64  `json:"failures"`
-	LastError           string `json:"last_error,omitempty"`
+	Coverage            *CoverageSummary `json:"coverage,omitempty"`
+	Ingestion           *IngestionStatus `json:"ingestion,omitempty"`
+	MessageMetadataDone bool             `json:"message_metadata_done"`
+	UniqueChunks        int64            `json:"unique_chunks"`
+	DeduplicatedChunks  int64            `json:"deduplicated_chunks"`
+	ScopeFiltered       bool             `json:"scope_filtered,omitempty"`
+	BackfillDone        bool             `json:"backfill_done"`
+	BackfillAfterID     int64            `json:"backfill_after_id"`
+	Checkpoint          int64            `json:"checkpoint"`
+	Watermark           int64            `json:"watermark"`
+	Lag                 int64            `json:"lag"`
+	Sources             int64            `json:"sources"`
+	Chunks              int64            `json:"chunks"`
+	PartialSources      int64            `json:"partial_sources"`
+	Failures            int64            `json:"failures"`
+	LastError           string           `json:"last_error,omitempty"`
 }
 
 type SearchResult struct {
@@ -80,13 +82,14 @@ type Evidence struct {
 	Model      string `json:"model,omitempty"`
 	MessageAt  string `json:"message_at,omitempty"`
 
-	ProjectID string   `json:"project_id"`
-	SessionID string   `json:"session_id"`
-	Client    string   `json:"client"`
-	Citation  Citation `json:"citation"`
-	Text      string   `json:"text"`
-	Partial   bool     `json:"partial"`
-	Issues    []string `json:"issues"`
+	ProjectID      string          `json:"project_id"`
+	SessionID      string          `json:"session_id"`
+	Client         string          `json:"client"`
+	Citation       Citation        `json:"citation"`
+	Text           string          `json:"text"`
+	Partial        bool            `json:"partial"`
+	Issues         []string        `json:"issues"`
+	CoverageIssues []CoverageIssue `json:"coverage_issues,omitempty"`
 }
 
 type RecapResult struct {
