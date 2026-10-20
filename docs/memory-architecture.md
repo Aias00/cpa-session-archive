@@ -35,6 +35,11 @@ projection transactions; a bounded pool limits page cache and concurrent query
 pressure. Candidate rows are closed before archive source validation. Source
 revision and scope validation remain live reads, never a cached permission result.
 
+Candidate selection materializes at most 1,001 occurrence IDs and sort keys
+before loading text. This avoids reading large shared payloads for every matching
+occurrence that will be discarded by the sort. Match rules, ordering, the 1,000
+candidate cap, truncation reporting and source citation semantics are preserved.
+
 Corpus counts are stored in the additive `corpus_stats` table. Triggers maintain
 sources, partial sources, chunk occurrences and unique text in the same
 transaction as inserts, deletions, cascades and partial-state updates. Counts

@@ -50,9 +50,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	tokens := lexicalTokens(q.Text)
 	where := []string{`c.role NOT IN ('system','developer')`, `COALESCE(m.kind,'') NOT IN ('context','image')`}
 	args := []any{}
-	from := `chunks c JOIN sources s ON s.request_id=c.request_id JOIN chunk_texts t ON t.id=c.text_id LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer`
+	from := `chunks c JOIN sources s ON s.request_id=c.request_id LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer`
 	if len(tokens) > 0 {
-		from += ` JOIN chunk_search f ON f.docid=t.id`
+		from += ` JOIN chunk_search f ON f.docid=c.text_id`
 		where = append(where, `f.tokens MATCH ?`)
 		args = append(args, strings.Join(tokens, " "))
 	}
@@ -69,11 +69,18 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 			args = append(args, t.UnixNano())
 		}
 	}
-	query := `SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text,COALESCE(m.kind,CASE WHEN c.role='tool' THEN 'tool_result' ELSE 'text' END),COALESCE(m.tool_name,''),COALESCE(m.tool_call_id,''),COALESCE(m.model,''),COALESCE(m.message_at,'') FROM ` + from
+	// Materialize only IDs and sort keys before loading potentially large text.
+	// Otherwise SQLite reads each occurrence's text before its top-N sort, even
+	// when thousands of occurrences share the same text and will be discarded.
+	query := `WITH candidates AS MATERIALIZED (SELECT c.id,s.request_id,s.event_ns,CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END AS kind_rank FROM ` + from
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += ` ORDER BY CASE WHEN COALESCE(m.kind,'') IN ('tool_use','tool_result') OR c.role='tool' THEN 2 WHEN COALESCE(m.kind,'')='summary' THEN 1 ELSE 0 END,s.event_ns DESC,s.request_id,c.id LIMIT 1001`
+	query += ` ORDER BY kind_rank,s.event_ns DESC,s.request_id,c.id LIMIT 1001)
+ SELECT s.request_id,s.revision,s.project_id,s.client,s.session_id,s.event_at,s.partial,c.side,c.pointer,c.role,c.start,c.end,t.text,COALESCE(m.kind,CASE WHEN c.role='tool' THEN 'tool_result' ELSE 'text' END),COALESCE(m.tool_name,''),COALESCE(m.tool_call_id,''),COALESCE(m.model,''),COALESCE(m.message_at,'')
+ FROM candidates x JOIN chunks c ON c.id=x.id JOIN sources s ON s.request_id=x.request_id JOIN chunk_texts t ON t.id=c.text_id
+ LEFT JOIN message_meta m ON m.request_id=c.request_id AND m.side=c.side AND m.pointer=c.pointer
+ ORDER BY x.kind_rank,x.event_ns DESC,x.request_id,x.id`
 	rows, err := e.readDB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return out, err
