@@ -52,9 +52,10 @@ Stable export files use `ARCHIVE_EXPORT_DIR` when set, otherwise the directory
 containing `ARCHIVE_DB`. This is a collector workspace, not a backend database
 property. The directory must already exist and be writable by the collector.
 
-Ingestion remains asynchronous: HTTP `202` acknowledges an in-memory queue entry,
-not a durable database commit. This refactor does not change queue capacity,
-batching, overflow behavior or crash durability.
+Legacy ingestion is asynchronous: HTTP `202` acknowledges an in-memory queue
+entry. An optional [producer outbox](docs/durable-delivery.md) persists exact
+payload bytes and requires a matching archive commit receipt before removal.
+Its pre-spool and power-loss boundaries remain explicit.
 
 For evaluated long-term memory directions, see the
 [ai-memory integration comparison](docs/ai-memory-integration-evaluation.md) and
@@ -67,7 +68,10 @@ The opt-in [built-in recall engine](docs/builtin-memory.md) now provides local
 literal search, checked source citations and copyable recap excerpts through a
 separate token-authenticated Web/API listener. The [MCP bridge](docs/mcp-recall.md)
 provides the same read-only tools to clients, and projection v3 shares repeated
-text/FTS while preserving citations. Semantic retrieval remains planned. An optional [reviewed Git memory adapter](docs/curated-git-memory.md)
+text/FTS while preserving citations. Semantic retrieval remains planned. A frozen
+synthetic [recall evaluation](docs/recall-evaluation.md) measures evidence-backed
+top-five quality and repeated-context misses. An optional
+[reviewed Git memory adapter](docs/curated-git-memory.md)
 adds sourced candidates, explicit operator confirmation, correction and archive
 using existing canonical Git repositories. The recall collector is deployed on the
 user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)

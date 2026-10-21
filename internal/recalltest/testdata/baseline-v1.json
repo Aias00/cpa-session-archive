@@ -1,0 +1,3217 @@
+{
+  "version": 1,
+  "name": "synthetic-retrieval-baseline-v1",
+  "records": [
+    {
+      "id": "error-busy",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The SQLITE_BUSY checkpoint failure came from a reader holding its snapshot across network I/O. Release that read transaction before calling the provider; keep busy_timeout at 5000 ms."
+        }
+      ]
+    },
+    {
+      "id": "error-full",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-02T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "SQLITE_FULL happened while the raw volume had less than 64 MiB free. Reject new admissions at the disk reserve watermark; do not delete accepted outbox entries."
+        }
+      ]
+    },
+    {
+      "id": "error-413",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The 413 Request Entity Too Large response came from the reverse proxy before the upload handler. Raise client_max_body_size for /api/uploads to 32m, keeping the application limit at 24 MiB."
+        }
+      ]
+    },
+    {
+      "id": "error-eof",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The worker reported unexpected EOF because the upstream stream ended before its terminal event. Mark this attempt partial, persist the received bytes, and retry from the committed checkpoint."
+        }
+      ]
+    },
+    {
+      "id": "error-fts",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The error no such module: fts5 came from a system SQLite binary without FTS5. Build the bundled SQLite driver with its FTS support instead of changing the production database file."
+        }
+      ]
+    },
+    {
+      "id": "error-abort",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "AbortError during navigation is expected when a newer search cancels the old request. Suppress the obsolete result and render the newest request only."
+        }
+      ]
+    },
+    {
+      "id": "error-tls",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "x509: certificate signed by unknown authority occurred because the private CA bundle was absent in the worker container. Mount the approved CA and reload trust; keep certificate verification enabled."
+        }
+      ]
+    },
+    {
+      "id": "error-citation",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-08T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "ErrSourceUnavailable means a citation revision or range no longer matches the raw source. Search again and issue a new citation; never return the old snippet as current evidence."
+        }
+      ]
+    },
+    {
+      "id": "path-plugin",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The sender in internal/archive/plugin.go owns reservations until collector confirmation. Queue admission uses retained payload bytes, including the in-flight entry."
+        }
+      ]
+    },
+    {
+      "id": "path-plugin-question",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-23T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found internal/archive/plugin.go in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-plugin-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has internal/archive/plugin.go but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-query",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "internal/memory/query.go must revalidate a source revision before returning a citation. The projection is disposable; the raw source is authoritative."
+        }
+      ]
+    },
+    {
+      "id": "path-query-question",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-24T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found internal/memory/query.go in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-query-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-02T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has internal/memory/query.go but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-collector",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "cmd/cpa-session-collector/main.go caps concurrent body decoders before reading payloads. A busy decoder returns 503 so the producer can retry without buffering another full body."
+        }
+      ]
+    },
+    {
+      "id": "path-collector-question",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-25T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found cmd/cpa-session-collector/main.go in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-collector-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has cmd/cpa-session-collector/main.go but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-runbook",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "docs/mac-mini-deployment.md requires an online backup with a raw sequence fence at or beyond the projection checkpoint before a collector update."
+        }
+      ]
+    },
+    {
+      "id": "path-runbook-question",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-26T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found docs/mac-mini-deployment.md in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-runbook-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has docs/mac-mini-deployment.md but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-page",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-08T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "src/pages/Recall.tsx uses AbortController when the search text changes. Clear the old selection only after the new result arrives."
+        }
+      ]
+    },
+    {
+      "id": "path-page-question",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-27T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found src/pages/Recall.tsx in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-page-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has src/pages/Recall.tsx but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-icon",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "public/icons/archive.svg uses currentColor so the navigation icon remains visible in both themes. Keep the 24 by 24 viewBox."
+        }
+      ]
+    },
+    {
+      "id": "path-icon-question",
+      "project_id": "orchard",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-28T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found public/icons/archive.svg in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-icon-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has public/icons/archive.svg but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-worker",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-10T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "jobs/replay_worker.py resumes from the last committed offset and writes an idempotency key for each delivered job. The offset is not advanced after a timeout."
+        }
+      ]
+    },
+    {
+      "id": "path-worker-question",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-29T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found jobs/replay_worker.py in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-worker-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has jobs/replay_worker.py but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "path-migration",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-11T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "migrations/0042_add_retry_state.sql adds a nullable retry_after column first. Backfill it separately, then add the index in the next deployment."
+        }
+      ]
+    },
+    {
+      "id": "path-migration-question",
+      "project_id": "helios",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-30T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "I found migrations/0042_add_retry_state.sql in the checkout. Has anyone reviewed this file today? No implementation conclusion is available yet."
+        }
+      ]
+    },
+    {
+      "id": "path-migration-other-project",
+      "project_id": "boreal",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-08T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The unrelated demo also has migrations/0042_add_retry_state.sql but it is an empty teaching stub."
+        }
+      ]
+    },
+    {
+      "id": "zh-backup",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-11T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "备份 水位必须按同一恢复边界校验：先固定检索投影的检查点，再验证原始归档的变更序列不小于该检查点。两份备份都通过完整性检查后才能替换程序。"
+        }
+      ]
+    },
+    {
+      "id": "zh-replay",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-12T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "重启 重放从本地持久待发送队列继续。只有收到与请求内容绑定的提交确认后，才能删除待发送条目；超时后保留并按原标识重试。"
+        }
+      ]
+    },
+    {
+      "id": "zh-cancel",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "归档 取消客户端请求时仍保存已经收到的内容，并把记录标为 partial。取消不会把部分证据伪装成完整回答。"
+        }
+      ]
+    },
+    {
+      "id": "zh-scope",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-14T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "项目 权限由调用方令牌的授权范围决定，不能靠网页隐藏字段实现。检索、原文读取和续接包都必须使用同一项目范围。"
+        }
+      ]
+    },
+    {
+      "id": "zh-citation",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-15T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "引用 校验同时检查记录标识、源修订和字符范围。投影命中过期修订时返回不可用，让调用方重新检索。"
+        }
+      ]
+    },
+    {
+      "id": "zh-bytes",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-16T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "队列 字节预算包含等待写入以及正在投递的条目。临时满载返回可重试错误，单条超过预算则返回明确的永久拒绝。"
+        }
+      ]
+    },
+    {
+      "id": "zh-search",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-17T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "中文 搜索先建立冻结问题集，再分别测量精确词、同义表达和否定问题。字面命中率不能代表语义召回率。"
+        }
+      ]
+    },
+    {
+      "id": "zh-review",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-18T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "知识 审核沿用现有 Git 提案流程。模型可以起草修正和展示来源，只有用户确认后才能把提案变为已接受知识。"
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "SQLite choice: retain a local transactional raw store and a rebuildable lexical projection. We have one writer on one host; a network database adds operations without addressing delivery acknowledgement. Revisit this when multiple hosts must write concurrently."
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: SQLite choice is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: SQLite choice is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: SQLite choice is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: SQLite choice is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-sqlite-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: SQLite choice is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The backup retention decision is to keep the newest verified complete rollback pair plus required migration baselines. Delete a superseded pair only after proving record-ID and CAS-hash inclusion and checking that no process has it open."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: backup retention is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: backup retention is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: backup retention is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: backup retention is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-retention-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: backup retention is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The queue sizing decision uses both item and retained-byte budgets because one conversation may be much larger than another. Count-only limits do not bound payload memory."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: queue sizing is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: queue sizing is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: queue sizing is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: queue sizing is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-queue-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: queue sizing is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The search baseline decision is to measure literal retrieval before adding embeddings. Build fixed relevance labels and include paraphrase failures so a later semantic index has an honest comparator."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: search baseline is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: search baseline is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: search baseline is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: search baseline is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-lexical-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: search baseline is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The listener binding decision keeps ingestion and recall on loopback. Workstation access uses the existing SSH forward rather than exposing a new public listener."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: listener binding is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: listener binding is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: listener binding is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: listener binding is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-listener-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: listener binding is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The knowledge authority decision keeps accepted facts in the reviewed Git repositories. SQLite stores evidence and disposable indexes; generated summaries stay proposals until a human accepts them."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge-noise-1",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: knowledge authority is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge-noise-2",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: knowledge authority is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge-noise-3",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: knowledge authority is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge-noise-4",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: knowledge authority is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "decision-knowledge-noise-5",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Meeting reminder: knowledge authority is on tomorrow's agenda. No decision, rationale, accepted value, or completed investigation is recorded in this reminder."
+        }
+      ]
+    },
+    {
+      "id": "correction-timeout-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Previous writer timeout note: use 10 ms as the busy timeout. This was an unverified initial guess."
+        }
+      ]
+    },
+    {
+      "id": "correction-timeout-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-11T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction to writer timeout: measurements require a 5000 ms SQLite busy timeout; 10 ms caused avoidable transient failures. The collector retries temporary writer contention."
+        }
+      ]
+    },
+    {
+      "id": "correction-port-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Earlier recall port note said 8318. That value was copied from the collector endpoint."
+        }
+      ]
+    },
+    {
+      "id": "correction-port-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-12T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction: recall port is 8319; the collector ingestion endpoint remains 8318. Use the recall listener for browser and read API requests."
+        }
+      ]
+    },
+    {
+      "id": "correction-retention-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Initial rollback copies proposal kept every database pair indefinitely. This was never accepted as the retention policy."
+        }
+      ]
+    },
+    {
+      "id": "correction-retention-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction: rollback copies retain only the newest verified complete pair and required migration baselines. Superseded pairs need inclusion proof and an open-file check before retirement."
+        }
+      ]
+    },
+    {
+      "id": "correction-retry-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The first HTTP 413 retry sketch treated every non-2xx response as temporary and retried it forever."
+        }
+      ]
+    },
+    {
+      "id": "correction-retry-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-14T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction: HTTP 413 retry must stop for an entry larger than the configured limit. Preserve it in rejection quarantine with a reason; use backoff for temporary 503 responses."
+        }
+      ]
+    },
+    {
+      "id": "correction-bounds-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The first queue limit proposal used 2048 entries as its sole memory bound."
+        }
+      ]
+    },
+    {
+      "id": "correction-bounds-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-15T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction: queue limit requires both 2048 entries and a retained-byte budget. In-flight payloads remain charged until durable acknowledgement or explicit rejection."
+        }
+      ]
+    },
+    {
+      "id": "correction-docs-old",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The earlier documentation language note proposed Chinese for all new code comments and reference docs."
+        }
+      ]
+    },
+    {
+      "id": "correction-docs-current",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-10-16T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Correction: documentation language for new code comments and reference docs is English. User-facing progress reports remain Chinese."
+        }
+      ]
+    },
+    {
+      "id": "session-engine-left",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The main session database engine decision is SQLite for this single-host installation."
+        }
+      ]
+    },
+    {
+      "id": "session-engine-right",
+      "project_id": "atlas",
+      "session_id": "experiment",
+      "client": "codex",
+      "event_at": "2026-09-21T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The experiment session database engine prototype uses PostgreSQL to test multi-host writes. This experiment does not change the main deployment."
+        }
+      ]
+    },
+    {
+      "id": "session-ttl-left",
+      "project_id": "atlas",
+      "session_id": "main",
+      "client": "codex",
+      "event_at": "2026-09-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The main session cache TTL is 30 seconds for model catalog responses."
+        }
+      ]
+    },
+    {
+      "id": "session-ttl-right",
+      "project_id": "atlas",
+      "session_id": "experiment",
+      "client": "codex",
+      "event_at": "2026-09-21T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The experiment session cache TTL is 120 seconds while measuring provider rate limits."
+        }
+      ]
+    },
+    {
+      "id": "session-region-left",
+      "project_id": "orchard",
+      "session_id": "east-session",
+      "client": "codex",
+      "event_at": "2026-09-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The east-session deployment region is us-east-1 for the latency pilot."
+        }
+      ]
+    },
+    {
+      "id": "session-region-right",
+      "project_id": "orchard",
+      "session_id": "west-session",
+      "client": "codex",
+      "event_at": "2026-09-21T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The west-session deployment region is us-west-2 for the failover pilot."
+        }
+      ]
+    },
+    {
+      "id": "stale-delete-upload",
+      "project_id": "atlas",
+      "session_id": "maintenance",
+      "client": "codex",
+      "event_at": "2026-09-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "retired upload-token-17 requires an undocumented bypass. This synthetic note is scheduled for deletion."
+        }
+      ]
+    },
+    {
+      "id": "stale-delete-key",
+      "project_id": "helios",
+      "session_id": "maintenance",
+      "client": "codex",
+      "event_at": "2026-09-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "obsolete signing-material-29 was a synthetic temporary deployment hint."
+        }
+      ]
+    },
+    {
+      "id": "stale-replace-reserve",
+      "project_id": "atlas",
+      "session_id": "maintenance",
+      "client": "codex",
+      "event_at": "2026-09-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "obsolete reserve rule reserve-floor-19 uses 8 MiB."
+        }
+      ]
+    },
+    {
+      "id": "stale-replace-key",
+      "project_id": "orchard",
+      "session_id": "maintenance",
+      "client": "codex",
+      "event_at": "2026-09-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "obsolete rotation route rotation-route-23 posts to /retired-rotate."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-retry",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The accepted retry budget is 12 attempts within 20 minutes. After that window keep the durable entry pending for operator review rather than silently deleting it."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-checkpoint",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The replay checkpoint advances only after the destination commits the job and its stable delivery identifier. A network timeout leaves that checkpoint unchanged."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-reserve",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The disk reserve watermark is 512 MiB. Stop new admissions below that reserve and retain already accepted evidence."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-drain",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The shutdown drain waits up to 15 seconds for admitted work, then preserves unfinished durable entries for replay on the next start."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-citation",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The citation scope includes the authorized project and the source revision. A source from another project remains inaccessible even when its identifier is known."
+        }
+      ]
+    },
+    {
+      "id": "repeat-answer-freshness",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-09-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The corpus freshness indicator compares the projection checkpoint with the raw change sequence. A small query duration alone is not proof that ingestion has caught up."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-01",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-10-31T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-02",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-01T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-03",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-02T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-04",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-03T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-05",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-04T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-06",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-05T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-07",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-06T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-08",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-07T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-09",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-08T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-10",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-09T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-11",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-10T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-12",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-11T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-13",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-12T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-14",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-13T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-15",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-14T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-16",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-15T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-17",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-16T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-18",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-17T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-19",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-18T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-20",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-19T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-21",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-20T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-22",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-21T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-23",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-22T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-24",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-23T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-25",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-24T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-26",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-25T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-27",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-26T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-28",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-27T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-29",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-28T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    },
+    {
+      "id": "repeat-context-30",
+      "project_id": "atlas",
+      "session_id": "repeat-study",
+      "client": "codex",
+      "event_at": "2026-11-29T08:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Status reminder: retry budget, replay checkpoint, disk reserve, shutdown drain, citation scope, and corpus freshness remain discussion topics. This repeated reminder contains no accepted values or resolved decisions."
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "exact-busy",
+      "category": "exact_error",
+      "query": {
+        "text": "SQLITE_BUSY checkpoint",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-busy"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-busy",
+          "contains": [
+            "Release that read transaction before calling the provider"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-full",
+      "category": "exact_error",
+      "query": {
+        "text": "SQLITE_FULL",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-full"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-full",
+          "contains": [
+            "Reject new admissions at the disk reserve watermark"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-413",
+      "category": "exact_error",
+      "query": {
+        "text": "413 Request Entity Too Large",
+        "project_id": "orchard",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-413"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-413",
+          "contains": [
+            "Raise client_max_body_size for /api/uploads to 32m"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-eof",
+      "category": "exact_error",
+      "query": {
+        "text": "unexpected EOF",
+        "project_id": "helios",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-eof"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-eof",
+          "contains": [
+            "persist the received bytes",
+            "retry from the committed checkpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-fts",
+      "category": "exact_error",
+      "query": {
+        "text": "no such module: fts5",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-fts"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-fts",
+          "contains": [
+            "Build the bundled SQLite driver with its FTS support"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-abort",
+      "category": "exact_error",
+      "query": {
+        "text": "AbortError navigation",
+        "project_id": "orchard",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-abort"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-abort",
+          "contains": [
+            "Suppress the obsolete result and render the newest request only"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-tls",
+      "category": "exact_error",
+      "query": {
+        "text": "x509: certificate signed by unknown authority",
+        "project_id": "helios",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-tls"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-tls",
+          "contains": [
+            "Mount the approved CA and reload trust"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exact-citation",
+      "category": "exact_error",
+      "query": {
+        "text": "ErrSourceUnavailable",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "error-citation"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "error-citation",
+          "contains": [
+            "Search again and issue a new citation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-plugin",
+      "category": "path",
+      "query": {
+        "text": "internal/archive/plugin.go",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-plugin"
+      ],
+      "forbidden_ids": [
+        "path-plugin-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-plugin",
+          "contains": [
+            "owns reservations until collector confirmation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-query",
+      "category": "path",
+      "query": {
+        "text": "internal/memory/query.go",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-query"
+      ],
+      "forbidden_ids": [
+        "path-query-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-query",
+          "contains": [
+            "revalidate a source revision before returning a citation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-collector",
+      "category": "path",
+      "query": {
+        "text": "cmd/cpa-session-collector/main.go",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-collector"
+      ],
+      "forbidden_ids": [
+        "path-collector-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-collector",
+          "contains": [
+            "caps concurrent body decoders before reading payloads"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-runbook",
+      "category": "path",
+      "query": {
+        "text": "docs/mac-mini-deployment.md",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-runbook"
+      ],
+      "forbidden_ids": [
+        "path-runbook-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-runbook",
+          "contains": [
+            "raw sequence fence at or beyond the projection checkpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-page",
+      "category": "path",
+      "query": {
+        "text": "src/pages/Recall.tsx",
+        "project_id": "orchard",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-page"
+      ],
+      "forbidden_ids": [
+        "path-page-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-page",
+          "contains": [
+            "uses AbortController when the search text changes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-icon",
+      "category": "path",
+      "query": {
+        "text": "public/icons/archive.svg",
+        "project_id": "orchard",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-icon"
+      ],
+      "forbidden_ids": [
+        "path-icon-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-icon",
+          "contains": [
+            "uses currentColor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-worker",
+      "category": "path",
+      "query": {
+        "text": "jobs/replay_worker.py",
+        "project_id": "helios",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-worker"
+      ],
+      "forbidden_ids": [
+        "path-worker-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-worker",
+          "contains": [
+            "resumes from the last committed offset",
+            "writes an idempotency key"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "path-migration",
+      "category": "path",
+      "query": {
+        "text": "migrations/0042_add_retry_state.sql",
+        "project_id": "helios",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-migration"
+      ],
+      "forbidden_ids": [
+        "path-migration-other-project"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-migration",
+          "contains": [
+            "adds a nullable retry_after column first"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-backup",
+      "category": "chinese",
+      "query": {
+        "text": "备份 水位",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-backup"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-backup",
+          "contains": [
+            "先固定检索投影的检查点",
+            "变更序列不小于该检查点"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-replay",
+      "category": "chinese",
+      "query": {
+        "text": "重启 重放",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-replay"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-replay",
+          "contains": [
+            "只有收到与请求内容绑定的提交确认后，才能删除待发送条目"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-cancel",
+      "category": "chinese",
+      "query": {
+        "text": "归档 取消",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-cancel"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-cancel",
+          "contains": [
+            "仍保存已经收到的内容",
+            "标为 partial"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-scope",
+      "category": "chinese",
+      "query": {
+        "text": "项目 权限",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-scope"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-scope",
+          "contains": [
+            "调用方令牌的授权范围决定",
+            "检索、原文读取和续接包都必须使用同一项目范围"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-citation",
+      "category": "chinese",
+      "query": {
+        "text": "引用 校验",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-citation"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-citation",
+          "contains": [
+            "同时检查记录标识、源修订和字符范围"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-bytes",
+      "category": "chinese",
+      "query": {
+        "text": "队列 字节",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-bytes"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-bytes",
+          "contains": [
+            "包含等待写入以及正在投递的条目"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-search",
+      "category": "chinese",
+      "query": {
+        "text": "中文 搜索",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-search"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-search",
+          "contains": [
+            "先建立冻结问题集",
+            "字面命中率不能代表语义召回率"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zh-review",
+      "category": "chinese",
+      "query": {
+        "text": "知识 审核",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-review"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-review",
+          "contains": [
+            "沿用现有 Git 提案流程",
+            "只有用户确认后"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-volatile-ack",
+      "category": "paraphrase",
+      "query": {
+        "text": "How do we avoid acknowledging data still held only in RAM?",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-replay"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-replay",
+          "contains": [
+            "只有收到与请求内容绑定的提交确认后，才能删除待发送条目"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-restart",
+      "category": "paraphrase",
+      "query": {
+        "text": "宕机后如何补发尚未归档的请求",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-replay"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-replay",
+          "contains": [
+            "只有收到与请求内容绑定的提交确认后，才能删除待发送条目"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-authority",
+      "category": "paraphrase",
+      "query": {
+        "text": "Where do accepted memories become authoritative?",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-review"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-review",
+          "contains": [
+            "沿用现有 Git 提案流程",
+            "只有用户确认后"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-stale-index",
+      "category": "paraphrase",
+      "query": {
+        "text": "Which evidence should we trust after an indexed source changes?",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-query"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-query",
+          "contains": [
+            "revalidate a source revision before returning a citation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-cancelled-answer",
+      "category": "paraphrase",
+      "query": {
+        "text": "用户关掉窗口后留下的半截回答怎么处理",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-cancel"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-cancel",
+          "contains": [
+            "仍保存已经收到的内容",
+            "标为 partial"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-isolation",
+      "category": "paraphrase",
+      "query": {
+        "text": "怎样防止别的仓库的对话被当前令牌读到",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-scope"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-scope",
+          "contains": [
+            "调用方令牌的授权范围决定",
+            "检索、原文读取和续接包都必须使用同一项目范围"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-backpressure",
+      "category": "paraphrase",
+      "query": {
+        "text": "What happens when retained payloads consume the admission budget?",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "zh-bytes"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "zh-bytes",
+          "contains": [
+            "包含等待写入以及正在投递的条目"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-resume-worker",
+      "category": "paraphrase",
+      "query": {
+        "text": "How can an interrupted job continue without sending its work twice?",
+        "project_id": "helios",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "path-worker"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "path-worker",
+          "contains": [
+            "resumes from the last committed offset",
+            "writes an idempotency key"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-sqlite",
+      "category": "old_decision",
+      "query": {
+        "text": "SQLite choice",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-sqlite"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-sqlite",
+          "contains": [
+            "one writer on one host",
+            "network database adds operations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-retention",
+      "category": "old_decision",
+      "query": {
+        "text": "backup retention",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-retention"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-retention",
+          "contains": [
+            "newest verified complete rollback pair",
+            "required migration baselines"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-queue",
+      "category": "old_decision",
+      "query": {
+        "text": "queue sizing",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-queue"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-queue",
+          "contains": [
+            "both item and retained-byte budgets"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-lexical",
+      "category": "old_decision",
+      "query": {
+        "text": "search baseline",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-lexical"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-lexical",
+          "contains": [
+            "measure literal retrieval before adding embeddings"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-listener",
+      "category": "old_decision",
+      "query": {
+        "text": "listener binding",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-listener"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-listener",
+          "contains": [
+            "keeps ingestion and recall on loopback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "old-knowledge",
+      "category": "old_decision",
+      "query": {
+        "text": "knowledge authority",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "decision-knowledge"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "decision-knowledge",
+          "contains": [
+            "accepted facts in the reviewed Git repositories"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-timeout",
+      "category": "correction",
+      "query": {
+        "text": "writer timeout",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-timeout-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-timeout-current",
+          "contains": [
+            "5000 ms SQLite busy timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-port",
+      "category": "correction",
+      "query": {
+        "text": "recall port",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-port-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-port-current",
+          "contains": [
+            "recall port is 8319"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-retention",
+      "category": "correction",
+      "query": {
+        "text": "rollback copies",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-retention-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-retention-current",
+          "contains": [
+            "newest verified complete pair",
+            "required migration baselines"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-retry",
+      "category": "correction",
+      "query": {
+        "text": "HTTP 413 retry",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-retry-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-retry-current",
+          "contains": [
+            "must stop for an entry larger than the configured limit",
+            "rejection quarantine"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-bounds",
+      "category": "correction",
+      "query": {
+        "text": "queue limit",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-bounds-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-bounds-current",
+          "contains": [
+            "both 2048 entries and a retained-byte budget"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correction-docs",
+      "category": "correction",
+      "query": {
+        "text": "documentation language",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "correction-docs-current"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "correction-docs-current",
+          "contains": [
+            "new code comments and reference docs is English"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-engine-left",
+      "category": "branch",
+      "query": {
+        "text": "database engine",
+        "project_id": "atlas",
+        "session_id": "main",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-engine-left"
+      ],
+      "forbidden_ids": [
+        "session-engine-right"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-engine-left",
+          "contains": [
+            "database engine decision is SQLite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-engine-right",
+      "category": "branch",
+      "query": {
+        "text": "database engine",
+        "project_id": "atlas",
+        "session_id": "experiment",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-engine-right"
+      ],
+      "forbidden_ids": [
+        "session-engine-left"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-engine-right",
+          "contains": [
+            "database engine prototype uses PostgreSQL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-ttl-left",
+      "category": "branch",
+      "query": {
+        "text": "cache TTL",
+        "project_id": "atlas",
+        "session_id": "main",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-ttl-left"
+      ],
+      "forbidden_ids": [
+        "session-ttl-right"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-ttl-left",
+          "contains": [
+            "cache TTL is 30 seconds"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-ttl-right",
+      "category": "branch",
+      "query": {
+        "text": "cache TTL",
+        "project_id": "atlas",
+        "session_id": "experiment",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-ttl-right"
+      ],
+      "forbidden_ids": [
+        "session-ttl-left"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-ttl-right",
+          "contains": [
+            "cache TTL is 120 seconds"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-region-left",
+      "category": "branch",
+      "query": {
+        "text": "deployment region",
+        "project_id": "orchard",
+        "session_id": "east-session",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-region-left"
+      ],
+      "forbidden_ids": [
+        "session-region-right"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-region-left",
+          "contains": [
+            "deployment region is us-east-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch-region-right",
+      "category": "branch",
+      "query": {
+        "text": "deployment region",
+        "project_id": "orchard",
+        "session_id": "west-session",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "session-region-right"
+      ],
+      "forbidden_ids": [
+        "session-region-left"
+      ],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "session-region-right",
+          "contains": [
+            "deployment region is us-west-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "missing-deleted-upload",
+      "category": "missing",
+      "query": {
+        "text": "upload-token-17",
+        "project_id": "atlas",
+        "session_id": "maintenance",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [
+        "stale-delete-upload"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "missing-deleted-key",
+      "category": "missing",
+      "query": {
+        "text": "signing-material-29",
+        "project_id": "helios",
+        "session_id": "maintenance",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [
+        "stale-delete-key"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "missing-replaced-reserve",
+      "category": "missing",
+      "query": {
+        "text": "reserve-floor-19",
+        "project_id": "atlas",
+        "session_id": "maintenance",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [
+        "stale-replace-reserve"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "missing-replaced-route",
+      "category": "missing",
+      "query": {
+        "text": "rotation-route-23",
+        "project_id": "orchard",
+        "session_id": "maintenance",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [
+        "stale-replace-key"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "missing-never-observed",
+      "category": "missing",
+      "query": {
+        "text": "unobserved canary-bridge-73",
+        "project_id": "atlas",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [],
+      "expect_empty": true
+    },
+    {
+      "id": "missing-wrong-project",
+      "category": "missing",
+      "query": {
+        "text": "SQLITE_BUSY checkpoint",
+        "project_id": "orchard",
+        "session_id": "",
+        "limit": 5
+      },
+      "relevant_ids": [],
+      "forbidden_ids": [
+        "error-busy"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "repetition-retry",
+      "category": "repetition",
+      "query": {
+        "text": "retry budget",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-retry"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-retry",
+          "contains": [
+            "12 attempts within 20 minutes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repetition-checkpoint",
+      "category": "repetition",
+      "query": {
+        "text": "replay checkpoint",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-checkpoint"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-checkpoint",
+          "contains": [
+            "advances only after the destination commits the job"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repetition-reserve",
+      "category": "repetition",
+      "query": {
+        "text": "disk reserve",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-reserve"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-reserve",
+          "contains": [
+            "watermark is 512 MiB"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repetition-drain",
+      "category": "repetition",
+      "query": {
+        "text": "shutdown drain",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-drain"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-drain",
+          "contains": [
+            "waits up to 15 seconds"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repetition-citation",
+      "category": "repetition",
+      "query": {
+        "text": "citation scope",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-citation"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-citation",
+          "contains": [
+            "includes the authorized project and the source revision"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repetition-freshness",
+      "category": "repetition",
+      "query": {
+        "text": "corpus freshness",
+        "project_id": "atlas",
+        "session_id": "repeat-study",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "repeat-answer-freshness"
+      ],
+      "forbidden_ids": [],
+      "expect_empty": false,
+      "evidence": [
+        {
+          "record_id": "repeat-answer-freshness",
+          "contains": [
+            "compares the projection checkpoint with the raw change sequence"
+          ]
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "kind": "delete",
+      "id": "stale-delete-upload",
+      "sync_projection": false
+    },
+    {
+      "kind": "delete",
+      "id": "stale-delete-key",
+      "sync_projection": false
+    },
+    {
+      "kind": "replace",
+      "id": "stale-replace-reserve",
+      "record": {
+        "id": "stale-replace-reserve",
+        "project_id": "atlas",
+        "session_id": "maintenance",
+        "client": "codex",
+        "event_at": "2026-10-21T08:00:00Z",
+        "messages": [
+          {
+            "role": "assistant",
+            "content": "The current reserve policy is 512 MiB; retire the former constant."
+          }
+        ]
+      },
+      "sync_projection": false
+    },
+    {
+      "kind": "replace",
+      "id": "stale-replace-key",
+      "record": {
+        "id": "stale-replace-key",
+        "project_id": "orchard",
+        "session_id": "maintenance",
+        "client": "codex",
+        "event_at": "2026-10-21T08:00:00Z",
+        "messages": [
+          {
+            "role": "assistant",
+            "content": "The current rotation flow is a reviewed manual action with no legacy API endpoint."
+          }
+        ]
+      },
+      "sync_projection": false
+    }
+  ]
+}

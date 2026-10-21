@@ -15,7 +15,11 @@ also deployed (source `10042d2`). Broad-query prefix selection is deployed as
 Negotiated archive commit receipts and bounded producer replay are enabled as
 `572f0a1`; see [durable delivery](../durable-delivery.md) for the tested process-crash
 boundary, asynchronous pre-spool gap and SQLite NORMAL power-loss limit. Quality
-evaluation, ranking, continuation and extraction increments below remain planned. The baseline section records the state before these changes.
+evaluation now has a frozen 62-question synthetic baseline and an isolated
+[cpa-memory-eval runner](../recall-evaluation.md). The private owner-labeled corpus
+of 50 real questions remains pending. Ranking, continuation and extraction
+increments below remain planned. The baseline section records the state before
+these changes.
 
 ## Outcome and authority
 
