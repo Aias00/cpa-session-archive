@@ -6,8 +6,10 @@ Status: partially implemented. The [built-in retrieval increment](../builtin-mem
 provides local search, revision-checked source excerpts and a Web recap packet.
 Read-only MCP and shared text indexing are also implemented and deployed.
 A manual reviewed-Git lifecycle (draft, confirm, correct and archive) is also
-implemented. Automatic extraction, semantic search and remaining release gates
-are not implemented;
+implemented. Optional [offline extraction](../memory-extraction.md) now provides
+attributed candidate reports, relation suggestions and durable budgeted tasks in
+development only. Automatic scheduling and production semantic-search acceptance
+remain future work;
 the built-in collector is deployed on the Mac mini M4; see the
 [deployment record](../mac-mini-deployment.md).
 Baseline: fork commit `35cfaa281505c4008abae4613c64cedc05717b26`.

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "date": "2026-10-21",
+  "stage": "development-only",
+  "provider": {
+    "model": "gpt-6.1-sol",
+    "protocol": "CPA OpenAI-compatible Chat Completions",
+    "schema_version": "source-bound-candidates-json-v3",
+    "fingerprint": "39062733a2b7a704e35e13269969af273b69f997e96043d50f461f3cac6e833b"
+  },
+  "fixture_source_sha256": "445ea173f62fa5b1720d436453a7a2c708ef323ea390ae4e7e0ddf15c478f572",
+  "attribution_corpus": {
+    "expected_labels": 20,
+    "matched_labels": 20,
+    "accepted_candidates": 20,
+    "rejected_candidates": 0,
+    "attributions": [
+      "user_requirement",
+      "user_report",
+      "assistant_suggestion",
+      "assistant_report",
+      "execution_result"
+    ],
+    "exact_quote_readback": true,
+    "assistant_reports_preserve_unverified_status": true,
+    "tool_failure_polarity_preserved": true
+  },
+  "relation_fixture": {
+    "new": true,
+    "corrects": true,
+    "supersedes": true,
+    "conflicts_with": true,
+    "duplicate": true,
+    "revision_bound": true,
+    "generated_candidates": 5,
+    "git_proposals_written": 0,
+    "knowledge_approved": 0
+  },
+  "successful_run": {
+    "call_reservations": 6,
+    "input_reservations": 29541,
+    "output_reservations": 6000,
+    "reported_input_tokens": 7822,
+    "reported_output_tokens": 2212,
+    "job_states": {
+      "done": 6
+    }
+  },
+  "retained_earlier_trials": {
+    "call_reservations": 4,
+    "output_reservations": 4000,
+    "reservations_refunded": 0,
+    "ledgers_preserved": true,
+    "compatibility_findings": [
+      "usage.prompt_tokens_details.cached_creation_tokens",
+      "choices[].native_finish_reason"
+    ]
+  },
+  "complete_development_run": {
+    "call_reservations": 10,
+    "output_reservations": 10000
+  },
+  "verification": {
+    "full_repository_go_race": true,
+    "go_vet": true,
+    "focused_final_race": true,
+    "native_build": true,
+    "native_status_smoke": true,
+    "temporary_credential_copies_removed": true
+  },
+  "rollout": {
+    "client_config_changed": false,
+    "live_services_restarted": false,
+    "live_reviewed_knowledge_modified": false,
+    "binary_installed": false,
+    "pushed": false
+  },
+  "limits": [
+    "Public synthetic corpus only; no owner transcripts or private labels used.",
+    "Attribution and key preservation are not semantic entailment certification.",
+    "The explicit relation fixture does not establish exhaustive contradiction detection."
+  ]
+}

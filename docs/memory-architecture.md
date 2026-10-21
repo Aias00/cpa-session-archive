@@ -41,6 +41,14 @@ and proposing, never operator review. Git commits remain authoritative; SQLite
 does not acquire confirmation state. A derived index may be discarded only
 without discarding authoritative evidence or Git state.
 
+The development-only [extraction batch](memory-extraction.md) consumes exact
+source snapshots and a bounded reviewed-knowledge comparison through separate
+interfaces. Its private SQLite task ledger owns cursors, deduplication, durable
+unconfirmed output and call reservations. It holds no knowledge approval state;
+explicit staging uses `Knowledge.Propose`, and only the existing operator path
+can approve Git knowledge. This ledger must not reuse an archive, projection or
+outbox database path. No extraction scheduler or client integration is enabled.
+
 The optional [project context adapter](project-context.md) reads allowlisted
 documents at a registered project's fixed Git HEAD, then routes bounded excerpts
 for overview, architecture, followups and installation. Reviewed knowledge and

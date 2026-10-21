@@ -410,12 +410,7 @@ func sourceScope(r archive.Record) (project, client string) {
 	return
 }
 func isInternal(r archive.Record) bool {
-	for _, kind := range r.Facets["request.kind"] {
-		if kind == "memory" || kind == "memory-extraction" {
-			return true
-		}
-	}
-	return false
+	return IsInternalSource(r)
 }
 
 func projectionDocument(r archive.Record) Document {

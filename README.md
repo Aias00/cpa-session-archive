@@ -77,6 +77,10 @@ using existing canonical Git repositories. The optional
 [memory validity layer](docs/memory-validity.md) adds explicit reviewed
 replacement/conflict relationships and separates current recall from retained
 inactive records; this increment remains development-only. The optional
+[offline extraction workflow](docs/memory-extraction.md) adds attributed,
+source-bound candidate reports, reviewed-knowledge comparison, and a separate
+incremental task ledger with budget and recovery controls. It creates no active
+knowledge automatically and is not enabled on live services. The optional
 [project context tools](docs/project-context.md) assemble cited committed
 documents, reviewed project knowledge and explicitly requested history for
 overview, architecture, followups and installation. Collector and independent

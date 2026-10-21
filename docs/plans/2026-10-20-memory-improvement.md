@@ -20,12 +20,20 @@ evaluation now has a frozen 62-question synthetic baseline and an isolated
 of 50 real questions remains pending. Optional [diverse literal
 retrieval](../diverse-retrieval.md) is implemented and deployed as `5349321`.
 It addresses repeated context and long-window candidate pressure against the
-unchanged frozen corpus. Broader relevance ranking, continuation and extraction
-remain planned. See the [verified rollout](../mac-mini-deployment.md#diverse-literal-retrieval-rollout-2026-10-20).
+unchanged frozen corpus. At that rollout, broader relevance ranking,
+continuation and extraction remained planned. See the
+[verified rollout](../mac-mini-deployment.md#diverse-literal-retrieval-rollout-2026-10-20).
 Collection and memory are now [independent services](../decoupled-memory.md),
 deployed as `9bc6205`: committed source/change transport, persistent source binding,
 failure isolation and existing recall-client compatibility have passed live
 verification. The baseline section records the state before these changes.
+
+Development update, 2026-10-21: [memory validity](../memory-validity.md) and
+[offline extraction](../memory-extraction.md) now implement explicit relationship
+review, attributed candidate generation, source comparison, incremental tasks and
+budget/recovery controls. Real public synthetic acceptance passed twenty
+attribution labels and five relationship actions. These increments are not
+deployed; client integration remains paused by the user's instruction.
 
 ## Outcome and authority
 
@@ -122,6 +130,11 @@ task without repeating its explanation. Cover failed checks, forks, stale source
 reads and absent evidence. Use Codex for acceptance; do not invoke Claude.
 
 ## Increment 4: practical reviewed knowledge
+
+Development status: the optional batch implementation and its acceptance record
+are documented in [offline extraction](../memory-extraction.md). It retains the
+operator-only review boundary below; automatic background scheduling is not
+enabled.
 
 Improve the existing proposal workflow with source comparison, applicability,
 expiry/review reminders, correction diffs and explicit conflict links. Drafts
