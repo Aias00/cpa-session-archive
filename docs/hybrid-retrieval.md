@@ -183,3 +183,9 @@ Do not tune thresholds or rewrite frozen labels merely to remove these misses.
 Use independently labeled calibration and held-out owner questions. The
 [private corpus workflow](private-recall-corpus.md) prepares that work without
 inventing questions or gold evidence.
+
+The [synthetic calibration workflow](semantic-calibration.md) adds a fixed
+parameter grid, separate subjects and an unevaluated held-out split. It requires
+positive recall, every negative case, safety and complete retrieval together.
+It supplements the regression fixture; model-authored labels do not replace
+owner review or authorize production backfill.

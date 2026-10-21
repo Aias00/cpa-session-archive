@@ -345,7 +345,8 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 	return report, nil
 }
 func grade(ctx context.Context, reader memory.Reader, item Case, result memory.SearchResult) CaseResult {
-	out := CaseResult{ID: item.ID, Category: item.Category, Relevant: len(item.RelevantIDs), ExpectEmpty: item.ExpectEmpty, Returned: len(result.Hits), EmptyPass: item.ExpectEmpty && len(result.Hits) == 0, Truncated: result.Truncated}
+	incomplete := result.Truncated || (result.Retrieval != nil && result.Retrieval.Mode == "hybrid" && !result.Retrieval.SemanticComplete)
+	out := CaseResult{ID: item.ID, Category: item.Category, Relevant: len(item.RelevantIDs), ExpectEmpty: item.ExpectEmpty, Returned: len(result.Hits), EmptyPass: item.ExpectEmpty && len(result.Hits) == 0 && !incomplete, Truncated: incomplete}
 	found := map[string]bool{}
 	excerpts := map[[32]byte]bool{}
 	forbidden := map[string]bool{}

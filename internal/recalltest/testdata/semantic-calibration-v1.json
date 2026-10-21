@@ -1,0 +1,1407 @@
+{
+  "version": 1,
+  "name": "synthetic-semantic-calibration-v1",
+  "description": "Model-authored synthetic calibration set. No owner labels or production data. The developer previously observed baseline-v1. Topics and wording are disjoint from baseline and the other new split. This is not an independent human-authored blind test.",
+  "records": [
+    {
+      "id": "calibration-chess",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-chess",
+      "client": "codex",
+      "event_at": "2026-09-01T00:00:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for chess tie breaking."
+        },
+        {
+          "role": "assistant",
+          "content": "The chess league uses Buchholz: add the final scores of a player's opponents to separate equal match-point totals."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-chess-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-chess",
+      "client": "codex",
+      "event_at": "2026-09-02T00:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "A chess clock switches the active timer when a player presses its button."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-chess-outside-project",
+      "project_id": "syn-calibration-other-project",
+      "session_id": "syn-calibration-chess",
+      "client": "codex",
+      "event_at": "2026-09-03T00:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The junior chess league sets each round to ninety minutes."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case project scope."
+    },
+    {
+      "id": "calibration-basil",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-basil",
+      "client": "codex",
+      "event_at": "2026-09-01T00:01:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for basil root salinity."
+        },
+        {
+          "role": "assistant",
+          "content": "温室罗勒叶尖发黄时，先测根区电导率；盐分偏高则用清水淋洗基质，避免继续追肥。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-basil-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-basil",
+      "client": "codex",
+      "event_at": "2026-09-02T00:01:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "罗勒育苗盘放在通风处，搬运时托住盘底，避免幼苗根团松散。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-basil-outside-session",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-other-session",
+      "client": "codex",
+      "event_at": "2026-09-03T00:01:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "北棚这一轮罗勒每天补光八小时。"
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case session scope."
+    },
+    {
+      "id": "calibration-resample",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-resample",
+      "client": "codex",
+      "event_at": "2026-09-01T00:02:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for audio rate reduction."
+        },
+        {
+          "role": "tool",
+          "content": "In dsp/resample.py, polyphase_resample() applies a low-pass FIR before reducing the sample rate, preventing frequencies above the new Nyquist limit from folding back."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-resample-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-resample",
+      "client": "codex",
+      "event_at": "2026-09-02T00:02:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "dsp/window.py builds a symmetric Hann window for the spectrum display, independent of the resampler."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-resample-outside-client",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-resample",
+      "client": "syn-calibration-other-client",
+      "event_at": "2026-09-03T00:02:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "For polyphase_resample(), the alternate console sets the input block length to 4096 samples."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case client scope."
+    },
+    {
+      "id": "calibration-ferry",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-ferry",
+      "client": "codex",
+      "event_at": "2026-09-01T00:03:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for ferry boarding accessibility."
+        },
+        {
+          "role": "assistant",
+          "content": "渡轮排班把有轮椅预约的班次安排在低坡度浮桥泊位，方便乘客在潮位变化时平稳登船。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-ferry-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-ferry",
+      "client": "codex",
+      "event_at": "2026-09-02T00:03:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "渡轮乘客在候船室按目的港排队，登船广播同时显示在屏幕上。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-ferry-outside-project",
+      "project_id": "syn-calibration-other-project",
+      "session_id": "syn-calibration-ferry",
+      "client": "codex",
+      "event_at": "2026-09-03T00:03:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The east-island ferry route runs six wheelchair-reservable departures daily."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case project scope."
+    },
+    {
+      "id": "calibration-pastry",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-pastry",
+      "client": "codex",
+      "event_at": "2026-09-01T00:04:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for laminated pastry."
+        },
+        {
+          "role": "assistant",
+          "content": "The pastry kitchen chills laminated dough between folds to keep the butter in separate sheets instead of mixing into the dough."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-pastry-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-pastry",
+      "client": "codex",
+      "event_at": "2026-09-02T00:04:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The pastry kitchen dusts the bench lightly and brushes excess flour away before stacking layers."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-books",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-books",
+      "client": "codex",
+      "event_at": "2026-09-01T00:05:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for reading room humidity."
+        },
+        {
+          "role": "assistant",
+          "content": "阅览室使用缓冲盒减缓珍本纸张的湿度波动，开盒前先让封闭盒在室内静置，避免纸页骤然吸湿。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-books-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-books",
+      "client": "codex",
+      "event_at": "2026-09-02T00:05:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "阅览室的书托可调整开合角度，使用时不强行压平装订书脊。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-wool",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-wool",
+      "client": "codex",
+      "event_at": "2026-09-01T00:06:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for wool dye cooling."
+        },
+        {
+          "role": "assistant",
+          "content": "After dyeing wool, let the bath and yarn cool together gradually; abrupt temperature changes and agitation encourage felting."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-wool-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-wool",
+      "client": "codex",
+      "event_at": "2026-09-02T00:06:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The weaving studio labels each yarn skein with its fiber composition before dyeing."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-bees",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-bees",
+      "client": "codex",
+      "event_at": "2026-09-01T00:07:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for beehive ventilation."
+        },
+        {
+          "role": "assistant",
+          "content": "蜂箱入口缩窄后若箱内积热，就抬高上盖形成排热缝；调整时保留防雨遮挡，避免雨水直接落入巢框。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-bees-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-bees",
+      "client": "codex",
+      "event_at": "2026-09-02T00:07:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "蜂场检查时把巢框沿原顺序放回，减少重新排列对蜂群的干扰。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-watering",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-watering",
+      "client": "codex",
+      "event_at": "2026-09-01T00:08:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for sensor driven irrigation."
+        },
+        {
+          "role": "tool",
+          "content": "In grow/valve.ts, shouldWater() rejects a reading when sensor_age_ms exceeds fresh_limit_ms, so an old dry reading cannot keep the irrigation valve open."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-watering-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-watering",
+      "client": "codex",
+      "event_at": "2026-09-02T00:08:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "grow/telemetry.ts counts valve transitions for the cultivation dashboard without controlling water delivery."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-watering-outside-session",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-other-session",
+      "client": "codex",
+      "event_at": "2026-09-03T00:08:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "In the trial plot only, shouldWater() is paired with a twelve-volt irrigation valve."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case session scope."
+    },
+    {
+      "id": "calibration-violin",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-violin",
+      "client": "codex",
+      "event_at": "2026-09-01T00:09:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for violin peg tuning."
+        },
+        {
+          "role": "assistant",
+          "content": "小提琴弦轴打滑时，在转动调音的同时轻推弦轴入孔，利用锥形接触面增加摩擦，不要用力把弦拉紧。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-violin-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-violin",
+      "client": "codex",
+      "event_at": "2026-09-02T00:09:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "琴弓使用后放松弓毛张力，并用干布擦去弓杆表面的松香粉。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-wort",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-wort",
+      "client": "codex",
+      "event_at": "2026-09-01T00:10:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for brew kettle chilling."
+        },
+        {
+          "role": "assistant",
+          "content": "The brewery uses a counterflow chiller: hot wort and cold water travel in opposite directions, preserving a temperature gradient along the tubing."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-wort-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-wort",
+      "client": "codex",
+      "event_at": "2026-09-02T00:10:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The brewery rinses the transfer hoses after draining the kettle and hangs them to dry."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-milling",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-milling",
+      "client": "codex",
+      "event_at": "2026-09-01T00:11:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for aluminum milling finish."
+        },
+        {
+          "role": "tool",
+          "content": "在 cam/finish.nc 中，轮廓精加工刀路采用顺铣并保留恒定切屑厚度，以减轻铝件边缘毛刺；不要在拐角突然降速。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "calibration-milling-adjacent",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-milling",
+      "client": "codex",
+      "event_at": "2026-09-02T00:11:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "铣床加工前用百分表检查夹具平行度，再把工件压紧。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "calibration-milling-outside-client",
+      "project_id": "syn-calibration-main",
+      "session_id": "syn-calibration-milling",
+      "client": "syn-calibration-other-client",
+      "event_at": "2026-09-03T00:11:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The alternate CAM workstation uses a six-millimeter cutter for cam/finish.nc."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case client scope."
+    }
+  ],
+  "cases": [
+    {
+      "id": "calibration-chess-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How are equal match-point totals separated in the chess league?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-chess",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-chess"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-chess",
+          "contains": [
+            "add the final scores of a player's opponents"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-chess-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "联赛积分相同的棋手依据什么排出先后？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-chess",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-chess"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-chess",
+          "contains": [
+            "add the final scores of a player's opponents"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-chess-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What is the chess league entry fee?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-chess",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-chess-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "本届国际象棋联赛每轮限时多久？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-chess",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=scope-project; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-chess-outside-project"
+      ]
+    },
+    {
+      "id": "calibration-basil-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How should growers handle excess salt around the basil roots?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-basil",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-basil"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-basil",
+          "contains": [
+            "用清水淋洗基质"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-basil-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "罗勒根部盐分过高时应该怎样处理？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-basil",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-basil"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-basil",
+          "contains": [
+            "用清水淋洗基质"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-basil-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "Which nitrogen fertilizer brand was selected for the basil?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-basil",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-basil-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "本轮罗勒每天补光多少小时？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-basil",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=scope-session; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-basil-outside-session"
+      ]
+    },
+    {
+      "id": "calibration-resample-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How does the audio downsampler prevent high frequencies from folding into the output?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-resample",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-resample"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-resample",
+          "contains": [
+            "applies a low-pass FIR before reducing the sample rate"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-resample-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "dsp/resample.py 的 polyphase_resample() 为什么先做低通再降采样？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-resample",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-resample"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-resample",
+          "contains": [
+            "applies a low-pass FIR before reducing the sample rate"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-resample-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What is the audio downsampler FIR tap count?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-resample",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-resample-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "polyphase_resample() 每个输入块包含多少采样点？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-resample",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=mixed; feature=scope-client; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-resample-outside-client"
+      ]
+    },
+    {
+      "id": "calibration-ferry-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How is boarding made easier for ferry passengers using wheelchairs?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-ferry",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-ferry"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-ferry",
+          "contains": [
+            "低坡度浮桥泊位"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-ferry-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "轮椅乘客预约的渡轮应安排在哪类泊位？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-ferry",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-ferry"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-ferry",
+          "contains": [
+            "低坡度浮桥泊位"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-ferry-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "How much does a wheelchair passenger pay for the ferry?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-ferry",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-ferry-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "轮椅预约渡轮每天开行几班？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-ferry",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=scope-project; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-ferry-outside-project"
+      ]
+    },
+    {
+      "id": "calibration-pastry-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why is laminated dough cooled between successive folds?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-pastry",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-pastry"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-pastry",
+          "contains": [
+            "keep the butter in separate sheets"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-pastry-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "起酥面团折叠之间冷藏能起到什么作用？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-pastry",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-pastry"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-pastry",
+          "contains": [
+            "keep the butter in separate sheets"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-pastry-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What oven temperature was chosen for the laminated pastry?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-pastry",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-pastry-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这批起酥面团的面粉与黄油重量比是多少？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-pastry",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-books-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How can rare books avoid a sudden moisture change when entering the reading room?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-books",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-books"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-books",
+          "contains": [
+            "开盒前先让封闭盒在室内静置"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-books-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "珍本书从外部搬入阅览室后为什么不马上开盒？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-books",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-books"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-books",
+          "contains": [
+            "开盒前先让封闭盒在室内静置"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-books-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What relative humidity setpoint was selected for the rare books?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-books",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-books-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "珍本缓冲盒内的干燥剂每隔几天更换？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-books",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-wool-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How should dyed wool be cooled to avoid matting the fibers?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wool",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-wool"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-wool",
+          "contains": [
+            "let the bath and yarn cool together gradually"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-wool-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "羊毛染色后怎样降温才能减少毡化？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wool",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-wool"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-wool",
+          "contains": [
+            "let the bath and yarn cool together gradually"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-wool-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "Which exact dye concentration was chosen for the wool?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wool",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-wool-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "羊毛染浴应在几摄氏度结束保温？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wool",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-bees-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How is heat released from the hive while keeping rain off the frames?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-bees",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-bees"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-bees",
+          "contains": [
+            "抬高上盖形成排热缝"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-bees-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "蜂箱入口变窄后积热，应怎样增加散热通道？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-bees",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-bees"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-bees",
+          "contains": [
+            "抬高上盖形成排热缝"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-bees-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What ventilation gap width was chosen for the beehive lid?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-bees",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-bees-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "蜂箱中每个巢框应保留多少克蜂蜜？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-bees",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-watering-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why does the irrigation controller reject old moisture samples?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-watering",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-watering"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-watering",
+          "contains": [
+            "an old dry reading cannot keep the irrigation valve open"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-watering-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "grow/valve.ts 的 shouldWater() 如何避免过期干燥读数导致持续浇水？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-watering",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-watering"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-watering",
+          "contains": [
+            "an old dry reading cannot keep the irrigation valve open"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-watering-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What exact stale-sample timeout is configured for the irrigation controller?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-watering",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-watering-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "shouldWater() 给阀门设置的额定电压是多少？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-watering",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=mixed; feature=scope-session; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-watering-outside-session"
+      ]
+    },
+    {
+      "id": "calibration-violin-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How can a slipping violin peg be seated while tuning?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-violin",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-violin"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-violin",
+          "contains": [
+            "在转动调音的同时轻推弦轴入孔"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-violin-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "小提琴弦轴转完又退回应怎样调整？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-violin",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-violin"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-violin",
+          "contains": [
+            "在转动调音的同时轻推弦轴入孔"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-violin-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "Which exact peg-compound brand was chosen for the violin?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-violin",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-violin-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这把小提琴使用什么型号的琴弦？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-violin",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-wort-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why do the two liquids travel opposite ways in the wort cooler?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wort",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-wort"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-wort",
+          "contains": [
+            "hot wort and cold water travel in opposite directions"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-wort-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "麦汁冷却器中的冷水为什么要逆着麦汁流动？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wort",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-wort"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-wort",
+          "contains": [
+            "hot wort and cold water travel in opposite directions"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-wort-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What water flow rate was selected for the wort chiller?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wort",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-wort-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "本批麦汁在冷却结束时目标体积是多少？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-wort",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "calibration-milling-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How does the aluminum finishing pass reduce rough edges near corners?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-milling",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-milling"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-milling",
+          "contains": [
+            "顺铣并保留恒定切屑厚度"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-milling-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "cam/finish.nc 的轮廓精加工怎样减少铝件毛刺？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-milling",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "calibration-milling"
+      ],
+      "evidence": [
+        {
+          "record_id": "calibration-milling",
+          "contains": [
+            "顺铣并保留恒定切屑厚度"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=calibration; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "calibration-milling-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What spindle speed was chosen for the aluminum finishing pass?",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-milling",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "calibration-milling-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "cam/finish.nc 使用的刀具直径是多少毫米？",
+        "project_id": "syn-calibration-main",
+        "session_id": "syn-calibration-milling",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=calibration; polarity=negative; language=mixed; feature=scope-client; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "calibration-milling-outside-client"
+      ]
+    }
+  ]
+}

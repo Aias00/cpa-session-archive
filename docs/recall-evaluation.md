@@ -4,7 +4,7 @@
 
 `cpa-memory-eval` creates disposable private archive/projection databases from an
 explicit JSON dataset. It does not connect to production listeners, read native
-histories, invoke a model, change reviewed Git knowledge, or open live databases.
+histories, select a model implicitly, change reviewed Git knowledge, or open live databases.
 It deletes its databases after completion. It can run the committed synthetic
 corpus or a separate owner-controlled private dataset of the same shape.
 
@@ -62,7 +62,9 @@ The fixed top-five metrics are:
   do not change its denominator. It measures evidence-constrained source labels,
   not automatically inferred independent semantic evidence groups.
 - `mrr_at_5`: mean reciprocal rank of the first supported hit; a miss contributes 0.
-- `empty_pass_rate`: empty-expected cases returning no hits / empty-expected cases.
+- `empty_pass_rate`: empty-expected cases returning no hits without truncation
+  or incomplete semantic coverage / empty-expected cases. This is a negative-case
+  pass rate, not passage precision.
 - `duplicate_excerpt_rate`: returned slots after the first identical excerpt in
   each query / returned slots. Exact excerpt equality is display redundancy; it
   does not merge event identity or prove equal full messages.
@@ -123,8 +125,17 @@ Separate Go stress tests now cover more than 1,000 repeated occurrences and long
 message windows, stale representatives, refill and role/tool/scope attribution.
 They supplement the frozen corpus; the owner-labeled real corpus remains pending.
 
+The optional `--require-complete` gate rejects any truncated case or incomplete
+semantic coverage, emits the aggregate report, then exits 3. This gate also
+rejects ordinary top-five pagination, which shares the current truncation flag;
+it does not imply every rejected result exhausted a query budget. Errors from
+retrieval or the provider remain execution failures rather than empty answers.
+
 The optional [hybrid experiment](hybrid-retrieval.md) adds an explicitly selected
 local embedder and reports model/cost metadata without changing this corpus.
 Use `--require-empty-pass` for an additional negative-case quality gate. The
 [private corpus tool](private-recall-corpus.md) prepares and validates unfinished
 owner labeling work; it cannot certify authorship or invent the missing labels.
+Use the separate [calibration and held-out workflow](semantic-calibration.md)
+for threshold selection; the observed frozen baseline is refused by the
+calibration tool and remains a regression fixture.

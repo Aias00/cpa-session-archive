@@ -55,8 +55,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	timeout := flags.Duration("timeout", 2*time.Minute, "total isolated evaluation deadline")
 	minimum := flags.Float64("min-recall-at-5", -1, "optional mean recall gate (0 to 1); disabled by default")
 	requireEmpty := flags.Bool("require-empty-pass", false, "require every empty-expected case to return no evidence")
+	requireComplete := flags.Bool("require-complete", false, "reject truncated retrieval or incomplete semantic coverage")
 	if flags.Parse(args) != nil || flags.NArg() != 0 || *corpus == "" || *timeout <= 0 || *repeats < 1 || *repeats > 100 || math.IsNaN(*minimum) || math.IsInf(*minimum, 0) || *minimum < -1 || *minimum > 1 || (*minimum < 0 && *minimum != -1) || (*output != "" && *output == *details) || (*mode != "" && *mode != "literal" && *mode != "diverse" && *mode != "hybrid") || math.IsNaN(*semanticMinimum) || math.IsInf(*semanticMinimum, 0) || *semanticMinimum < 0 || *semanticMinimum > 1 || *embedDimensions < 1 || *embedDimensions > 4096 || (*embedEndpoint == "" && (*embedToken != "" || *embedFingerprint != "")) || (*embedEndpoint != "" && (*embedToken == "" || *embedFingerprint == "")) {
-		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3] [--mode literal|diverse|hybrid] [--require-empty-pass] [--embedding-endpoint http://127.0.0.1:PORT --embedding-token-file private.token --embedding-fingerprint PIN]")
+		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3] [--mode literal|diverse|hybrid] [--require-empty-pass] [--require-complete] [--embedding-endpoint http://127.0.0.1:PORT --embedding-token-file private.token --embedding-fingerprint PIN]")
 		return 2
 	}
 	file, err := os.Open(*corpus)
@@ -111,6 +112,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if !report.SafetyPassed() {
 		fmt.Fprintln(stderr, "evaluation failed citation, scope or forbidden-source gates")
+		return 3
+	}
+	if *requireComplete && !report.CompletePassed() {
+		fmt.Fprintln(stderr, "evaluation failed the requested complete-retrieval gate")
 		return 3
 	}
 	if *requireEmpty && report.Metrics.EmptyPassCases != report.Metrics.Unanswerable {

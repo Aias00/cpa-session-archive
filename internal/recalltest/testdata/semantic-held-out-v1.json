@@ -1,0 +1,941 @@
+{
+  "version": 1,
+  "name": "synthetic-semantic-held-out-v1",
+  "description": "Model-authored synthetic held-out set. No owner labels or production data. The developer previously observed baseline-v1. Topics and wording are disjoint from baseline and the other new split. This is not an independent human-authored blind test.",
+  "records": [
+    {
+      "id": "held-out-kiln",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-kiln",
+      "client": "codex",
+      "event_at": "2026-09-01T00:00:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for porcelain kiln cooling."
+        },
+        {
+          "role": "assistant",
+          "content": "The porcelain workshop cools the kiln gradually through the quartz inversion range to reduce stress from uneven contraction."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-kiln-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-kiln",
+      "client": "codex",
+      "event_at": "2026-09-02T00:00:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The porcelain workshop dries the foot rings before loading glazed pieces on kiln shelves."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-bridge",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-bridge",
+      "client": "codex",
+      "event_at": "2026-09-01T00:01:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for bridge thermal movement."
+        },
+        {
+          "role": "assistant",
+          "content": "桥梁活动支座允许梁体沿桥向伸缩，把温度变化产生的位移释放出来，避免将全部热胀力传给桥墩。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-bridge-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-bridge",
+      "client": "codex",
+      "event_at": "2026-09-02T00:01:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "桥面排水口定期清除落叶，防止积水流向伸缩缝。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-bridge-outside-project",
+      "project_id": "syn-held-out-other-project",
+      "session_id": "syn-held-out-bridge",
+      "client": "codex",
+      "event_at": "2026-09-03T00:01:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The valley bridge uses expansion bearings with eighty millimeters of travel."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case project scope."
+    },
+    {
+      "id": "held-out-polarizer",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-polarizer",
+      "client": "codex",
+      "event_at": "2026-09-01T00:02:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for photographic reflection control."
+        },
+        {
+          "role": "assistant",
+          "content": "A circular polarizer reduces reflections from a lake when rotated relative to the reflected light, making submerged rocks more visible."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-polarizer-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-polarizer",
+      "client": "codex",
+      "event_at": "2026-09-02T00:02:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The photographer carries a lens hood to shield the front element from stray sunlight."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-polarizer-outside-session",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-other-session",
+      "client": "codex",
+      "event_at": "2026-09-03T00:02:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "For the west-shore photo session, the circular polarizer has a seventy-seven-millimeter thread."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case session scope."
+    },
+    {
+      "id": "held-out-reef",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-reef",
+      "client": "codex",
+      "event_at": "2026-09-01T00:03:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for sail area reduction."
+        },
+        {
+          "role": "assistant",
+          "content": "强风中收一道缩帆，把主帆受风面积减小；先放松帆脚受力，再固定缩帆角，保持船体较小的横倾。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-reef-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-reef",
+      "client": "codex",
+      "event_at": "2026-09-02T00:03:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "出航前检查甲板排水孔，并把备用缆绳盘好放入绳袋。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-geotile",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-geotile",
+      "client": "codex",
+      "event_at": "2026-09-01T00:04:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for map tile latitude bounds."
+        },
+        {
+          "role": "tool",
+          "content": "In geo/mercator.py, tile_y() clamps latitude before applying the Mercator logarithm, preventing an infinite value at the poles."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-geotile-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-geotile",
+      "client": "codex",
+      "event_at": "2026-09-02T00:04:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "geo/colors.py maps elevation bands to colors without changing map coordinates."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-geotile-outside-client",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-geotile",
+      "client": "syn-held-out-other-client",
+      "event_at": "2026-09-03T00:04:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The alternate atlas builder renders tile_y() tiles at 512 pixels wide."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case client scope."
+    },
+    {
+      "id": "held-out-grapheme",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-grapheme",
+      "client": "codex",
+      "event_at": "2026-09-01T00:05:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for text cursor grapheme boundaries."
+        },
+        {
+          "role": "tool",
+          "content": "在 type/cursor.rs 中，previous_cluster() 按扩展字素簇移动光标，让组合重音和其基本字母一起越过，避免光标停在可见字符内部。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-grapheme-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-grapheme",
+      "client": "codex",
+      "event_at": "2026-09-02T00:05:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "字体选择器用字形预览展示字体差异，但不参与编辑器的光标边界计算。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-gem",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-gem",
+      "client": "codex",
+      "event_at": "2026-09-01T00:06:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for gemstone double refraction."
+        },
+        {
+          "role": "assistant",
+          "content": "宝石鉴定时用偏光镜旋转样品，观察亮暗变化来辨别单折射与双折射特征；不能只凭肉眼颜色确定晶体光学性质。"
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-gem-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-gem",
+      "client": "codex",
+      "event_at": "2026-09-02T00:06:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "宝石放入测量台前，用软刷清理镶口附近的灰尘。"
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-chromatogram",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-chromatogram",
+      "client": "codex",
+      "event_at": "2026-09-01T00:07:00Z",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please document the procedure for chromatography peak integration."
+        },
+        {
+          "role": "tool",
+          "content": "In lab/area.R, integrate_peak() subtracts a local baseline before summing the detector signal, so background drift is not counted as analyte area."
+        }
+      ],
+      "note": "Model-authored synthetic evidence; no owner or production data."
+    },
+    {
+      "id": "held-out-chromatogram-adjacent",
+      "project_id": "syn-held-out-main",
+      "session_id": "syn-held-out-chromatogram",
+      "client": "codex",
+      "event_at": "2026-09-02T00:07:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "lab/labels.R assigns sample names to plotted chromatograms without altering signal values."
+        }
+      ],
+      "note": "Same-topic evidence that does not establish the gold answer."
+    },
+    {
+      "id": "held-out-chromatogram-outside-project",
+      "project_id": "syn-held-out-other-project",
+      "session_id": "syn-held-out-chromatogram",
+      "client": "codex",
+      "event_at": "2026-09-03T00:07:00Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "The estuary chemistry project injects five microliters for each integrate_peak() sample."
+        }
+      ],
+      "note": "Synthetic requested fact exists only outside the case project scope."
+    }
+  ],
+  "cases": [
+    {
+      "id": "held-out-kiln-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why is the porcelain kiln cooled slowly through the quartz transition?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-kiln",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-kiln"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-kiln",
+          "contains": [
+            "reduce stress from uneven contraction"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-kiln-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "瓷器窑炉经过石英转变温区时为何要缓慢降温？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-kiln",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-kiln"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-kiln",
+          "contains": [
+            "reduce stress from uneven contraction"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-kiln-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What exact cooling rate was chosen for the porcelain kiln?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-kiln",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-kiln-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这批瓷器烧成的峰值温度是多少？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-kiln",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "held-out-bridge-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How does the bridge accommodate thermal expansion without loading the pier?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-bridge",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-bridge"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-bridge",
+          "contains": [
+            "允许梁体沿桥向伸缩"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-bridge-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "桥梁的活动支座为什么要允许纵向位移？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-bridge",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-bridge"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-bridge",
+          "contains": [
+            "允许梁体沿桥向伸缩"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-bridge-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What is the selected expansion-bearing travel distance?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-bridge",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-bridge-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这座桥活动支座的设计行程是多少毫米？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-bridge",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=zh; feature=scope-project; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "held-out-bridge-outside-project"
+      ]
+    },
+    {
+      "id": "held-out-polarizer-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How can a photographer make rocks below a reflective lake surface easier to see?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-polarizer",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-polarizer"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-polarizer",
+          "contains": [
+            "reduces reflections from a lake"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-polarizer-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "拍摄湖底石头时，转动圆偏振镜为什么有帮助？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-polarizer",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-polarizer"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-polarizer",
+          "contains": [
+            "reduces reflections from a lake"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-polarizer-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What shutter speed was selected for the lake photograph?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-polarizer",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-polarizer-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这张湖面照片使用的偏振镜口径是多少毫米？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-polarizer",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=zh; feature=scope-session; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "held-out-polarizer-outside-session"
+      ]
+    },
+    {
+      "id": "held-out-reef-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How does reefing help a sailing boat stay more upright in strong wind?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-reef",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-reef"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-reef",
+          "contains": [
+            "把主帆受风面积减小"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-reef-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "风变大时缩小主帆为何能减少船体侧倾？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-reef",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-reef"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-reef",
+          "contains": [
+            "把主帆受风面积减小"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-reef-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What wind-speed threshold was chosen for the first reef?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-reef",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-reef-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这艘帆船主帆第一道缩帆绳有多长？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-reef",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "held-out-geotile-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why are polar latitudes bounded before computing the map tile row?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-geotile",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-geotile"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-geotile",
+          "contains": [
+            "preventing an infinite value at the poles"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-geotile-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "geo/mercator.py 的 tile_y() 为什么限制输入纬度？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-geotile",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-geotile"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-geotile",
+          "contains": [
+            "preventing an infinite value at the poles"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-geotile-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "Which tile zoom level is configured for the city map?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-geotile",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-geotile-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "tile_y() 输出瓦片的像素宽度是多少？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-geotile",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=mixed; feature=scope-client; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "held-out-geotile-outside-client"
+      ]
+    },
+    {
+      "id": "held-out-grapheme-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How does the editor keep a cursor from landing inside an accented character?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-grapheme",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-grapheme"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-grapheme",
+          "contains": [
+            "组合重音和其基本字母一起越过"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-grapheme-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "type/cursor.rs 的 previous_cluster() 怎样处理组合重音？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-grapheme",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-grapheme"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-grapheme",
+          "contains": [
+            "组合重音和其基本字母一起越过"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-grapheme-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What font size was selected for the editor text?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-grapheme",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-grapheme-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "previous_cluster() 采用了哪个确切版本的 Unicode 数据？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-grapheme",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=mixed; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "held-out-gem-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "How can rotating a gemstone under crossed polarizers reveal its optical behavior?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-gem",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-gem"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-gem",
+          "contains": [
+            "观察亮暗变化"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-gem-positive-zh",
+      "category": "paraphrase",
+      "query": {
+        "text": "为什么鉴定宝石时要在偏光镜下转动样品？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-gem",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-gem"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-gem",
+          "contains": [
+            "观察亮暗变化"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=zh; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-gem-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What is the exact refractive index of the examined gemstone?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-gem",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-gem-negative-zh",
+      "category": "missing",
+      "query": {
+        "text": "这颗送检宝石的重量是多少克拉？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-gem",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=zh; feature=weak-association; No eligible source supplies the requested fact."
+    },
+    {
+      "id": "held-out-chromatogram-positive-en",
+      "category": "paraphrase",
+      "query": {
+        "text": "Why does peak integration remove a local background before summation?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-chromatogram",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-chromatogram"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-chromatogram",
+          "contains": [
+            "background drift is not counted as analyte area"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=en; feature=semantic; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-chromatogram-positive-mixed",
+      "category": "path",
+      "query": {
+        "text": "lab/area.R 的 integrate_peak() 为何先扣除局部基线？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-chromatogram",
+        "client": "codex",
+        "limit": 5
+      },
+      "relevant_ids": [
+        "held-out-chromatogram"
+      ],
+      "evidence": [
+        {
+          "record_id": "held-out-chromatogram",
+          "contains": [
+            "background drift is not counted as analyte area"
+          ],
+          "side": "original_request",
+          "pointer": "/messages/1/content"
+        }
+      ],
+      "note": "split=held-out; polarity=positive; language=mixed; feature=mixed-code; Labels fixed before candidate retrieval."
+    },
+    {
+      "id": "held-out-chromatogram-negative-en",
+      "category": "missing",
+      "query": {
+        "text": "What solvent ratio was selected for the chromatographic run?",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-chromatogram",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=en; feature=weak-association; Topic is present but the requested detail is absent."
+    },
+    {
+      "id": "held-out-chromatogram-negative-mixed",
+      "category": "missing",
+      "query": {
+        "text": "integrate_peak() 对应进样的体积是多少微升？",
+        "project_id": "syn-held-out-main",
+        "session_id": "syn-held-out-chromatogram",
+        "client": "codex",
+        "limit": 5
+      },
+      "expect_empty": true,
+      "note": "split=held-out; polarity=negative; language=mixed; feature=scope-project; No eligible source supplies the requested fact.",
+      "forbidden_ids": [
+        "held-out-chromatogram-outside-project"
+      ]
+    }
+  ]
+}
