@@ -148,6 +148,8 @@ func NewHandlerWithCredentials(reader Reader, credentials []Credential) (http.Ha
 				fail(410, "source revision unavailable")
 			case errors.Is(err, ErrQueryBudget):
 				fail(422, ErrQueryBudget.Error())
+			case errors.Is(err, ErrSemanticUnavailable):
+				fail(503, ErrSemanticUnavailable.Error())
 			default:
 				fail(500, "recall unavailable")
 			}

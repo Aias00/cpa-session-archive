@@ -122,3 +122,9 @@ measured cost boundaries in [diverse-retrieval.md](diverse-retrieval.md).
 Separate Go stress tests now cover more than 1,000 repeated occurrences and long
 message windows, stale representatives, refill and role/tool/scope attribution.
 They supplement the frozen corpus; the owner-labeled real corpus remains pending.
+
+The optional [hybrid experiment](hybrid-retrieval.md) adds an explicitly selected
+local embedder and reports model/cost metadata without changing this corpus.
+Use `--require-empty-pass` for an additional negative-case quality gate. The
+[private corpus tool](private-recall-corpus.md) prepares and validates unfinished
+owner labeling work; it cannot certify authorship or invent the missing labels.

@@ -161,6 +161,9 @@ func (e *Engine) syncMessageMetadata(ctx context.Context, limit int) (int, error
 			if err == nil && (needsMessages || (needsCoverage && refreshCoverage)) {
 				_, err = tx.ExecContext(ctx, `UPDATE sources SET partial=?,issues_text=? WHERE request_id=? AND revision=?`, doc.Partial, strings.Join(doc.Issues, "\n"), v.id, v.revision)
 			}
+			if err == nil && needsMessages && e.semantic != nil {
+				err = e.queueSemanticSource(ctx, tx, v.id)
+			}
 		}
 		if err == nil {
 			_, err = tx.ExecContext(ctx, "update message_meta_state set after_id=? where id=1", v.row)

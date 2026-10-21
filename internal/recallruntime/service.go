@@ -17,8 +17,9 @@ import (
 type Config struct {
 	Listen, TokenFile, CredentialsFile string
 	// ReservedToken must never grant recall access, including scoped credentials.
-	ReservedToken string
-	Diagnostics   func(context.Context) (ingeststatus.Status, error)
+	ReservedToken  string
+	ReservedTokens []string
+	Diagnostics    func(context.Context) (ingeststatus.Status, error)
 }
 
 type Service struct {

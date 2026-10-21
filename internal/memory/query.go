@@ -12,19 +12,21 @@ import (
 )
 
 type candidate struct {
-	hit  Hit
-	text string
+	hit            Hit
+	text           string
+	semantic       bool
+	semanticOffset int
 }
 
 func validateQuery(q Query, allowEmpty bool) (Query, error) {
 	q.Text = strings.TrimSpace(q.Text)
-	if q.Mode != "" && q.Mode != "literal" && q.Mode != "diverse" {
+	if q.Mode != "" && q.Mode != "literal" && q.Mode != "diverse" && q.Mode != "hybrid" {
 		return q, ErrInvalidQuery
 	}
 	if (!allowEmpty && q.Text == "") || utf8.RuneCountInString(q.Text) > 256 || len(strings.Fields(q.Text)) > 16 || !utf8.ValidString(q.Text) || q.Limit < 0 || q.Limit > 100 {
 		return q, ErrInvalidQuery
 	}
-	if q.Mode == "diverse" && len(lexicalTokens(q.Text)) == 0 {
+	if (q.Mode == "diverse" || q.Mode == "hybrid") && len(lexicalTokens(q.Text)) == 0 {
 		return q, ErrInvalidQuery
 	}
 	if q.Limit == 0 {
@@ -60,6 +62,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	}
 	if q.Mode == "diverse" {
 		return e.searchDiverse(ctx, q)
+	}
+	if q.Mode == "hybrid" {
+		return e.searchHybrid(ctx, q)
 	}
 	if _, err := e.sourceIdentity(ctx, false); err != nil {
 		return SearchResult{}, err
@@ -188,7 +193,7 @@ func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candida
 				break
 			}
 		}
-		if !matches {
+		if !matches && !(q.Mode == "hybrid" && c.semantic) {
 			continue
 		}
 		rev, known := revisions[c.hit.Citation.RequestID]
@@ -214,7 +219,7 @@ func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candida
 		// Snippet range is computed on the original text (case folding can change
 		// UTF-8 widths). Include the first literal match when one is present.
 		runes := []rune(c.text)
-		position := 0
+		position := c.semanticOffset
 		if len(terms) > 0 {
 			if byteOffset := strings.Index(lower, terms[0]); byteOffset >= 0 {
 				position = utf8.RuneCountInString(lower[:byteOffset])
@@ -222,10 +227,14 @@ func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candida
 		}
 		start := max(0, position-80)
 		end := min(len(runes), max(start+320, position+utf8.RuneCountInString(q.Text)))
+		if q.Mode == "hybrid" && c.semantic && !matches {
+			start = max(0, min(c.semanticOffset, len(runes)))
+			end = min(len(runes), start+semanticWindowRunes)
+		}
 		c.hit.Citation.Start += start
 		c.hit.Citation.End = c.hit.Citation.Start + (end - start)
 		c.hit.Snippet = string(runes[start:end])
-		if q.Mode == "diverse" {
+		if q.Mode == "diverse" || q.Mode == "hybrid" {
 			excerpt := excerptKey{c.hit.Role, c.hit.Kind, c.hit.ToolName, c.hit.Snippet}
 			if excerpts[excerpt] {
 				continue
@@ -299,7 +308,7 @@ func (e *Engine) Recap(ctx context.Context, q Query) (RecapResult, error) {
 	if err != nil {
 		return RecapResult{}, err
 	}
-	out := RecapResult{Status: results.Status, Hits: []Hit{}}
+	out := RecapResult{Status: results.Status, Hits: []Hit{}, Retrieval: results.Retrieval}
 	text := "Source excerpts only; verify against current instructions.\n"
 	if len(results.Hits) == 0 {
 		text += "No retained evidence found.\n"

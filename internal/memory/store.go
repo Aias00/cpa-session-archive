@@ -29,6 +29,7 @@ type Engine struct {
 	feed                storage.MemoryFeed
 	syncMu              sync.Mutex
 	allowSourceAdoption bool
+	semantic            *semanticEngine
 }
 
 var _ Reader = (*Engine)(nil)
@@ -135,6 +136,13 @@ func Open(path string, feed storage.MemoryFeed, options ...OpenOption) (*Engine,
 	if err := openSourceBinding(db); err != nil {
 		return fail(err)
 	}
+	var semantic *semanticEngine
+	if config.embedder != nil {
+		semantic, err = openSemantic(db, config.embedder, config.minimum)
+		if err != nil {
+			return fail(err)
+		}
+	}
 	// WAL readers use a bounded, read-only pool so a projection transaction does
 	// not monopolize the connection required by interactive searches.
 	readDB, err := sql.Open("sqlite3", location.String()+"?mode=ro&_query_only=on&_busy_timeout=5000")
@@ -147,7 +155,7 @@ func Open(path string, feed storage.MemoryFeed, options ...OpenOption) (*Engine,
 		readDB.Close()
 		return fail(err)
 	}
-	return &Engine{db: db, readDB: readDB, feed: feed, allowSourceAdoption: config.sourceAdoption}, nil
+	return &Engine{db: db, readDB: readDB, feed: feed, allowSourceAdoption: config.sourceAdoption, semantic: semantic}, nil
 }
 func (e *Engine) Close() error { return errors.Join(e.readDB.Close(), e.db.Close()) }
 
@@ -172,6 +180,12 @@ func (e *Engine) Status(ctx context.Context) (Status, error) {
 	}
 	if err := tx.Commit(); err != nil {
 		return s, err
+	}
+	if e.semantic != nil {
+		s.Semantic, err = e.semanticStatus(ctx)
+		if err != nil {
+			return Status{}, err
+		}
 	}
 	identity, err := e.sourceIdentity(ctx, false)
 	if err != nil {
@@ -259,6 +273,15 @@ func (e *Engine) Sync(ctx context.Context, limit int) (n int, err error) {
 }
 
 func (e *Engine) Run(ctx context.Context) {
+	var semantic sync.WaitGroup
+	if e.semantic != nil {
+		semantic.Add(1)
+		go func() {
+			defer semantic.Done()
+			e.runSemantic(ctx)
+		}()
+	}
+	defer semantic.Wait()
 	backoff := time.Second
 	for {
 		n, err := e.Sync(ctx, 64)
@@ -353,6 +376,11 @@ func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error
 					break
 				}
 				start = end - 256
+			}
+		}
+		if e.semantic != nil {
+			if err = e.queueSemanticSource(ctx, tx, id); err != nil {
+				return err
 			}
 		}
 	}

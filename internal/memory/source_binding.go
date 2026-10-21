@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 
+	"cpa-session-archive/internal/embedding"
 	"cpa-session-archive/internal/storage"
 )
 
@@ -17,6 +18,8 @@ var (
 
 type openOptions struct {
 	sourceAdoption bool
+	embedder       embedding.Embedder
+	minimum        float64
 }
 
 type OpenOption func(*openOptions)

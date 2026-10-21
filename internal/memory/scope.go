@@ -51,6 +51,7 @@ func (s *scopedReader) status(status Status) Status {
 		status.PartialSources = 0
 		status.Coverage = nil
 		status.Ingestion = nil
+		status.Semantic = nil
 	}
 	return status
 }

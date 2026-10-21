@@ -54,14 +54,25 @@ func ReadTokenFile(path string) (string, error) {
 }
 
 func loadCredentials(cfg Config) ([]memory.Credential, error) {
+	reserved := func(value string) bool {
+		if value == cfg.ReservedToken {
+			return true
+		}
+		for _, token := range cfg.ReservedTokens {
+			if value == token {
+				return true
+			}
+		}
+		return false
+	}
 	token, err := ReadTokenFile(cfg.TokenFile)
 	if err != nil {
 		return nil, err
 	}
 	credentials := []memory.Credential{{Token: token, Scope: memory.Scope{AllowAll: true}}}
 	if cfg.CredentialsFile == "" {
-		if token == cfg.ReservedToken {
-			return nil, fmt.Errorf("archive feed and recall credentials must be distinct")
+		if reserved(token) {
+			return nil, fmt.Errorf("backend and recall credentials must be distinct")
 		}
 		return credentials, nil
 	}
@@ -80,8 +91,8 @@ func loadCredentials(cfg Config) ([]memory.Credential, error) {
 	}
 	credentials = append(credentials, extra...)
 	for _, credential := range credentials {
-		if credential.Token == cfg.ReservedToken {
-			return nil, fmt.Errorf("archive feed and recall credentials must be distinct")
+		if reserved(credential.Token) {
+			return nil, fmt.Errorf("backend and recall credentials must be distinct")
 		}
 	}
 	return credentials, nil

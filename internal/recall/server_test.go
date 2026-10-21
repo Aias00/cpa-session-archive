@@ -86,7 +86,7 @@ func TestOfficialMCPClientSearchReadRecapAndScope(t *testing.T) {
 					Enum []string `json:"enum"`
 				} `json:"properties"`
 			}
-			if err := json.Unmarshal(body, &schema); err != nil || strings.Join(schema.Properties["mode"].Enum, ",") != ",literal,diverse" {
+			if err := json.Unmarshal(body, &schema); err != nil || strings.Join(schema.Properties["mode"].Enum, ",") != ",literal,diverse,hybrid" {
 				t.Fatalf("%s retrieval mode schema: %s %v", tool.Name, body, err)
 			}
 		}

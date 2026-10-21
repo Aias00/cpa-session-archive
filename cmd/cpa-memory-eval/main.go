@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"cpa-session-archive/internal/embedding"
+	"cpa-session-archive/internal/recallruntime"
 	"cpa-session-archive/internal/recalltest"
 )
 
@@ -43,12 +45,18 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	corpus := flags.String("corpus", "", "frozen evaluation JSON (synthetic or owner-controlled private)")
 	output := flags.String("output", "", "new aggregate report file (0600); aggregate JSON also goes to stdout")
 	details := flags.String("case-report", "", "optional new private per-case metric file (0600), never queries or snippets")
-	mode := flags.String("mode", "", "optional literal or diverse retrieval override; default preserves fixture queries")
+	mode := flags.String("mode", "", "optional literal, diverse or hybrid retrieval override; default preserves fixture queries")
+	embedEndpoint := flags.String("embedding-endpoint", "", "explicit literal-loopback local embedding origin")
+	embedToken := flags.String("embedding-token-file", "", "private dedicated local embedding credential")
+	embedFingerprint := flags.String("embedding-fingerprint", "", "pinned local model and input-policy fingerprint")
+	embedDimensions := flags.Int("embedding-dimensions", 384, "pinned embedding dimensions")
+	semanticMinimum := flags.Float64("semantic-minimum", .8, "minimum semantic cosine (0 to 1), fixed before evaluation")
 	repeats := flags.Int("repetitions", 1, "query repetitions for isolated latency sampling (1 to 100)")
 	timeout := flags.Duration("timeout", 2*time.Minute, "total isolated evaluation deadline")
 	minimum := flags.Float64("min-recall-at-5", -1, "optional mean recall gate (0 to 1); disabled by default")
-	if flags.Parse(args) != nil || flags.NArg() != 0 || *corpus == "" || *timeout <= 0 || *repeats < 1 || *repeats > 100 || math.IsNaN(*minimum) || math.IsInf(*minimum, 0) || *minimum < -1 || *minimum > 1 || (*minimum < 0 && *minimum != -1) || (*output != "" && *output == *details) || (*mode != "" && *mode != "literal" && *mode != "diverse") {
-		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3] [--mode literal|diverse]")
+	requireEmpty := flags.Bool("require-empty-pass", false, "require every empty-expected case to return no evidence")
+	if flags.Parse(args) != nil || flags.NArg() != 0 || *corpus == "" || *timeout <= 0 || *repeats < 1 || *repeats > 100 || math.IsNaN(*minimum) || math.IsInf(*minimum, 0) || *minimum < -1 || *minimum > 1 || (*minimum < 0 && *minimum != -1) || (*output != "" && *output == *details) || (*mode != "" && *mode != "literal" && *mode != "diverse" && *mode != "hybrid") || math.IsNaN(*semanticMinimum) || math.IsInf(*semanticMinimum, 0) || *semanticMinimum < 0 || *semanticMinimum > 1 || *embedDimensions < 1 || *embedDimensions > 4096 || (*embedEndpoint == "" && (*embedToken != "" || *embedFingerprint != "")) || (*embedEndpoint != "" && (*embedToken == "" || *embedFingerprint == "")) {
+		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3] [--mode literal|diverse|hybrid] [--require-empty-pass] [--embedding-endpoint http://127.0.0.1:PORT --embedding-token-file private.token --embedding-fingerprint PIN]")
 		return 2
 	}
 	file, err := os.Open(*corpus)
@@ -64,7 +72,22 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	deadline, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	report, err := recalltest.Run(deadline, dataset, recalltest.Options{Repetitions: *repeats, Mode: *mode})
+	options := recalltest.Options{Repetitions: *repeats, Mode: *mode}
+	if *embedEndpoint != "" {
+		token, err := recallruntime.ReadTokenFile(*embedToken)
+		if err != nil {
+			fmt.Fprintln(stderr, "local embedding credential unavailable")
+			return 1
+		}
+		client, err := embedding.NewHTTP(*embedEndpoint, token, *embedFingerprint, *embedDimensions)
+		if err != nil {
+			fmt.Fprintln(stderr, "invalid local embedding configuration")
+			return 1
+		}
+		defer client.Close()
+		options.Semantic = &recalltest.SemanticOptions{Embedder: client, Minimum: *semanticMinimum}
+	}
+	report, err := recalltest.Run(deadline, dataset, options)
 	if err != nil {
 		fmt.Fprintln(stderr, "isolated evaluation failed")
 		return 1
@@ -88,6 +111,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if !report.SafetyPassed() {
 		fmt.Fprintln(stderr, "evaluation failed citation, scope or forbidden-source gates")
+		return 3
+	}
+	if *requireEmpty && report.Metrics.EmptyPassCases != report.Metrics.Unanswerable {
+		fmt.Fprintln(stderr, "evaluation failed the requested empty-result gate")
 		return 3
 	}
 	if *minimum >= 0 && report.Metrics.RecallAt5 < *minimum {

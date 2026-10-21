@@ -5,21 +5,27 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 
 	"cpa-session-archive/internal/archivefeed"
+	"cpa-session-archive/internal/embedding"
 	"cpa-session-archive/internal/memory"
 	"cpa-session-archive/internal/projectionlock"
 	"cpa-session-archive/internal/recallruntime"
 )
 
 type config struct {
-	database, archiveEndpoint, archiveTokenFile string
-	adoptSource                                 bool
-	runtime                                     recallruntime.Config
+	database, archiveEndpoint, archiveTokenFile                 string
+	adoptSource                                                 bool
+	runtime                                                     recallruntime.Config
+	embeddingEndpoint, embeddingTokenFile, embeddingFingerprint string
+	embeddingDimensions                                         int
+	semanticMinimum                                             float64
 }
 
 func main() {
@@ -64,6 +70,32 @@ func loadConfig(getenv func(string) string) (config, error) {
 	if cfg.runtime.TokenFile == "" {
 		return cfg, fmt.Errorf("MEMORY_READ_TOKEN_FILE is required")
 	}
+	cfg.embeddingEndpoint = getenv("MEMORY_EMBEDDING_ENDPOINT")
+	cfg.embeddingTokenFile = getenv("MEMORY_EMBEDDING_TOKEN_FILE")
+	cfg.embeddingFingerprint = getenv("MEMORY_EMBEDDING_FINGERPRINT")
+	dimensions := getenv("MEMORY_EMBEDDING_DIMENSIONS")
+	minimum := getenv("MEMORY_SEMANTIC_MINIMUM")
+	if cfg.embeddingEndpoint == "" {
+		if cfg.embeddingTokenFile != "" || cfg.embeddingFingerprint != "" || dimensions != "" || minimum != "" {
+			return cfg, fmt.Errorf("embedding settings require MEMORY_EMBEDDING_ENDPOINT")
+		}
+		return cfg, nil
+	}
+	if cfg.embeddingTokenFile == "" || cfg.embeddingFingerprint == "" {
+		return cfg, fmt.Errorf("local embeddings require a dedicated token file and pinned fingerprint")
+	}
+	var err error
+	cfg.embeddingDimensions, err = strconv.Atoi(dimensions)
+	if err != nil || cfg.embeddingDimensions < 1 || cfg.embeddingDimensions > 4096 {
+		return cfg, fmt.Errorf("MEMORY_EMBEDDING_DIMENSIONS must be between 1 and 4096")
+	}
+	cfg.semanticMinimum = 0.8
+	if minimum != "" {
+		cfg.semanticMinimum, err = strconv.ParseFloat(minimum, 64)
+		if err != nil || math.IsNaN(cfg.semanticMinimum) || math.IsInf(cfg.semanticMinimum, 0) || cfg.semanticMinimum < 0 || cfg.semanticMinimum > 1 {
+			return cfg, fmt.Errorf("MEMORY_SEMANTIC_MINIMUM must be between 0 and 1")
+		}
+	}
 	return cfg, nil
 }
 
@@ -75,6 +107,22 @@ func run(ctx context.Context, getenv func(string) string) error {
 	token, err := recallruntime.ReadTokenFile(cfg.archiveTokenFile)
 	if err != nil {
 		return fmt.Errorf("archive feed credential: %w", err)
+	}
+	var embedder *embedding.HTTPClient
+	if cfg.embeddingEndpoint != "" {
+		embeddingToken, err := recallruntime.ReadTokenFile(cfg.embeddingTokenFile)
+		if err != nil {
+			return fmt.Errorf("local embedding credential: %w", err)
+		}
+		if embeddingToken == token {
+			return fmt.Errorf("archive feed and embedding credentials must be distinct")
+		}
+		embedder, err = embedding.NewHTTP(cfg.embeddingEndpoint, embeddingToken, cfg.embeddingFingerprint, cfg.embeddingDimensions)
+		if err != nil {
+			return err
+		}
+		defer embedder.Close()
+		cfg.runtime.ReservedTokens = append(cfg.runtime.ReservedTokens, embeddingToken)
 	}
 	feed, err := archivefeed.NewClient(cfg.archiveEndpoint, token)
 	if err != nil {
@@ -89,6 +137,9 @@ func run(ctx context.Context, getenv func(string) string) error {
 	var options []memory.OpenOption
 	if cfg.adoptSource {
 		options = append(options, memory.WithSourceAdoption())
+	}
+	if embedder != nil {
+		options = append(options, memory.WithSemantic(embedder, cfg.semanticMinimum))
 	}
 	projection, err := memory.Open(cfg.database, feed, options...)
 	if err != nil {

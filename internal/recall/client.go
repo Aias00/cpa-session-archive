@@ -70,6 +70,14 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, result 
 		return memory.ErrSourceUnavailable
 	case 422:
 		return memory.ErrQueryBudget
+	case 503:
+		var failure struct {
+			Error string `json:"error"`
+		}
+		if json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&failure) == nil && failure.Error == memory.ErrSemanticUnavailable.Error() {
+			return memory.ErrSemanticUnavailable
+		}
+		return errors.New("recall service temporarily unavailable")
 	case 401, 403:
 		return errors.New("recall read credential rejected or outside its scope")
 	default:

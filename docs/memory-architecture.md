@@ -23,6 +23,11 @@ no plugin registry,
 backend configuration matrix or speculative generic SQL repository is needed.
 An alternative engine can implement Projection once an evaluated use case exists.
 
+An explicit [experimental hybrid mode](hybrid-retrieval.md) adds local semantic
+candidates behind the same interface. Its derived jobs/vectors are independent
+of raw-feed progress, and incomplete coverage or provider failures are explicit.
+Default literal/diverse retrieval needs no embedding service.
+
 Collection and retrieval are also [separate processes](decoupled-memory.md).
 The collector exports committed evidence through a dedicated authenticated
 loopback feed. Recall never opens the raw database. A stopped or misconfigured
@@ -126,6 +131,10 @@ finishes. The configured backup deadline bounds the copy lifetime. Integrity
 verification runs on the completed copy after the source snapshot is released.
 
 ## Choosing another store
+
+The [seven-framework comparison](memory-framework-comparison.md) distinguishes
+memory-engine integration from archive/database replacement and records pinned
+source evidence, reusable workflows and a staged evaluation plan.
 
 First measure end-to-end search, source reads, status, indexing throughput,
 connection wait, backup/restore and physical table/index sizes. Use the same

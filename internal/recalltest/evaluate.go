@@ -23,6 +23,7 @@ type Options struct {
 	Repetitions int
 	TempParent  string
 	Mode        string
+	Semantic    *SemanticOptions
 }
 type CaseResult struct {
 	ID                    string  `json:"id"`
@@ -69,6 +70,7 @@ type Latency struct {
 	MaxMS   float64 `json:"max_ms"`
 }
 type Report struct {
+	Semantic             *SemanticReport     `json:"semantic,omitempty"`
 	Version              int                 `json:"version"`
 	DatasetSHA256        string              `json:"dataset_sha256"`
 	RetrievalMode        string              `json:"retrieval_mode"`
@@ -155,7 +157,12 @@ func synchronize(ctx context.Context, engine *memory.Engine) error {
 				return err
 			}
 			if status.BackfillDone && status.MessageMetadataDone && status.Lag == 0 {
-				return nil
+				if status.Semantic == nil || status.Semantic.CoverageComplete {
+					return nil
+				}
+				if _, err := engine.SyncSemantic(ctx, 64); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -172,8 +179,8 @@ func fileBytes(path string) int64 {
 }
 
 func effectiveRetrievalMode(dataset Dataset, override string) (string, error) {
-	if override != "" && override != "literal" && override != "diverse" {
-		return "", errors.New("evaluation mode must be literal or diverse")
+	if override != "" && override != "literal" && override != "diverse" && override != "hybrid" {
+		return "", errors.New("evaluation mode must be literal, diverse or hybrid")
 	}
 	mode := ""
 	for _, item := range dataset.Cases {
@@ -181,7 +188,7 @@ func effectiveRetrievalMode(dataset Dataset, override string) (string, error) {
 		if current == "" {
 			current = "literal"
 		}
-		if current != "literal" && current != "diverse" {
+		if current != "literal" && current != "diverse" && current != "hybrid" {
 			return "", errors.New("unsupported evaluation query mode")
 		}
 		if override != "" {
@@ -210,6 +217,13 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 	if err != nil {
 		return report, err
 	}
+	if options.Semantic == nil {
+		for _, item := range dataset.Cases {
+			if options.Mode == "hybrid" || (options.Mode == "" && item.Query.Mode == "hybrid") {
+				return report, errors.New("hybrid evaluation requires an explicitly configured local embedder")
+			}
+		}
+	}
 	canonical := datasetDigest(dataset)
 	if dataset.fileDigest != "" && canonical != dataset.contentDigest {
 		return report, errors.New("evaluation dataset changed after loading")
@@ -231,7 +245,16 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 		return report, errors.New("isolated archive unavailable")
 	}
 	defer raw.DB.Close()
-	engine, err := memory.Open(projectionPath, storage.NewSQLite(raw))
+	var open []memory.OpenOption
+	var measured *measuredEmbedder
+	if options.Semantic != nil {
+		if err := options.Semantic.validate(); err != nil {
+			return report, err
+		}
+		measured = &measuredEmbedder{embedder: options.Semantic.Embedder}
+		open = append(open, memory.WithSemantic(measured, options.Semantic.Minimum))
+	}
+	engine, err := memory.Open(projectionPath, storage.NewSQLite(raw), open...)
 	if err != nil {
 		return report, errors.New("isolated projection unavailable")
 	}
@@ -315,6 +338,9 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 		return report, errors.New("isolated evaluation status failed")
 	}
 	report.ProjectionLag = status.Lag
+	if measured != nil {
+		report.Semantic = measured.report(status.Semantic, options.Semantic.Minimum)
+	}
 	report.ArchiveBytes, report.ProjectionBytes = fileBytes(rawPath), fileBytes(projectionPath)
 	return report, nil
 }

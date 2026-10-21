@@ -7,12 +7,13 @@ import (
 )
 
 var (
-	ErrInvalidQuery      = errors.New("invalid query")
-	ErrSourceUnavailable = errors.New("source revision unavailable")
-	ErrQueryBudget       = errors.New("diverse query exceeded its time budget; narrow scope, time range or literal terms")
+	ErrInvalidQuery        = errors.New("invalid query")
+	ErrSourceUnavailable   = errors.New("source revision unavailable")
+	ErrQueryBudget         = errors.New("retrieval query exceeded its time budget; narrow scope, time range or text")
+	ErrSemanticUnavailable = errors.New("semantic retrieval unavailable; verify the configured local embedding service")
 )
 
-// Query values are literal text and exact scope filters, never SQL/FTS syntax.
+// Query text is never SQL/FTS syntax. Only explicit hybrid mode uses semantics.
 type Query struct {
 	Text      string `json:"text"`
 	Mode      string `json:"mode,omitempty"`
@@ -53,6 +54,7 @@ type Hit struct {
 }
 
 type Status struct {
+	Semantic            *SemanticStatus  `json:"semantic,omitempty"`
 	Coverage            *CoverageSummary `json:"coverage,omitempty"`
 	Ingestion           *IngestionStatus `json:"ingestion,omitempty"`
 	MessageMetadataDone bool             `json:"message_metadata_done"`
@@ -72,9 +74,17 @@ type Status struct {
 }
 
 type SearchResult struct {
-	Hits      []Hit  `json:"hits"`
-	Truncated bool   `json:"truncated"`
-	Status    Status `json:"status"`
+	Retrieval *RetrievalStatus `json:"retrieval,omitempty"`
+	Hits      []Hit            `json:"hits"`
+	Truncated bool             `json:"truncated"`
+	Status    Status           `json:"status"`
+}
+
+// RetrievalStatus discloses optional semantic coverage without global counts.
+type RetrievalStatus struct {
+	Mode             string `json:"mode"`
+	SemanticComplete bool   `json:"semantic_complete"`
+	Fingerprint      string `json:"fingerprint"`
 }
 
 type Evidence struct {
@@ -95,9 +105,10 @@ type Evidence struct {
 }
 
 type RecapResult struct {
-	Text   string `json:"text"`
-	Hits   []Hit  `json:"hits"`
-	Status Status `json:"status"`
+	Retrieval *RetrievalStatus `json:"retrieval,omitempty"`
+	Text      string           `json:"text"`
+	Hits      []Hit            `json:"hits"`
+	Status    Status           `json:"status"`
 }
 
 // SearchReader retrieves scoped evidence without owning projection lifecycle.
@@ -122,7 +133,7 @@ type Reader interface {
 	StatusReader
 }
 
-// Projection is owned by the collector, not by HTTP/MCP callers. Alternative
+// Projection is owned by the memory service, not by HTTP/MCP callers. Alternative
 // retrieval implementations must preserve Reader's scope and citation contract.
 // Run processes retained changes until cancellation; Close follows Run's return.
 type Projection interface {
