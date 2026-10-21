@@ -152,6 +152,8 @@ func TestHistoryRevalidatesExactTextAndDoesNotContaminateOtherSections(t *testin
 func TestContextNeverActivatesDraftsOrImplicitlySearchesHistory(t *testing.T) {
 	knowledge := &packetKnowledge{result: memory.KnowledgeResult{Authority: "reviewed-git", Entries: []memory.MemoryEntry{
 		{ID: "accepted", ProjectID: "p", Status: "verified", Title: "Installation", Statement: "Use the committed fixture setup."},
+		{ID: "review-due", ProjectID: "p", Status: "verified", Title: "Installation", Statement: "PRIVATE review-due claim", Validity: &memory.MemoryValidity{State: "review_due"}},
+		{ID: "source-unavailable", ProjectID: "p", Status: "verified", Title: "Installation", Statement: "PRIVATE unvalidated claim", Validity: &memory.MemoryValidity{State: "source_unavailable"}},
 		{ID: "draft", ProjectID: "p", Status: "draft", Title: "Installation", Statement: "PRIVATE draft"},
 		{ID: "other", ProjectID: "other", Status: "verified", Title: "Installation", Statement: "PRIVATE other"},
 		{ID: "global", ProjectID: "p", Global: true, Status: "verified", Title: "Installation", Statement: "PRIVATE global"},
@@ -173,6 +175,25 @@ func TestContextNeverActivatesDraftsOrImplicitlySearchesHistory(t *testing.T) {
 	cancel()
 	if _, err := s.ProjectContext(ctx, memory.ProjectContextQuery{}); err == nil {
 		t.Fatal("canceled context became a valid packet")
+	}
+}
+
+func TestLifecycleCountsKeepContextCoverageIncomplete(t *testing.T) {
+	for _, state := range []string{"disputed", "review_due"} {
+		t.Run(state, func(t *testing.T) {
+			issue := "reviewed_knowledge_has_unresolved_conflicts"
+			if state == "review_due" {
+				issue = "reviewed_knowledge_requires_revalidation"
+			}
+			knowledge := &packetKnowledge{result: memory.KnowledgeResult{Authority: "reviewed-git", Entries: []memory.MemoryEntry{}, States: map[string]int{state: 1}}}
+			packet, err := packetStore(t, nil, knowledge).ProjectContext(context.Background(), memory.ProjectContextQuery{Intent: "installation"})
+			if err != nil || packet.Coverage.Knowledge != "partial" || packet.Sections[0].State != "incomplete" || len(packet.Sections[0].Memories) != 0 {
+				t.Fatal("inactive knowledge became complete empty coverage", err)
+			}
+			if !strings.Contains(strings.Join(packet.Coverage.Issues, ","), issue) {
+				t.Fatal("knowledge lifecycle reason was discarded")
+			}
+		})
 	}
 }
 

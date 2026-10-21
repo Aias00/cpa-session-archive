@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"cpa-session-archive/internal/memory"
@@ -30,8 +31,14 @@ func (s *Store) Review(ctx context.Context, review Review) (memory.MemoryEntry, 
 		return empty, err
 	}
 	files := map[string][]byte{}
+	updates := map[string]document{}
 	var next document
 	if review.Action == "approve" {
+		if hasActive {
+			if err := requireNewLineageID(active.entry); err != nil {
+				return empty, err
+			}
+		}
 		file := draftPath(review.ID, review.Global)
 		raw, err := committed(ctx, root, file)
 		if err != nil {
@@ -50,12 +57,28 @@ func (s *Store) Review(ctx context.Context, review Review) (memory.MemoryEntry, 
 		if !hasActive && draft.entry.BaseRevision != "" {
 			return empty, ErrConflict
 		}
+		if draft.entry.SupersededBy != "" {
+			return empty, ErrInvalid
+		}
+		relations, err := normalizeRelations(draft.entry.ID, draft.entry.Relations)
+		if err != nil {
+			return empty, err
+		}
+		draft.entry.Relations = relations
+		targets, err := s.relationTargets(ctx, root, draft.entry)
+		if err != nil {
+			return empty, err
+		}
 		if err := s.validateSources(ctx, draft.entry); err != nil {
 			return empty, err
 		}
+		var status string
+		updates, status = relationUpdates(draft.entry, targets)
 		next = draft
-		next.entry.Status = "verified"
-		next.meta["status"] = "verified"
+		next.meta = copyMeta(draft.meta)
+		next.entry.Status = status
+		next.meta["status"] = status
+		next.meta["relations"] = relations
 		next.meta["last_verified"] = s.now().Format("2006-01-02")
 		next.meta["review_after"] = s.now().AddDate(0, 3, 0).Format("2006-01-02")
 		next.meta["review_note"] = review.Note
@@ -84,7 +107,14 @@ func (s *Store) Review(ctx context.Context, review Review) (memory.MemoryEntry, 
 		if hasActive {
 			canonical = active.path
 		}
-		files[canonical], err = markdown(next.meta, next.body)
+		next.path = canonical
+		updates[next.entry.ID] = next
+		for _, update := range updates {
+			files[update.path], err = markdown(update.meta, update.body)
+			if err != nil {
+				return empty, err
+			}
+		}
 	} else {
 		canonical = ".codex/ai-context.yaml"
 		original := []byte{}
@@ -107,18 +137,29 @@ func (s *Store) Review(ctx context.Context, review Review) (memory.MemoryEntry, 
 			context["global_knowledge"] = []string{}
 			context["local_exceptions"] = []any{}
 		}
+		updates[next.entry.ID] = next
 		list := []map[string]any{}
-		replaced := false
+		seen := map[string]bool{}
 		for _, d := range documents {
-			if d.entry.ID == review.ID {
-				list = append(list, next.meta)
-				replaced = true
+			if seen[d.entry.ID] {
+				return empty, ErrConflict
+			}
+			seen[d.entry.ID] = true
+			if update, ok := updates[d.entry.ID]; ok {
+				list = append(list, update.meta)
 			} else {
 				list = append(list, d.meta)
 			}
 		}
-		if !replaced {
-			list = append(list, next.meta)
+		missing := []string{}
+		for id := range updates {
+			if !seen[id] {
+				missing = append(missing, id)
+			}
+		}
+		sort.Strings(missing)
+		for _, id := range missing {
+			list = append(list, updates[id].meta)
 		}
 		context["reviewed_memories"] = list
 		files[canonical], err = yaml.Marshal(context)

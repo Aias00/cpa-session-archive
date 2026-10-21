@@ -1,5 +1,22 @@
 # Mac mini M4 deployment
 
+## Client integration paused, 2026-10-21
+
+At the user's request, the local Codex `cpa_archive` MCP entry was removed,
+preserving all other client settings. A parsed configuration comparison and
+`codex mcp list --json` confirmed the removal. Configuration backup and aggregate
+evidence are retained under
+`/Volumes/data/build/cpa-session-archive/development-only-20261021`.
+The bridge binary and private project registry remain on disk. Existing archive
+and memory services, credentials, raw/projection/outbox data and reviewed Git
+knowledge were preserved; no process restarted.
+
+New [memory validity and relationship work](memory-validity.md) is restricted to
+development and isolated verification. Do not configure clients, install updated
+artifacts or restart live services until the user explicitly requests rollout.
+The following sections record earlier deployments; their client integration
+descriptions do not describe the currently removed Codex entry.
+
 ## Cited project context rollout, 2026-10-20
 
 The native `cpa-memory` bridge was built from exact source `7c1bb8a` and installed

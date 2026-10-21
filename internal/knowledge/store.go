@@ -35,7 +35,7 @@ type Review struct {
 }
 
 func New(config Config) (*Store, error) {
-	if config.Source == nil || (!config.Scope.AllowAll && config.Scope.ProjectID == "" && config.Scope.SessionID == "") {
+	if config.Source == nil || (!config.Scope.AllowAll && config.Scope.ProjectID == "" && config.Scope.SessionID == "") || (config.Scope.AllowAll && (config.Scope.ProjectID != "" || config.Scope.SessionID != "")) {
 		return nil, ErrInvalid
 	}
 	ctx := context.Background()
@@ -47,6 +47,7 @@ func New(config Config) (*Store, error) {
 		config.GlobalRepository = root
 	}
 	projects := map[string]string{}
+	registeredRoots := map[string]string{}
 	for id, path := range config.Projects {
 		if strings.TrimSpace(id) == "" {
 			return nil, ErrInvalid
@@ -55,7 +56,11 @@ func New(config Config) (*Store, error) {
 		if err != nil {
 			return nil, err
 		}
+		if prior, exists := registeredRoots[root]; exists && prior != id {
+			return nil, fmt.Errorf("different project identities cannot share a canonical knowledge root")
+		}
 		projects[id] = root
+		registeredRoots[root] = id
 	}
 	config.Projects = projects
 	if config.GlobalRepository == "" && len(projects) == 0 {
@@ -112,7 +117,7 @@ func (s *Store) documents(ctx context.Context, root, project string, global, dra
 	}
 	out := []document{}
 	for _, path := range paths {
-		if drafts && global && !strings.HasPrefix(path, "inbox/captured/cpa-memory-") {
+		if drafts && global && !strings.HasPrefix(path, "inbox/captured/cpa-") {
 			continue
 		}
 		raw, err := committed(ctx, root, path)
@@ -122,6 +127,9 @@ func (s *Store) documents(ctx context.Context, root, project string, global, dra
 		d, err := parseDocument(raw, path, global, project)
 		if err != nil {
 			return nil, fmt.Errorf("invalid canonical knowledge document")
+		}
+		if drafts && path != draftPath(d.entry.ID, global) {
+			continue
 		}
 		out = append(out, d)
 	}
@@ -136,12 +144,15 @@ func (s *Store) validateSources(ctx context.Context, entry memory.MemoryEntry) e
 		if !entry.Global && evidence.ProjectID != entry.ProjectID {
 			return fmt.Errorf("source does not belong to the requested project")
 		}
+		if evidence.Citation != citation {
+			return fmt.Errorf("source citation did not reproduce the requested revision and range")
+		}
 	}
 	return nil
 }
 func (s *Store) Memories(ctx context.Context, q memory.KnowledgeQuery) (memory.KnowledgeResult, error) {
-	out := memory.KnowledgeResult{Entries: []memory.MemoryEntry{}, Authority: "reviewed-git"}
-	if q.Limit < 0 || q.Limit > 100 || utf8.RuneCountInString(q.Text) > 256 {
+	out := memory.KnowledgeResult{Entries: []memory.MemoryEntry{}, Authority: "reviewed-git", States: map[string]int{}}
+	if q.Limit < 0 || q.Limit > 100 || utf8.RuneCountInString(q.Text) > 256 || !utf8.ValidString(q.Text) || (q.View != "" && q.View != "current" && q.View != "all") || (q.Drafts && q.View == "all") {
 		return out, ErrInvalid
 	}
 	if q.Limit == 0 {
@@ -164,6 +175,9 @@ func (s *Store) Memories(ctx context.Context, q memory.KnowledgeQuery) (memory.K
 		return out, err
 	}
 	for _, d := range documents {
+		if err := ctx.Err(); err != nil {
+			return out, err
+		}
 		entry := d.entry
 		if scalar(d.meta["sensitivity"]) == "restricted" && q.Global {
 			continue
@@ -172,18 +186,16 @@ func (s *Store) Memories(ctx context.Context, q memory.KnowledgeQuery) (memory.K
 			if entry.Status != "draft" {
 				continue
 			}
+			entry.Validity = validity("draft", "unreviewed_candidate")
 		} else {
-			if entry.Status != "verified" {
-				continue
-			}
-			if date := entry.ReviewAfter; date != "" && date < s.now().Format("2006-01-02") {
+			entry.Validity = s.entryValidity(ctx, entry)
+			if entry.Validity.State == "review_due" || entry.Validity.State == "source_unavailable" || entry.Validity.State == "invalid_metadata" {
 				out.Unavailable++
-				continue
 			}
-			if err := s.validateSources(ctx, entry); err != nil {
-				out.Unavailable++
-				continue
-			}
+		}
+		out.States[entry.Validity.State]++
+		if !q.Drafts && q.View != "all" && entry.Validity.State != "current" {
+			continue
 		}
 		text := strings.ToLower(entry.Title + "\n" + entry.Statement)
 		matched := true
@@ -198,10 +210,13 @@ func (s *Store) Memories(ctx context.Context, q memory.KnowledgeQuery) (memory.K
 		}
 		if len(out.Entries) >= q.Limit {
 			out.Truncated = true
-			break
+			continue
 		}
 		entry.Commit = fileCommit(ctx, root, d.path)
 		out.Entries = append(out.Entries, entry)
+	}
+	if err := ctx.Err(); err != nil {
+		return out, err
 	}
 	return out, nil
 }
@@ -249,16 +264,28 @@ func (s *Store) Propose(ctx context.Context, p memory.MemoryProposal) (memory.Me
 	if !identifier.MatchString(p.ID) {
 		return empty, ErrInvalid
 	}
-	entry := memory.MemoryEntry{ID: p.ID, Title: p.Title, Kind: p.Kind, Statement: p.Statement, Status: "draft", ProjectID: p.ProjectID, Global: p.Global, Sources: p.Sources, OperationID: p.OperationID, BaseRevision: p.BaseRevision}
-	if err := s.validateSources(ctx, entry); err != nil {
-		return empty, err
-	}
 	active, exists, err := s.findActive(ctx, root, p.ProjectID, p.Global, p.ID)
 	if err != nil {
 		return empty, err
 	}
-	if exists && (p.BaseRevision != active.entry.Revision || p.Kind != active.entry.Kind) {
-		return empty, ErrConflict
+	if exists {
+		if err := requireNewLineageID(active.entry); err != nil {
+			return empty, err
+		}
+		if p.BaseRevision != active.entry.Revision || p.Kind != active.entry.Kind {
+			return empty, ErrConflict
+		}
+	}
+	relations, err := normalizeRelations(p.ID, p.Relations)
+	if err != nil {
+		return empty, err
+	}
+	entry := memory.MemoryEntry{ID: p.ID, Title: p.Title, Kind: p.Kind, Statement: p.Statement, Status: "draft", ProjectID: p.ProjectID, Global: p.Global, Sources: p.Sources, OperationID: p.OperationID, BaseRevision: p.BaseRevision, Relations: relations}
+	if err := s.validateSources(ctx, entry); err != nil {
+		return empty, err
+	}
+	if _, err := s.relationTargets(ctx, root, entry); err != nil {
+		return empty, err
 	}
 	file := draftPath(p.ID, p.Global)
 	tracked, err := gitCommand(ctx, root, "ls-tree", "--name-only", "HEAD", "--", file)
@@ -306,7 +333,7 @@ func (s *Store) Propose(ctx context.Context, p memory.MemoryProposal) (memory.Me
 	return parsed.entry, nil
 }
 func sameProposal(a, b memory.MemoryEntry) bool {
-	if a.OperationID != b.OperationID || a.ID != b.ID || a.Title != b.Title || a.Kind != b.Kind || a.Statement != b.Statement || a.Global != b.Global || a.ProjectID != b.ProjectID || a.BaseRevision != b.BaseRevision || len(a.Sources) != len(b.Sources) {
+	if a.OperationID != b.OperationID || a.ID != b.ID || a.Title != b.Title || a.Kind != b.Kind || a.Statement != b.Statement || a.Global != b.Global || a.ProjectID != b.ProjectID || a.BaseRevision != b.BaseRevision || len(a.Sources) != len(b.Sources) || !equalRelations(a.ID, a.Relations, b.Relations) {
 		return false
 	}
 	for i := range a.Sources {

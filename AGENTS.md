@@ -1,5 +1,13 @@
 # Working agreements
 
+- **Development-only memory work (user instruction, 2026-10-21):** Continue
+  implementation and isolated verification, but do not configure client plugins,
+  install updated artifacts, or restart live services until the user explicitly
+  requests integration/rollout again. The local Codex `cpa_archive` entry was
+  removed at the user's request. Preserve existing capture services and all raw,
+  projection, outbox and reviewed Git data. This temporarily supersedes the
+  automatic deployment workflow below for new memory changes.
+
 - Work in the user's fork: `Aias00/cpa-session-archive`.
 - The standing deployment target is the user's **Mac mini M4**, reachable as
   `ssh mac-mini` or `ssh mac-mini-m4` (user `aias`).

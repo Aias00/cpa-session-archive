@@ -74,6 +74,9 @@ top-five quality and repeated-context misses. An optional
 [reviewed Git memory adapter](docs/curated-git-memory.md)
 adds sourced candidates, explicit operator confirmation, correction and archive
 using existing canonical Git repositories. The optional
+[memory validity layer](docs/memory-validity.md) adds explicit reviewed
+replacement/conflict relationships and separates current recall from retained
+inactive records; this increment remains development-only. The optional
 [project context tools](docs/project-context.md) assemble cited committed
 documents, reviewed project knowledge and explicitly requested history for
 overview, architecture, followups and installation. Collector and independent

@@ -269,9 +269,17 @@ func (s *Store) reviewed(ctx context.Context, projectID string) ([]memory.Memory
 		state = "partial"
 		issues = append(issues, "reviewed_knowledge_incomplete")
 	}
+	if result.States["disputed"] > 0 {
+		state = "partial"
+		addIssue(&issues, "reviewed_knowledge_has_unresolved_conflicts")
+	}
+	if result.States["review_due"] > 0 {
+		state = "partial"
+		addIssue(&issues, "reviewed_knowledge_requires_revalidation")
+	}
 	entries := []memory.MemoryEntry{}
 	for _, entry := range result.Entries[:min(12, len(result.Entries))] {
-		if entry.Global || entry.ProjectID != projectID || entry.Status != "verified" || len(entry.Sources) > 8 || utf8.RuneCountInString(entry.Statement) > 4000 {
+		if entry.Global || entry.ProjectID != projectID || entry.Status != "verified" || (entry.Validity != nil && entry.Validity.State != "current") || len(entry.Sources) > 8 || utf8.RuneCountInString(entry.Statement) > 4000 {
 			state = "partial"
 			addIssue(&issues, "reviewed_knowledge_ineligible")
 			continue

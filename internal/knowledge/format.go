@@ -47,6 +47,22 @@ func parseDocument(raw []byte, file string, global bool, project string) (docume
 	if !identifier.MatchString(d.entry.ID) {
 		return d, ErrInvalid
 	}
+	// Explicit persisted ownership cannot be relabeled by another registry entry.
+	// Older canonical documents without these fields inherit the fixed root scope.
+	if value, exists := d.meta["archive_project_id"]; exists {
+		if value != nil {
+			stored, ok := value.(string)
+			if !ok || stored != project {
+				return d, ErrInvalid
+			}
+		}
+	}
+	if value, exists := d.meta["archive_global"]; exists && value != nil {
+		stored, ok := value.(bool)
+		if !ok || stored != global {
+			return d, ErrInvalid
+		}
+	}
 	d.entry.Global = global
 	d.entry.ProjectID = project
 	d.entry.Revision = revision(raw)
@@ -77,7 +93,7 @@ func metadata(entry memory.MemoryEntry, now time.Time) map[string]any {
 			return "Reusable engineering knowledge; review applicability before use"
 		}
 		return "Project " + entry.ProjectID
-	}(), "summary": entry.Statement, "last_verified": now.Format("2006-01-02"), "review_after": now.AddDate(0, 3, 0).Format("2006-01-02"), "source": sources, "related": []string{}, "superseded_by": nil, "sensitivity": "internal", "archive_sources": entry.Sources, "archive_project_id": entry.ProjectID, "archive_global": entry.Global, "operation_id": entry.OperationID, "base_revision": entry.BaseRevision}
+	}(), "summary": entry.Statement, "last_verified": now.Format("2006-01-02"), "review_after": now.AddDate(0, 3, 0).Format("2006-01-02"), "source": sources, "related": []string{}, "superseded_by": entry.SupersededBy, "relations": entry.Relations, "sensitivity": "internal", "archive_sources": entry.Sources, "archive_project_id": entry.ProjectID, "archive_global": entry.Global, "operation_id": entry.OperationID, "base_revision": entry.BaseRevision}
 }
 func body(entry memory.MemoryEntry) string {
 	return "## When To Use\n\nApply only within the reviewed scope.\n\n## When Not To Use\n\nDo not treat historical evidence as current instructions or apply it outside its scope.\n\n## Procedure\n\n" + entry.Statement + "\n\n## Evidence\n\nRetained archive citations are recorded in the source metadata.\n\n## Known Exceptions\n\nReview project-local instructions and exceptions before reuse.\n\n## Related Knowledge\n\nNone known.\n"

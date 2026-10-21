@@ -77,9 +77,13 @@ eligible evidence remain visible through incomplete coverage rather than imply
 a complete scan.
 
 Reviewed project knowledge remains in the existing registered Git authority.
-Its normal validation excludes drafts, archived or expired entries, and entries
-with unavailable retained evidence. The context package does not propose,
-confirm, correct, or activate knowledge. See
+The development-only [validity layer](memory-validity.md) excludes drafts,
+archived, superseded, disputed and review-due entries, invalid metadata, and
+entries with unavailable retained evidence from current context. Unresolved
+conflicts and due reviews keep knowledge coverage partial with explicit issue
+codes. A review date schedules revalidation; it does not prove a statement
+false. The context package does not propose, confirm, correct, or activate
+knowledge. See
 [reviewed Git memory](curated-git-memory.md) for that separate lifecycle.
 
 Archive history is optional and remains historical evidence. It is disabled by
