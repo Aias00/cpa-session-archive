@@ -1,16 +1,18 @@
 # Built-in local recall
 
 The fork includes an opt-in Go + SQLite recall engine. It searches retained
-request/response text and produces cited source excerpts without model calls,
-embeddings or another runtime. The optional stdio bridge uses the official MCP
+request/response text and produces cited source excerpts. Default literal/diverse
+retrieval needs no model calls, embeddings or another runtime. The optional stdio bridge uses the official MCP
 Go SDK. The archive remains the source
 of evidence; `memory.sqlite` is a separate derived projection.
 
 The [read-only MCP bridge](mcp-recall.md) now lets clients invoke search, source
 reads and recaps directly. The Web page remains available. Optional
 [reviewed Git memory](curated-git-memory.md) adds sourced drafts, explicit operator
-confirmation, correction and archive. Semantic retrieval, native thread
-restoration and automatic context injection are not implemented.
+confirmation, correction and archive. An explicit [experimental hybrid mode](hybrid-retrieval.md)
+adds local semantic retrieval; its first quality result does not qualify it for
+production enablement. Native thread restoration and automatic context injection
+are not implemented.
 
 ## Enable independent local services
 

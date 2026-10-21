@@ -1,5 +1,65 @@
 # Mac mini M4 deployment
 
+## Experimental hybrid readiness, 2026-10-20
+
+Memory server, MCP bridge and the new private-corpus preparation command were
+built from exact source `f1a62bf` on Apple M4 / Mac16,10 and installed. Only the
+memory LaunchAgent restarted. CPA PID 3300 and collector PID 25410 were unchanged;
+the collector remains `9bc6205` and the durable plugin remains `572f0a1`.
+Account/routing configuration, credentials, raw/projection/outbox files and
+reviewed Git knowledge were preserved.
+
+Production semantic retrieval is **disabled**. No embedding environment settings
+were added, no semantic tables were created in the live projection, and no
+production conversation content was embedded. Explicit hybrid requests return
+503; default literal/diverse retrieval remains available. The temporary local
+embedding process used for isolated testing was stopped; its pinned model and
+isolated dependencies remain available for later calibration.
+
+The [hybrid evaluation](hybrid-retrieval.md) used the unchanged frozen corpus:
+recall/hit@5 increased from diverse 48/56 to 53/56, paraphrases from 0/8 to 5/8,
+and MRR from 67.9% to 75.0%. Empty cases regressed from 6/6 to 4/6. Citation,
+scope and forbidden-source checks passed, but the new `--require-empty-pass`
+gate correctly exited 3. This is an experimental result, not a production
+quality acceptance. No thresholds or frozen labels were changed to erase the
+misses.
+
+Full Go race/vet, native builds, formatting and six Python protocol tests passed.
+Separate real-process checks passed actual E5 paraphrase retrieval, source
+citations, scope-before-top-k, shared embedding deduplication, 14 exact commit
+receipts, model outage with literal availability, restart/incremental discovery,
+source outage recovery, and deletion/session-move invalidation before a blocked
+projection could catch up. Additional regressions cover stale vector writes,
+row-ID reuse, model drift, whitespace-only windows, retry recovery and explicit
+coverage/truncation.
+
+Live acceptance verified three citations from the pre-update projection,
+Chromium default/diverse/source behavior and explicit disabled-hybrid errors.
+A fresh real Codex client called hybrid (expected error), diverse and source
+read, and verified matching text. Its default `gpt-6.1-sol` encountered upstream
+capacity errors twice before any tools ran; a one-time CLI `--model gpt-6-sol`
+override completed acceptance. Persistent client settings were not changed.
+A broad pre-update diverse query hit the existing five-second budget during
+backup verification; the later live browser query returned five results. This
+does not establish production p95 or eliminate cold-query budget limits.
+
+The final recorded status had 144,018 indexed sources, lag 0 and failures 0;
+actual producer outbox entries/bytes/quarantine were all zero. Projection v3 and
+normalizer v2 remain compatible. A private 50-slot owner-corpus draft was created
+at `session-archive/private/recall-eval/owner-v1-draft.json`; it is deliberately
+unfinished and contains no invented questions or gold labels.
+
+Release artifacts, exact source, private logs and aggregate verification reports
+are under `/Volumes/data/build/cpa-session-archive/hybrid-20261020`. The newest
+verified raw/projection/outbox rollback set has checkpoint/raw fence 302748;
+old binaries, LaunchAgents and install manifest are retained. The current and
+hybrid rollback markers point there. The preceding decoupled database pair and
+its empty outbox backup were retired only after zero missing source IDs/CAS
+hashes and no open files were verified; about 33.6 GiB of logical backup files
+was removed, while old
+artifacts/configuration/reports were preserved. Raw source histories and active
+replay files were not removed.
+
 ## Independent memory service rollout, 2026-10-20
 
 Collector and memory-server source: `9bc6205` (process separation `0e8b1eb` plus

@@ -28,6 +28,12 @@ long-message candidate pressure. It requires searchable text even for recap;
 it preserves current source checks and does not add semantic matching. An
 exceeded search budget is an error requesting narrower scope, time or terms.
 
+The additional [experimental hybrid mode](hybrid-retrieval.md) requires an
+explicitly configured local embedder. It exposes query-scoped semantic coverage
+in `retrieval.semantic_complete`, returns an explicit unavailable error when
+disabled, and preserves original citations. It is disabled in the current
+production rollout because the frozen negative-case gate did not pass.
+
 ## Credentials and scope
 
 The existing `MEMORY_READ_TOKEN_FILE` still grants owner-wide Web/API access.

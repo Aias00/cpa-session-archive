@@ -155,6 +155,30 @@ an SLO. The report is retained outside the repository under the current hybrid
 experiment's reports directory; final artifact measurements are recorded
 separately after correctness fixes.
 
+The final native artifacts built from `f1a62bf` reproduced these results with
+three query repetitions. The [aggregate hybrid report](evals/hybrid-baseline-v1.json)
+contains no queries or source IDs:
+
+| Mode | Supported questions found | Paraphrases found | Empty cases passed | MRR@5 |
+| --- | --- | --- | --- | --- |
+| Literal | 36/56 (64.3%) | 0/8 | 6/6 | 57.1% |
+| Diverse | 48/56 (85.7%) | 0/8 | 6/6 | 67.9% |
+| Experimental hybrid | 53/56 (94.6%) | 5/8 | 4/6 | 75.0% |
+
+All three had zero citation/scope/forbidden failures. Non-paraphrase categories
+retain diverse mode's hit/MRR scores. The hybrid negative-case gate correctly
+exited 3, so the recall gain does not qualify it for production enablement.
+Fixture-only hybrid p50/p95 were approximately 3.24/4.74 ms; these tiny isolated
+databases do not establish full-archive performance.
+
+Separate real-process preflight with the same artifacts/local model passed
+semantic-only WAL paraphrase retrieval, original citation roundtrips,
+cross-project pre-filtering, shared embedding deduplication, model outage with
+literal availability, restart/new-text discovery, source outage recovery, and
+immediate deletion/session-move invalidation while projection writes were
+blocked. Those checks establish mechanics and failure behavior, not the missing
+precision or owner-corpus quality evidence.
+
 Do not tune thresholds or rewrite frozen labels merely to remove these misses.
 Use independently labeled calibration and held-out owner questions. The
 [private corpus workflow](private-recall-corpus.md) prepares that work without
