@@ -22,7 +22,10 @@ retrieval](../diverse-retrieval.md) is implemented and deployed as `5349321`.
 It addresses repeated context and long-window candidate pressure against the
 unchanged frozen corpus. Broader relevance ranking, continuation and extraction
 remain planned. See the [verified rollout](../mac-mini-deployment.md#diverse-literal-retrieval-rollout-2026-10-20).
-The baseline section records the state before these changes.
+Collection and memory are now [independent services](../decoupled-memory.md),
+deployed as `9bc6205`: committed source/change transport, persistent source binding,
+failure isolation and existing recall-client compatibility have passed live
+verification. The baseline section records the state before these changes.
 
 ## Outcome and authority
 

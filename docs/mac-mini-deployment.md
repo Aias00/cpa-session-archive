@@ -1,5 +1,71 @@
 # Mac mini M4 deployment
 
+## Independent memory service rollout, 2026-10-20
+
+Collector and memory-server source: `9bc6205` (process separation `0e8b1eb` plus
+strict feed-control response validation). Both were built from the exact source
+archive on Apple M4 / Mac16,10. The existing MCP bridge remains `5349321` and
+continues to use the unchanged recall API. CPA/plugin/account/routing and client
+configuration were preserved.
+
+Collection and recall now have separate LaunchAgents:
+
+| Service | Listener | Owns |
+| --- | --- | --- |
+| `com.linonetwo.cpa-session-collector` | 127.0.0.1:8318 | Raw archive, durable commit boundary and authenticated feed |
+| `com.linonetwo.cpa-memory` | 127.0.0.1:8319 | Projection, index worker, recall credentials and HTTP |
+
+The collector has no `MEMORY_*` environment settings and its Go dependency graph
+has no memory/recall packages. The memory service opens only the projection,
+validated by live file descriptors; it obtains authoritative sources through the
+new dedicated private feed token. Existing owner/scoped read credentials cannot
+read the full-source feed. See [protocol and recovery](decoupled-memory.md).
+
+The existing projection was explicitly adopted once against the intended archive.
+Its persistent identity and monotonic watermarks were verified, migration
+authorization was removed, and another memory-only restart succeeded. Collector
+and CPA PIDs stayed unchanged across that restart. The projection remains v3,
+normalizer v2. Three citations sampled from the verified pre-migration projection
+still returned byte-identical normalized text through the new service.
+
+Full Go race/vet checks and native collector/server/MCP builds passed. Frozen
+literal and diverse evaluation scores/categories remain exactly unchanged.
+Separate process preflight verified offline memory startup, collection under
+broken legacy memory settings, ten exact commit receipts, a commit while memory
+was killed, checkpoint-preserving source outage/recovery, unchanged archive ID
+across collector restart, explicit deletion/410, MCP owner/scoped search/recap,
+Chromium and graceful memory shutdown. Safety tests additionally cover wrong
+archive/history/rollback, explicit legacy adoption, ambiguous protocol controls,
+bounded body/concurrency, cancellation, raw-path preservation and duplicate
+projection owners, including hard links.
+
+Live acceptance verified the old installed bridge, Chromium and a fresh real
+Codex invocation through CPA. Codex used diverse `archive_search`, read the
+returned citation and checked its text. All 21 deployment citation roundtrips
+passed. Recorded literal samples were 314–561 ms; diverse samples 166–172 ms.
+These are samples, not production p95 or cold-cache guarantees. A transient
+upstream model-capacity error was followed by a successful Codex retry.
+
+During cutover, the verification script retained its own read-only inspection
+connection and mistook it for an old projection owner. That delayed the intended
+memory restart; collection continued. The connection was closed, the normal
+memory LaunchAgent restored, and a further independent restart/acceptance passed.
+No raw/projection/outbox data was restored or replaced during recovery.
+
+The final recorded corpus had 142,635 sources, lag 0 and failures 0. The new
+collector epoch had 189 committed deliveries, zero queue refusals and zero
+discards. Actual producer outbox backlog/bytes/quarantine were zero at deployment;
+its live files were preserved. Verified online pre-update raw/projection/outbox
+copies are retained under
+`/Volumes/data/build/cpa-session-archive/decoupled-20261020/rollback` with old
+artifacts/configuration/manifest. Projection checkpoint 300172 is covered by raw
+fence 300172; the raw backup contains 141,846 records. The install manifest,
+`decoupled-memory-rollback-dir.txt` and `current-rollback-dir.txt` identify the
+current rollback set. Rollback must stop the new memory service before restoring
+the prior collector's embedded-memory configuration; preserve active data and
+producer replay files. Prior superseded database copies are retired only after
+record-ID/CAS inclusion and open-file checks, with their artifacts retained.
+
 ## Diverse literal retrieval rollout, 2026-10-20
 
 Collector and MCP bridge source: `5349321`, built from the committed source

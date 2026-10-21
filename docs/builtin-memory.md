@@ -14,10 +14,10 @@ restoration and automatic context injection are not implemented.
 
 ## Enable independent local services
 
-Build the collector normally; no FTS5 build tag is required:
+Build the memory server normally; no FTS5 build tag is required:
 
 ```sh
-go build -trimpath -buildvcs=false -o /tmp/cpa-session-collector ./cmd/cpa-session-collector
+go build -trimpath -buildvcs=false -o /tmp/cpa-memory-server ./cmd/cpa-memory-server
 ```
 
 Create a private workspace and a dedicated random read credential. Do not reuse

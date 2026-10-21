@@ -32,7 +32,7 @@ exceeded search budget is an error requesting narrower scope, time or terms.
 
 The existing `MEMORY_READ_TOKEN_FILE` still grants owner-wide Web/API access.
 For clients, issue separate tokens in an owner-only JSON file and set the
-collector's optional `MEMORY_READ_CREDENTIALS_FILE` to its path:
+memory server's optional `MEMORY_READ_CREDENTIALS_FILE` to its path:
 
 ```json
 [
