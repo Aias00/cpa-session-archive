@@ -22,6 +22,7 @@ import (
 type Options struct {
 	Repetitions int
 	TempParent  string
+	Mode        string
 }
 type CaseResult struct {
 	ID                    string  `json:"id"`
@@ -170,6 +171,31 @@ func fileBytes(path string) int64 {
 	return size
 }
 
+func effectiveRetrievalMode(dataset Dataset, override string) (string, error) {
+	if override != "" && override != "literal" && override != "diverse" {
+		return "", errors.New("evaluation mode must be literal or diverse")
+	}
+	mode := ""
+	for _, item := range dataset.Cases {
+		current := item.Query.Mode
+		if current == "" {
+			current = "literal"
+		}
+		if current != "literal" && current != "diverse" {
+			return "", errors.New("unsupported evaluation query mode")
+		}
+		if override != "" {
+			current = override
+		}
+		if mode == "" {
+			mode = current
+		} else if mode != current {
+			mode = "mixed"
+		}
+	}
+	return mode, nil
+}
+
 // Run always creates disposable private databases, including for private datasets.
 // Its aggregate report contains no dataset names, queries, labels or snippets.
 func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) {
@@ -178,6 +204,10 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 		return report, err
 	}
 	if err := ctx.Err(); err != nil {
+		return report, err
+	}
+	mode, err := effectiveRetrievalMode(dataset, options.Mode)
+	if err != nil {
 		return report, err
 	}
 	canonical := datasetDigest(dataset)
@@ -239,12 +269,15 @@ func Run(ctx context.Context, dataset Dataset, options Options) (Report, error) 
 	if digest == "" {
 		digest = canonical
 	}
-	report = Report{Version: 1, DatasetSHA256: digest, RetrievalMode: "literal", GradingUnit: "evidence_constrained_source", SyntheticLatencyOnly: true, GOOS: runtime.GOOS, GOARCH: runtime.GOARCH, Repetitions: options.Repetitions, Records: len(dataset.Records), PostIndexChanges: len(dataset.Changes), Categories: map[string]*Metrics{}}
+	report = Report{Version: 1, DatasetSHA256: digest, RetrievalMode: mode, GradingUnit: "evidence_constrained_source", SyntheticLatencyOnly: true, GOOS: runtime.GOOS, GOARCH: runtime.GOARCH, Repetitions: options.Repetitions, Records: len(dataset.Records), PostIndexChanges: len(dataset.Changes), Categories: map[string]*Metrics{}}
 	elapsed := []float64{}
 	for repeat := 0; repeat < options.Repetitions; repeat++ {
 		for _, item := range dataset.Cases {
 			query := item.Query
 			query.Limit = 5
+			if options.Mode != "" {
+				query.Mode = options.Mode
+			}
 			scope := memory.Scope{ProjectID: query.ProjectID, SessionID: query.SessionID}
 			if scope.ProjectID == "" && scope.SessionID == "" {
 				scope.AllowAll = true

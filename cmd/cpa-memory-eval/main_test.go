@@ -274,3 +274,59 @@ func TestRunRejectsNonfiniteRecallThreshold(t *testing.T) {
 		})
 	}
 }
+
+func TestRunModeSelectionAndAggregateReporting(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		queries []string
+		flags   []string
+		want    string
+	}{
+		{name: "default literal", queries: []string{""}, want: "literal"},
+		{name: "preserve diverse", queries: []string{"diverse"}, want: "diverse"},
+		{name: "preserve mixed", queries: []string{"", "diverse"}, want: "mixed"},
+		{name: "override literal", queries: []string{"diverse", ""}, flags: []string{"--mode=literal"}, want: "literal"},
+		{name: "override diverse", queries: []string{"literal", ""}, flags: []string{"--mode=diverse"}, want: "diverse"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dataset := privateDataset()
+			item := dataset.Cases[0]
+			dataset.Cases = nil
+			for index, mode := range test.queries {
+				copy := item
+				copy.ID += strings.Repeat("-copy", index)
+				copy.Query.Mode = mode
+				dataset.Cases = append(dataset.Cases, copy)
+			}
+			corpus := writeDataset(t, dataset)
+			before, err := os.ReadFile(corpus)
+			if err != nil {
+				t.Fatal(err)
+			}
+			code, stdout, stderr := runEval(t, corpus, test.flags...)
+			if code != 0 || stderr != "" {
+				t.Fatalf("run = %d, stderr %q", code, stderr)
+			}
+			report := decodeReport(t, stdout)
+			if report.RetrievalMode != test.want || report.Metrics.RecallAt5 != 1 {
+				t.Fatalf("mode = %q, want %q; metrics %+v", report.RetrievalMode, test.want, report.Metrics)
+			}
+			assertNoPrivateText(t, string(stdout), false)
+			after, err := os.ReadFile(corpus)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("CLI mode override rewrote the dataset", err)
+			}
+		})
+	}
+}
+
+func TestRunRejectsUnknownModeBeforeReadingCorpus(t *testing.T) {
+	for _, value := range []string{"semantic", "mixed", "Literal", " diverse"} {
+		t.Run(value, func(t *testing.T) {
+			code, stdout, stderr := runEval(t, filepath.Join(t.TempDir(), "absent-corpus.json"), "--mode="+value)
+			if code != 2 || len(stdout) != 0 || !strings.Contains(stderr, "usage:") {
+				t.Fatalf("unknown mode run = %d, stdout bytes %d, stderr %q", code, len(stdout), stderr)
+			}
+		})
+	}
+}

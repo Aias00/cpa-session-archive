@@ -1,6 +1,7 @@
 package recalltest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -112,6 +113,152 @@ func TestLoadedDatasetCannotMasqueradeAsFrozenAfterMutation(t *testing.T) {
 		t.Fatal("modified dataset reused original file digest")
 	}
 }
+
+func TestRunReportsEffectiveRetrievalMode(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		queries  []string
+		override string
+		want     string
+	}{
+		{name: "omitted is literal", queries: []string{""}, want: "literal"},
+		{name: "explicit literal", queries: []string{"literal"}, want: "literal"},
+		{name: "explicit diverse", queries: []string{"diverse"}, want: "diverse"},
+		{name: "default and literal agree", queries: []string{"", "literal"}, want: "literal"},
+		{name: "mixed default and diverse", queries: []string{"", "diverse"}, want: "mixed"},
+		{name: "mixed explicit modes", queries: []string{"literal", "diverse"}, want: "mixed"},
+		{name: "literal override", queries: []string{"diverse", ""}, override: "literal", want: "literal"},
+		{name: "diverse override", queries: []string{"literal", ""}, override: "diverse", want: "diverse"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dataset := smallDataset()
+			item := dataset.Cases[0]
+			dataset.Cases = nil
+			for index, mode := range test.queries {
+				copy := item
+				copy.ID = strings.Repeat("case-", index+1)
+				copy.Query.Mode = mode
+				dataset.Cases = append(dataset.Cases, copy)
+			}
+			before, err := json.Marshal(dataset)
+			if err != nil {
+				t.Fatal(err)
+			}
+			report, err := Run(context.Background(), dataset, Options{Mode: test.override})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report.RetrievalMode != test.want || report.Metrics.RecallAt5 != 1 || report.Metrics.Cases != len(test.queries) {
+				t.Fatalf("effective mode = %q, want %q; metrics %+v", report.RetrievalMode, test.want, report.Metrics)
+			}
+			after, err := json.Marshal(dataset)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("mode selection mutated fixture queries or labels", err)
+			}
+		})
+	}
+}
+
+func TestModeOverrideChangesExecutionWithoutChangingFixtureQuery(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		query    string
+		override string
+		recall   float64
+	}{
+		{name: "default literal stays crowded"},
+		{name: "diverse override reaches older answer", query: "literal", override: "diverse", recall: 1},
+		{name: "literal override restores comparator", query: "diverse", override: "literal"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dataset := smallDataset()
+			dataset.Cases[0].Query.Mode = test.query
+			for index := 0; index < 6; index++ {
+				noise := dataset.Records[0]
+				noise.ID = strings.Repeat("noise-", index+1)
+				noise.EventAt = "2026-10-21T00:00:00Z"
+				noise.Messages = []Message{{Role: "assistant", Content: "PRIVATE query remains on the discussion agenda; no decision was recorded."}}
+				dataset.Records = append(dataset.Records, noise)
+			}
+			report, err := Run(context.Background(), dataset, Options{Mode: test.override})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report.Metrics.RecallAt5 != test.recall {
+				t.Fatalf("override did not select retrieval behavior: %+v", report.Metrics)
+			}
+			if dataset.Cases[0].Query.Mode != test.query {
+				t.Fatal("override changed the fixture query")
+			}
+		})
+	}
+}
+
+func TestRunRejectsUnknownModesBeforeCreatingDatabases(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		query    string
+		override string
+	}{
+		{name: "unknown override", override: "PRIVATE_UNKNOWN_MODE"},
+		{name: "unknown query", query: "PRIVATE_UNKNOWN_MODE"},
+		{name: "override cannot hide invalid query", query: "PRIVATE_UNKNOWN_MODE", override: "literal"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dataset := smallDataset()
+			dataset.Cases[0].Query.Mode = test.query
+			dir := t.TempDir()
+			_, err := Run(context.Background(), dataset, Options{Mode: test.override, TempParent: dir})
+			if err == nil {
+				t.Fatal("unknown retrieval mode was accepted")
+			}
+			if strings.Contains(err.Error(), "PRIVATE_UNKNOWN_MODE") {
+				t.Fatal("invalid mode diagnostic leaked private fixture values")
+			}
+			entries, readErr := os.ReadDir(dir)
+			if readErr != nil || len(entries) != 0 {
+				t.Fatal("invalid mode created isolated databases", readErr)
+			}
+		})
+	}
+}
+
+func TestModeOverridePreservesFrozenDatasetHashAndLabels(t *testing.T) {
+	raw, err := os.ReadFile("testdata/baseline-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset, err := Load(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := json.Marshal(dataset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileDigest, contentDigest := dataset.fileDigest, dataset.contentDigest
+	report, err := Run(context.Background(), dataset, Options{Mode: "diverse", TempParent: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.DatasetSHA256 != fileDigest || report.RetrievalMode != "diverse" || report.Metrics.Cases != len(dataset.Cases) {
+		t.Fatal("override changed corpus identity or did not report selected mode")
+	}
+	after, err := json.Marshal(dataset)
+	if err != nil || !bytes.Equal(before, after) || dataset.fileDigest != fileDigest || dataset.contentDigest != contentDigest {
+		t.Fatal("override changed frozen records, queries, labels or digests", err)
+	}
+	for _, item := range dataset.Cases {
+		if item.Query.Mode != "" {
+			t.Fatal("override persisted a mode into the frozen query")
+		}
+	}
+	current, err := os.ReadFile("testdata/baseline-v1.json")
+	if err != nil || !bytes.Equal(raw, current) {
+		t.Fatal("override changed the frozen corpus file", err)
+	}
+}
+
 func TestCancellationAndAggregatePrivacy(t *testing.T) {
 	dir := t.TempDir()
 	ctx, cancel := context.WithCancel(context.Background())

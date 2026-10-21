@@ -10,9 +10,20 @@ import (
 	"unicode/utf8"
 )
 
+type candidate struct {
+	hit  Hit
+	text string
+}
+
 func validateQuery(q Query, allowEmpty bool) (Query, error) {
 	q.Text = strings.TrimSpace(q.Text)
+	if q.Mode != "" && q.Mode != "literal" && q.Mode != "diverse" {
+		return q, ErrInvalidQuery
+	}
 	if (!allowEmpty && q.Text == "") || utf8.RuneCountInString(q.Text) > 256 || len(strings.Fields(q.Text)) > 16 || !utf8.ValidString(q.Text) || q.Limit < 0 || q.Limit > 100 {
+		return q, ErrInvalidQuery
+	}
+	if q.Mode == "diverse" && len(lexicalTokens(q.Text)) == 0 {
 		return q, ErrInvalidQuery
 	}
 	if q.Limit == 0 {
@@ -46,7 +57,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	if err != nil {
 		return out, err
 	}
-	terms := strings.Fields(strings.ToLower(q.Text))
+	if q.Mode == "diverse" {
+		return e.searchDiverse(ctx, q)
+	}
 	tokens := lexicalTokens(q.Text)
 	where := []string{`c.role NOT IN ('system','developer')`, `COALESCE(m.kind,'') NOT IN ('context','image')`}
 	args := []any{}
@@ -118,10 +131,6 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	if err != nil {
 		return out, err
 	}
-	type candidate struct {
-		hit  Hit
-		text string
-	}
 	candidates := []candidate{}
 	first := rows.Next()
 	if !first && query != fullQuery {
@@ -151,12 +160,21 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	if err != nil {
 		return out, err
 	}
+	return e.finishSearch(ctx, q, candidates)
+}
+
+func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candidate) (SearchResult, error) {
+	out := SearchResult{Hits: []Hit{}}
+	terms := strings.Fields(strings.ToLower(q.Text))
+	var err error
 	if len(candidates) > 1000 {
 		out.Truncated = true
 		candidates = candidates[:1000]
 	}
 	revisions := map[string]string{}
 	seen := map[string]bool{}
+	type excerptKey struct{ role, kind, tool, text string }
+	excerpts := map[excerptKey]bool{}
 	for _, c := range candidates {
 		lower := strings.ToLower(c.text)
 		matches := true
@@ -189,11 +207,6 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 		if seen[key] {
 			continue
 		}
-		seen[key] = true
-		if len(out.Hits) >= q.Limit {
-			out.Truncated = true
-			break
-		}
 		// Snippet range is computed on the original text (case folding can change
 		// UTF-8 widths). Include the first literal match when one is present.
 		runes := []rune(c.text)
@@ -208,6 +221,18 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 		c.hit.Citation.Start += start
 		c.hit.Citation.End = c.hit.Citation.Start + (end - start)
 		c.hit.Snippet = string(runes[start:end])
+		if q.Mode == "diverse" {
+			excerpt := excerptKey{c.hit.Role, c.hit.Kind, c.hit.ToolName, c.hit.Snippet}
+			if excerpts[excerpt] {
+				continue
+			}
+			excerpts[excerpt] = true
+		}
+		seen[key] = true
+		if len(out.Hits) >= q.Limit {
+			out.Truncated = true
+			break
+		}
 		out.Hits = append(out.Hits, c.hit)
 	}
 	out.Status, err = e.Status(ctx)

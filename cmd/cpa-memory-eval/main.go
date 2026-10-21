@@ -43,11 +43,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	corpus := flags.String("corpus", "", "frozen evaluation JSON (synthetic or owner-controlled private)")
 	output := flags.String("output", "", "new aggregate report file (0600); aggregate JSON also goes to stdout")
 	details := flags.String("case-report", "", "optional new private per-case metric file (0600), never queries or snippets")
+	mode := flags.String("mode", "", "optional literal or diverse retrieval override; default preserves fixture queries")
 	repeats := flags.Int("repetitions", 1, "query repetitions for isolated latency sampling (1 to 100)")
 	timeout := flags.Duration("timeout", 2*time.Minute, "total isolated evaluation deadline")
 	minimum := flags.Float64("min-recall-at-5", -1, "optional mean recall gate (0 to 1); disabled by default")
-	if flags.Parse(args) != nil || flags.NArg() != 0 || *corpus == "" || *timeout <= 0 || *repeats < 1 || *repeats > 100 || math.IsNaN(*minimum) || math.IsInf(*minimum, 0) || *minimum < -1 || *minimum > 1 || (*minimum < 0 && *minimum != -1) || (*output != "" && *output == *details) {
-		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3]")
+	if flags.Parse(args) != nil || flags.NArg() != 0 || *corpus == "" || *timeout <= 0 || *repeats < 1 || *repeats > 100 || math.IsNaN(*minimum) || math.IsInf(*minimum, 0) || *minimum < -1 || *minimum > 1 || (*minimum < 0 && *minimum != -1) || (*output != "" && *output == *details) || (*mode != "" && *mode != "literal" && *mode != "diverse") {
+		fmt.Fprintln(stderr, "usage: cpa-memory-eval --corpus dataset.json [--output new-report.json] [--case-report new-private-cases.json] [--repetitions 3] [--mode literal|diverse]")
 		return 2
 	}
 	file, err := os.Open(*corpus)
@@ -63,7 +64,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	deadline, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	report, err := recalltest.Run(deadline, dataset, recalltest.Options{Repetitions: *repeats})
+	report, err := recalltest.Run(deadline, dataset, recalltest.Options{Repetitions: *repeats, Mode: *mode})
 	if err != nil {
 		fmt.Fprintln(stderr, "isolated evaluation failed")
 		return 1

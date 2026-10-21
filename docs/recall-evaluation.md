@@ -28,6 +28,16 @@ case reports. Only synthetic fixtures and reviewed aggregate results belong in
 this repository. A file hash identifies the exact input bytes; mutation of a
 loaded dataset is rejected before execution.
 
+The optional `--mode literal` or `--mode diverse` overrides retrieval mode for
+every case on a local query copy. With no override, each fixture query's `mode`
+is preserved; an omitted query mode means literal. The aggregate
+`retrieval_mode` is `literal`, `diverse`, or `mixed`, according to the effective
+case modes. `mixed` describes a report and is not an accepted override. Unknown
+mode values are rejected. Comparing the same corpus with these overrides keeps
+its file hash, records, questions, relevance labels, and evidence anchors intact;
+write each run to a different new report path. Mode selection alone is not
+evidence of a relevance or semantic improvement.
+
 The default deadline is two minutes. `--repetitions` is bounded to 1–100; only the
 first pass contributes quality counts, while all passes contribute isolated
 latency samples. These are small-fixture search times, not production latency,
@@ -99,3 +109,16 @@ literal behavior stable. Existing lexical indexing deduplicates tokens, so any
 FTS4 matchinfo-based score must not be described as conventional frequency-based
 BM25 without a separately evaluated frequency-preserving index. Embeddings remain
 conditional on a labeled gain and bounded storage/model cost.
+
+## Diverse v1 comparison
+
+The same frozen input hash with `--mode diverse` finds 48/56 supported questions
+(85.7% recall/hit@5), MRR@5 67.9%, and zero duplicate excerpt slots among 74 hits.
+Both modes pass all six empty cases with zero citation/scope/forbidden failures.
+Old-decision and repeated-context categories improve from 0/6 to 6/6 each;
+paraphrases remain 0/8. Exact-category scores remain unchanged. The aggregate is
+[diverse-baseline-v1.json](evals/diverse-baseline-v1.json), with selection and
+measured cost boundaries in [diverse-retrieval.md](diverse-retrieval.md).
+Separate Go stress tests now cover more than 1,000 repeated occurrences and long
+message windows, stale representatives, refill and role/tool/scope attribution.
+They supplement the frozen corpus; the owner-labeled real corpus remains pending.

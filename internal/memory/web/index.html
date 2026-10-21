@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>本地会话记忆</title>
 <style>
-body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:0}main{max-width:1000px;margin:auto;padding:28px}h1{margin-bottom:4px}p{margin-top:4px}.muted{color:#526274}form,.panel,article{background:white;border:1px solid #d5dce4;border-radius:10px;padding:18px;margin:16px 0}label{display:flex;flex-direction:column;gap:4px}input,button{font:inherit;padding:9px;border:1px solid #b3c0cd;border-radius:6px}input{min-width:0}button{cursor:pointer;background:#edf4fc;color:#173c66}button:disabled{cursor:wait;opacity:.6}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace}#message{color:#962e22}.meta{font-size:13px;color:#526274;overflow-wrap:anywhere}.badge{font-weight:600;color:#8a5100}.secret{margin-bottom:12px}#query{width:100%;box-sizing:border-box}
+body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:0}main{max-width:1000px;margin:auto;padding:28px}h1{margin-bottom:4px}p{margin-top:4px}.muted{color:#526274}form,.panel,article{background:white;border:1px solid #d5dce4;border-radius:10px;padding:18px;margin:16px 0}label{display:flex;flex-direction:column;gap:4px}input,select,button{font:inherit;padding:9px;border:1px solid #b3c0cd;border-radius:6px}input,select{min-width:0}button{cursor:pointer;background:#edf4fc;color:#173c66}button:disabled{cursor:wait;opacity:.6}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace}#message{color:#962e22}.meta{font-size:13px;color:#526274;overflow-wrap:anywhere}.badge{font-weight:600;color:#8a5100}.secret{margin-bottom:12px}#query{width:100%;box-sizing:border-box}
 </style>
 </head>
 <body><main>
@@ -18,7 +18,9 @@ body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:
 <label>会话 ID<input id="session" placeholder="可选；用于限定续接摘录"></label>
 <label>开始时间<input id="after" placeholder="2026-10-17T00:00:00Z"></label>
 <label>结束时间（不含）<input id="before" placeholder="2026-10-18T00:00:00Z"></label>
+<label>Retrieval mode<select id="mode" aria-describedby="mode-help"><option value="literal">Literal (default)</option><option value="diverse">Diverse</option></select></label>
 </div>
+<p id="mode-help" class="muted">Diverse shows up to five results, requires searchable text and suppresses exact repeated excerpts. Each citation refers to one source. Both modes match literal terms. If a query exceeds its time budget, narrow scope, time range or terms.</p>
 <div class="actions"><button type="submit">搜索</button><button type="button" id="recap">生成续接摘录</button><button type="button" id="refresh">刷新索引状态</button></div>
 </form>
 <p id="message" role="alert"></p>
@@ -28,7 +30,7 @@ body{font:15px/1.6 system-ui,sans-serif;color:#172536;background:#f3f5f7;margin:
 <script>
 const $=id=>document.getElementById(id);
 async function api(path,params){const token=$('token').value.trim();if(!token)throw new Error('请填写专用只读令牌。');const response=await fetch(path+(params?'?'+params.toString():''),{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'});const data=await response.json();if(!response.ok)throw new Error(response.status+': '+(data.error||'请求失败'));return data;}
-function params(){const p=new URLSearchParams();for(const [key,id] of [['q','query'],['project_id','project'],['client','client'],['session_id','session'],['after','after'],['before','before']]){if($(id).value.trim())p.set(key,$(id).value.trim());}return p;}
+function params(){if($('mode').value==='diverse'&&!$('query').value.trim())throw new Error('Diverse mode requires searchable text.');const p=new URLSearchParams();if($('mode').value==='diverse')p.set('limit','5');for(const [key,id] of [['q','query'],['project_id','project'],['client','client'],['session_id','session'],['after','after'],['before','before'],['mode','mode']]){if($(id).value.trim())p.set(key,$(id).value.trim());}return p;}
 const coverageLabels={tool_declarations_excluded:'工具声明省略',reasoning_excluded:'推理省略',media_excluded:'媒体未索引',internal_request_excluded:'内部任务排除',auxiliary_source_unclassified:'辅助来源待核查',compacted_context:'上下文压缩',codex_item_unclassified:'Codex 条目待核查',content_unclassified:'内容类型待核查',native_record_unclassified:'原生记录待核查',kiro_event_unclassified:'Kiro 事件待核查',missing_payload:'正文缺失',retained_payload_truncated:'内容截断',upstream_failure:'上游失败',incomplete_stream:'流未完成',malformed_payload:'解析失败',unsupported_protocol:'协议未支持',unsupported_content:'内容未支持',unclassified:'原因未知'};
 function status(data){
  const lines=['历史回填：'+(data.backfill_done?'完成':'进行中')+' · 变更延迟 '+data.lag+' · 累计索引失败 '+data.failures+(data.last_error?' · '+data.last_error:'')];

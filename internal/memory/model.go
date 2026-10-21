@@ -9,11 +9,13 @@ import (
 var (
 	ErrInvalidQuery      = errors.New("invalid query")
 	ErrSourceUnavailable = errors.New("source revision unavailable")
+	ErrQueryBudget       = errors.New("diverse query exceeded its time budget; narrow scope, time range or literal terms")
 )
 
 // Query values are literal text and exact scope filters, never SQL/FTS syntax.
 type Query struct {
 	Text      string `json:"text"`
+	Mode      string `json:"mode,omitempty"`
 	ProjectID string `json:"project_id,omitempty"`
 	Client    string `json:"client,omitempty"`
 	SessionID string `json:"session_id,omitempty"`

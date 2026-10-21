@@ -10,7 +10,7 @@ bridge. The collector remains the only writer of the memory projection.
 
 | Tool | Input / behavior |
 | --- | --- |
-| `archive_search` | `text`, optional exact `project_id`, `session_id`, `client`, RFC3339 `after`/`before`, and `limit` (default 5, maximum 20). Literal search; results report truncation and coverage. |
+| `archive_search` | `text`, optional exact `project_id`, `session_id`, `client`, RFC3339 `after`/`before`, `mode` (`literal` default or `diverse`), and `limit` (default 5, maximum 20). Literal term matching; results report truncation and coverage. |
 | `archive_read_source` | Pass the fields of a returned `citation` unchanged. Checks current retained revision, normalizer version, scope and Unicode range. |
 | `project_recap` | Query filters; needs project/session scope from the request or credential. Returns a bounded literal excerpt packet, not inferred progress or an automatic summary. |
 | `archive_status` | No inputs; reports backfill, lag, failures, occurrences and unique indexed text. Corpus counts are omitted for scoped credentials. |
@@ -22,6 +22,11 @@ Markdown/YAML in Git remain authoritative. The optional
 [Git knowledge adapter](curated-git-memory.md) adds `project_memory` and opt-in
 `memory_propose`; review is a separate operator command, never an MCP tool.
 Automatic extraction and automatic context injection are not implemented.
+
+The explicit [diverse mode](diverse-retrieval.md) reduces repeated excerpts and
+long-message candidate pressure. It requires searchable text even for recap;
+it preserves current source checks and does not add semantic matching. An
+exceeded search budget is an error requesting narrower scope, time or terms.
 
 ## Credentials and scope
 

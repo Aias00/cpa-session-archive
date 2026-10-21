@@ -51,6 +51,13 @@ older matches and scope filters retain the full-query fallback. The probe is a
 planning hint, never a permission or freshness cache. Returned sources still
 undergo live revision validation. No projection or normalizer version changes.
 
+An explicit [diverse retrieval mode](diverse-retrieval.md) adds content/message
+rounds before candidate truncation and exact display suppression afterward.
+Its bounded recent first-round prefix is accepted only after enough valid hits;
+otherwise it uses the full candidate budget. Read-pool wait and query/source
+work share a five-second deadline. This adds no storage state or schema change;
+omitted/default literal selection remains the compatibility path.
+
 Corpus counts are stored in the additive `corpus_stats` table. Triggers maintain
 sources, partial sources, chunk occurrences and unique text in the same
 transaction as inserts, deletions, cascades and partial-state updates. Counts

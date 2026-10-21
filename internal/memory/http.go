@@ -121,7 +121,7 @@ func NewHandlerWithCredentials(reader Reader, credentials []Credential) (http.Ha
 				fail(400, "invalid query")
 				return
 			}
-			q := Query{Text: values.Get("q"), ProjectID: values.Get("project_id"), Client: values.Get("client"), SessionID: values.Get("session_id"), After: values.Get("after"), Before: values.Get("before"), Limit: limit}
+			q := Query{Text: values.Get("q"), ProjectID: values.Get("project_id"), Client: values.Get("client"), SessionID: values.Get("session_id"), After: values.Get("after"), Before: values.Get("before"), Mode: values.Get("mode"), Limit: limit}
 			if r.URL.Path == "/v1/search" {
 				result, err = reader.Search(r.Context(), q)
 			} else {
@@ -146,6 +146,8 @@ func NewHandlerWithCredentials(reader Reader, credentials []Credential) (http.Ha
 				fail(400, "invalid query or missing project/session scope")
 			case errors.Is(err, ErrSourceUnavailable):
 				fail(410, "source revision unavailable")
+			case errors.Is(err, ErrQueryBudget):
+				fail(422, ErrQueryBudget.Error())
 			default:
 				fail(500, "recall unavailable")
 			}

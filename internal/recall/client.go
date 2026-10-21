@@ -68,6 +68,8 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, result 
 		return memory.ErrInvalidQuery
 	case 410:
 		return memory.ErrSourceUnavailable
+	case 422:
+		return memory.ErrQueryBudget
 	case 401, 403:
 		return errors.New("recall read credential rejected or outside its scope")
 	default:
@@ -84,7 +86,7 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, result 
 }
 func queryValues(q memory.Query) url.Values {
 	values := url.Values{}
-	for _, pair := range []struct{ k, v string }{{"q", q.Text}, {"project_id", q.ProjectID}, {"session_id", q.SessionID}, {"client", q.Client}, {"after", q.After}, {"before", q.Before}} {
+	for _, pair := range []struct{ k, v string }{{"q", q.Text}, {"project_id", q.ProjectID}, {"session_id", q.SessionID}, {"client", q.Client}, {"after", q.After}, {"before", q.Before}, {"mode", q.Mode}} {
 		if pair.v != "" {
 			values.Set(pair.k, pair.v)
 		}

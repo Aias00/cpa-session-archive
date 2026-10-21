@@ -104,13 +104,19 @@ inside a request remain distinct. Shared history across different request
 snapshots remains separately attributable; there is no text-hash-only merging
 of user actions and no claim of a canonical native conversation transcript.
 
+Optional `mode=diverse` distributes candidates across exact content and message
+windows, then suppresses repeated displayed excerpts while preserving one
+validated citation per result. Both modes still match literal text; default
+literal behavior stays unchanged. Diverse requires searchable text, including
+for recap. See [selection, budgets and evaluation](diverse-retrieval.md).
+
 ## API
 
 Every data endpoint requires `Authorization: Bearer <dedicated read token>`:
 
 | GET path | Parameters / output |
 | --- | --- |
-| `/v1/search` | `q`, optional exact scope/time filters and `limit`; hits, truncation and status |
+| `/v1/search` | `q`, optional exact scope/time filters, `mode` and `limit`; hits, truncation and status |
 | `/v1/source` | Fields from a hit's `citation`, including `normalizer_version`; checked excerpt and coverage issues |
 | `/v1/recap` | Search filters; requires project or session; at most 8 KiB of cited literal excerpts |
 | `/v1/status` | Backfill progress, checkpoint/watermark, lag, source/chunk counts, partial coverage and failures |
