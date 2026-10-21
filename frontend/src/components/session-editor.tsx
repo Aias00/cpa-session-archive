@@ -14,13 +14,14 @@ interface SessionEditorProps {
   session: ManagedSession
   onSaved: (management: SessionManagement) => void
   onDirtyChange?: (dirty: boolean) => void
+  refreshKey?: number
 }
 
 type Draft = Pick<SessionManagement, 'title' | 'note' | 'starred' | 'archived'> & { tags: string }
 const draftOf = (value: SessionManagement): Draft => ({ title: value.title || '', note: value.note || '', tags: (value.tags || []).join('\n'), starred: !!value.starred, archived: !!value.archived })
 const statusOf = (error: unknown): number | undefined => error && typeof error === 'object' && 'status' in error ? Number(error.status) : undefined
 
-export function SessionEditor({ api, locale, session, onSaved, onDirtyChange }: SessionEditorProps) {
+export function SessionEditor({ api, locale, session, onSaved, onDirtyChange, refreshKey = 0 }: SessionEditorProps) {
   const zh = locale === 'zh'
   const [metadata, setMetadata] = useState<SessionManagement | null>(null)
   const [draft, setDraft] = useState<Draft>({ title: '', note: '', tags: '', starred: false, archived: false })
@@ -80,6 +81,16 @@ export function SessionEditor({ api, locale, session, onSaved, onDirtyChange }: 
     // A fresh selection reads its current revision before enabling edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.session_id, api])
+
+  const previousRefresh = useRef(refreshKey)
+  useEffect(() => {
+    if (previousRefresh.current === refreshKey) return
+    previousRefresh.current = refreshKey
+    if (dirty) { setNeedsReload(true); setStatus('conflict') }
+    else void load()
+    // A bulk update must never replace an unsaved draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey])
 
   async function save() {
     if (!metadata || busy || needsReload || validation) return

@@ -7,6 +7,10 @@ integration and live read-only acceptance checks passed; see the
 integration, automatic memory extraction, semantic retrieval or human memory
 approval. Existing management credentials remain in use.
 
+The next [automatic organization and bulk-job slice](session-automation.md) is
+in development. Its computed views and frozen all-matching apply/undo controls
+are not part of that deployed P0 release.
+
 ## Available workflow
 
 The existing archive page now has a session library with literal label search,

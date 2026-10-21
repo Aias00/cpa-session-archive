@@ -7,6 +7,10 @@ proxy, collector, session-management API and CLI. The paired plugin, collector
 and CLI were deployed to the Mac mini M4 on 2026-10-21 after the user's explicit
 request. See the [deployment record](mac-mini-deployment.md) for access and rollback.
 
+The next [automatic organization and bulk-job slice](session-automation.md) adds
+computed views, frozen all-matching previews and resumable apply/undo in
+development. Its generated build is not installed by the earlier rollout.
+
 ## Source and packaging
 
 - `frontend/src/app.tsx` owns connection, hash routes, responsive layout, theme,

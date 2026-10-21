@@ -43,11 +43,14 @@ func main() {
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: cpa-session-manage list|show|edit --endpoint CPA_ORIGIN --token-file PRIVATE_FILE [options]")
+		return errors.New("usage: cpa-session-manage list|show|edit|bulk-preview|bulk-show|bulk-apply|bulk-undo --endpoint CPA_ORIGIN --token-file PRIVATE_FILE [options]")
 	}
 	action := args[0]
+	if action == "bulk-preview" || action == "bulk-show" || action == "bulk-apply" || action == "bulk-undo" {
+		return runBulk(ctx, args, stdout, stderr)
+	}
 	if action != "list" && action != "show" && action != "edit" {
-		return errors.New("action must be list, show or edit")
+		return errors.New("unknown action; use list, show, edit, bulk-preview, bulk-show, bulk-apply or bulk-undo")
 	}
 	flags := flag.NewFlagSet("cpa-session-manage "+action, flag.ContinueOnError)
 	flags.SetOutput(stderr)
@@ -58,8 +61,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	var clearTags bool
 	var tags, facets repeatedFlag
 	query := url.Values{}
-	var search, tag string
-	var limit, offset int
+	var search, tag, view string
+	var limit, offset, inactiveDays int
 	if action == "list" {
 		flags.StringVar(&search, "q", "", "literal search of session labels, summary, notes and tags")
 		flags.StringVar(&tag, "tag", "", "exact user tag")
@@ -67,6 +70,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		flags.IntVar(&offset, "offset", 0, "live list offset, 0..1000000")
 		flags.StringVar(&archived, "archived", "exclude", "exclude, only or all")
 		flags.StringVar(&starred, "starred", "false", "true selects favorites only")
+		flags.StringVar(&view, "view", "all", "all, recent, inactive, main, subagent, system, prewarm or unassigned")
+		flags.IntVar(&inactiveDays, "inactive-days", 30, "inactive view threshold in days, 1..3650")
 		flags.Var(&facets, "filter", "exact facet NAME=VALUE; repeat for AND")
 	} else {
 		flags.StringVar(&sessionID, "session-id", "", "exact archived session ID")
@@ -92,7 +97,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	changed := map[string]bool{}
 	flags.Visit(func(f *flag.Flag) { changed[f.Name] = true })
 	if action == "list" {
-		if limit < 1 || limit > 1000 || offset < 0 || offset > 1000000 || (archived != "exclude" && archived != "only" && archived != "all") || (starred != "true" && starred != "false") {
+		if limit < 1 || limit > 1000 || offset < 0 || offset > 1000000 || (archived != "exclude" && archived != "only" && archived != "all") || (starred != "true" && starred != "false") || !validBrowseView(view) || inactiveDays < 1 || inactiveDays > 3650 || !validCLIText(search) || !validCLIText(tag) {
 			return errors.New("invalid list limit, offset, archived or starred option")
 		}
 		query.Set("limit", strconv.Itoa(limit))
@@ -101,9 +106,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		query.Set("tag", tag)
 		query.Set("archived", archived)
 		query.Set("starred", starred)
+		query.Set("view", view)
+		query.Set("inactive_days", strconv.Itoa(inactiveDays))
 		for _, filter := range facets {
 			name, value, ok := strings.Cut(filter, "=")
-			if !ok || name == "" || value == "" || query.Has(name) {
+			if !ok || name == "" || value == "" || query.Has(name) || !validCLIText(name) || !validCLIText(value) {
 				return errors.New("filter must be a unique facet NAME=VALUE without reserved query names")
 			}
 			query.Set(name, value)
@@ -239,17 +246,29 @@ func (c *managementClient) request(ctx context.Context, method, path string, que
 	}
 	response, err := c.http.Do(r)
 	if err != nil {
+		if method == http.MethodPost && strings.HasPrefix(path, "/session-bulk-") {
+			return errors.New("bulk request outcome unknown; inspect bulk-show before deciding whether to resume")
+		}
 		return errors.New("cannot reach CPA management API")
 	}
 	defer response.Body.Close()
 	if response.StatusCode == http.StatusConflict {
+		if strings.HasPrefix(path, "/session-bulk") {
+			return errors.New("bulk job changed; inspect bulk-show before resuming")
+		}
 		return errors.New("metadata changed; run show and review the current revision before editing")
 	}
 	if response.StatusCode != http.StatusOK {
+		if method == http.MethodPost && strings.HasPrefix(path, "/session-bulk-") {
+			return fmt.Errorf("CPA management API returned HTTP %d; inspect bulk-show before resuming", response.StatusCode)
+		}
 		return fmt.Errorf("CPA management API returned HTTP %d", response.StatusCode)
 	}
 	raw, err := io.ReadAll(io.LimitReader(response.Body, (64<<20)+1))
 	if err != nil || len(raw) > 64<<20 || json.Unmarshal(raw, output) != nil {
+		if method == http.MethodPost && strings.HasPrefix(path, "/session-bulk-") {
+			return errors.New("invalid bulk response; inspect bulk-show before resuming")
+		}
 		return errors.New("invalid management API response")
 	}
 	return nil

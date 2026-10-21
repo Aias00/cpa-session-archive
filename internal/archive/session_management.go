@@ -70,13 +70,15 @@ type ManagedSessionPage struct {
 }
 
 type SessionBrowseOptions struct {
-	Limit    int
-	Offset   int
-	Query    string
-	Tag      string
-	Archived string
-	Starred  bool
-	Filters  map[string]string
+	Limit        int               `json:"limit"`
+	Offset       int               `json:"offset"`
+	Query        string            `json:"q"`
+	Tag          string            `json:"tag"`
+	Archived     string            `json:"archived"`
+	Starred      bool              `json:"starred"`
+	Filters      map[string]string `json:"filters"`
+	View         string            `json:"view"`
+	InactiveDays int               `json:"inactive_days"`
 }
 
 func invalidSessionManagement(message string) error {
@@ -181,7 +183,7 @@ func (s *Store) UpdateSessionManagement(ctx context.Context, id string, expected
 		return current, ErrSessionManagementConflict
 	}
 	out := SessionManagement{SessionID: id, Title: update.Title, Note: update.Note, Tags: update.Tags, Starred: update.Starred, Archived: update.Archived, Revision: expectedRevision + 1, UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano)}
-	_, err = conn.ExecContext(ctx, `INSERT INTO session_management(session_id,title,note,starred,archived,revision,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET title=excluded.title,note=excluded.note,starred=excluded.starred,archived=excluded.archived,revision=excluded.revision,updated_at=excluded.updated_at`, id, out.Title, out.Note, out.Starred, out.Archived, out.Revision, out.UpdatedAt)
+	_, err = conn.ExecContext(ctx, `INSERT INTO session_management(session_id,title,note,starred,archived,revision,updated_at,manually_edited) VALUES(?,?,?,?,?,?,?,1) ON CONFLICT(session_id) DO UPDATE SET title=excluded.title,note=excluded.note,starred=excluded.starred,archived=excluded.archived,revision=excluded.revision,updated_at=excluded.updated_at,manually_edited=1`, id, out.Title, out.Note, out.Starred, out.Archived, out.Revision, out.UpdatedAt)
 	if err != nil {
 		return SessionManagement{}, err
 	}
@@ -199,58 +201,12 @@ func (s *Store) UpdateSessionManagement(ctx context.Context, id string, expected
 
 // BrowseSessions is a bounded live view; it does not create an export snapshot.
 func (s *Store) BrowseSessions(ctx context.Context, options SessionBrowseOptions) (ManagedSessionPage, error) {
-	if options.Limit == 0 {
-		options.Limit = 100
-	}
+	options, from, args, err := sessionSelection(options, time.Now().UTC())
 	out := ManagedSessionPage{Sessions: []ManagedSession{}, Limit: options.Limit, Offset: options.Offset}
-	if options.Limit < 1 || options.Limit > 1000 || options.Offset < 0 || options.Offset > 1000000 {
-		return out, invalidSessionManagement("invalid page bounds")
+	if err != nil {
+		return out, err
 	}
-	if options.Archived == "" {
-		options.Archived = "exclude"
-	}
-	if options.Archived != "exclude" && options.Archived != "only" && options.Archived != "all" {
-		return out, invalidSessionManagement("invalid archived filter")
-	}
-	if !utf8.ValidString(options.Query) || !utf8.ValidString(options.Tag) || strings.ContainsRune(options.Query, 0) || strings.ContainsFunc(options.Tag, unicode.IsControl) || utf8.RuneCountInString(options.Query) > 1000 || utf8.RuneCountInString(options.Tag) > 48 || len(options.Filters) > 64 {
-		return out, invalidSessionManagement("invalid query bounds")
-	}
-	where := []string{}
-	args := []any{}
-	if options.Archived != "all" {
-		where = append(where, `COALESCE(m.archived,0)=?`)
-		args = append(args, options.Archived == "only")
-	}
-	if options.Starred {
-		where = append(where, `COALESCE(m.starred,0)=1`)
-	}
-	if options.Tag != "" {
-		where = append(where, `EXISTS(SELECT 1 FROM session_management_tags t WHERE t.session_id=s.session_id AND t.tag=?)`)
-		args = append(args, options.Tag)
-	}
-	if options.Query != "" {
-		where = append(where, `(s.session_id LIKE ? ESCAPE '\' OR s.project LIKE ? ESCAPE '\' OR s.summary LIKE ? ESCAPE '\' OR m.title LIKE ? ESCAPE '\' OR m.note LIKE ? ESCAPE '\' OR EXISTS(SELECT 1 FROM session_management_tags t WHERE t.session_id=s.session_id AND t.tag LIKE ? ESCAPE '\'))`)
-		pattern := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(options.Query) + "%"
-		for range 6 {
-			args = append(args, pattern)
-		}
-	}
-	filterNames := make([]string, 0, len(options.Filters))
-	for name, value := range options.Filters {
-		if len(name) > 128 || len(value) > 4096 || !utf8.ValidString(name) || !utf8.ValidString(value) {
-			return out, invalidSessionManagement("invalid facet filter")
-		}
-		filterNames = append(filterNames, name)
-	}
-	sort.Strings(filterNames)
-	for _, name := range filterNames {
-		where = append(where, `EXISTS(SELECT 1 FROM session_facets f WHERE f.session_id=s.session_id AND f.name=? AND f.value=?)`)
-		args = append(args, name, options.Filters[name])
-	}
-	from := ` FROM session_summaries s LEFT JOIN session_management m ON m.session_id=s.session_id`
-	if len(where) > 0 {
-		from += ` WHERE ` + strings.Join(where, ` AND `)
-	}
+
 	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return out, err

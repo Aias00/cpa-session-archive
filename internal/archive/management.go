@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,7 +31,7 @@ type managementResponse struct {
 
 func (p *Plugin) managementRegistration() map[string]any {
 	base := "/plugins/" + pluginID
-	return map[string]any{"Routes": []map[string]string{{"Method": "GET", "Path": base + "/stats"}, {"Method": "GET", "Path": base + "/facets"}, {"Method": "GET", "Path": base + "/sessions"}, {"Method": "GET", "Path": base + "/session-browser"}, {"Method": "GET", "Path": base + "/session-metadata"}, {"Method": "PUT", "Path": base + "/session-metadata"}, {"Method": "GET", "Path": base + "/turns"}, {"Method": "GET", "Path": base + "/turn-text"}, {"Method": "GET", "Path": base + "/requests"}, {"Method": "GET", "Path": base + "/request-context"}, {"Method": "GET", "Path": base + "/request-view"}, {"Method": "GET", "Path": base + "/export"}, {"Method": "GET", "Path": base + "/identity-mappings"}, {"Method": "PUT", "Path": base + "/identity-mappings"}}, "Resources": []map[string]string{{"Path": "/index.html", "Menu": "会话归档", "Description": "Browse and organize sessions, inspect sources and export training data."}}}
+	return map[string]any{"Routes": []map[string]string{{"Method": "GET", "Path": base + "/stats"}, {"Method": "GET", "Path": base + "/facets"}, {"Method": "GET", "Path": base + "/sessions"}, {"Method": "GET", "Path": base + "/session-browser"}, {"Method": "GET", "Path": base + "/session-metadata"}, {"Method": "PUT", "Path": base + "/session-metadata"}, {"Method": "POST", "Path": base + "/session-bulk-preview"}, {"Method": "GET", "Path": base + "/session-bulk"}, {"Method": "POST", "Path": base + "/session-bulk-apply"}, {"Method": "POST", "Path": base + "/session-bulk-undo"}, {"Method": "GET", "Path": base + "/turns"}, {"Method": "GET", "Path": base + "/turn-text"}, {"Method": "GET", "Path": base + "/requests"}, {"Method": "GET", "Path": base + "/request-context"}, {"Method": "GET", "Path": base + "/request-view"}, {"Method": "GET", "Path": base + "/export"}, {"Method": "GET", "Path": base + "/identity-mappings"}, {"Method": "PUT", "Path": base + "/identity-mappings"}}, "Resources": []map[string]string{{"Path": "/index.html", "Menu": "会话归档", "Description": "Browse and organize sessions, inspect sources and export training data."}}}
 }
 func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 	var r managementRequest
@@ -67,6 +68,17 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 		target = "/v1/session-browser"
 	case (r.Method == http.MethodGet || r.Method == http.MethodPut) && path == base+"/session-metadata":
 		target = "/v1/session-metadata"
+	case r.Method == http.MethodGet && path == base+"/session-bulk":
+		target = "/v1/session-bulk"
+	case r.Method == http.MethodPost && (path == base+"/session-bulk-preview" || path == base+"/session-bulk-apply" || path == base+"/session-bulk-undo"):
+		target = "/v1/" + strings.TrimPrefix(path, base+"/")
+		mediaType, _, err := mime.ParseMediaType(r.Headers.Get("Content-Type"))
+		if err != nil || mediaType != "application/json" {
+			return ok(managementResponse{StatusCode: http.StatusUnsupportedMediaType, Headers: http.Header{"Content-Type": {"application/json"}, "Cache-Control": {"no-store"}}, Body: []byte(`{"code":"invalid_content_type","error":"application/json required"}`)})
+		}
+		if len(r.Body) > 65536 {
+			return ok(managementResponse{StatusCode: http.StatusBadRequest, Headers: http.Header{"Content-Type": {"application/json"}, "Cache-Control": {"no-store"}}, Body: []byte(`{"code":"invalid_update","error":"bounded JSON object required"}`)})
+		}
 	case (r.Method == http.MethodGet || r.Method == http.MethodPut) && path == base+"/identity-mappings":
 		target = "/v1/identity-mappings"
 	case r.Method == http.MethodGet && path == base+"/sessions":
@@ -111,11 +123,18 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 			u += "?" + q.Encode()
 		}
 	}
-	req, _ := http.NewRequest(r.Method, u, bytes.NewReader(r.Body))
+	req, err := http.NewRequest(r.Method, u, bytes.NewReader(r.Body))
+	if err != nil {
+		return ok(managementResponse{StatusCode: http.StatusBadRequest, Body: []byte(`{"error":"invalid management request"}`)})
+	}
 	if len(r.Body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, e := client.Do(req)
+	// The authenticated host boundary terminates here; never follow a collector
+	// redirect or forward its caller's management credential to another origin.
+	managementClient := *client
+	managementClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, e := managementClient.Do(req)
 	if e != nil {
 		body, _ := json.Marshal(map[string]any{"error": "collector unavailable", "capture": p.CaptureStatus()})
 		return ok(managementResponse{StatusCode: 502, Headers: http.Header{"Content-Type": []string{"application/json"}}, Body: body})

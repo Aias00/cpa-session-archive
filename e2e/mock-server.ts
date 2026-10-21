@@ -2,6 +2,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { BulkJob, BulkSelection } from "../frontend/src/lib/types.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.CPA_E2E_PORT || 4173);
@@ -159,6 +160,35 @@ let sessionMetadata = {
   updated_at: "",
 };
 
+
+let manuallyEdited = false;
+const bulkJobs = new Map<string, { job: BulkJob; before: typeof sessionMetadata; afterRevision?: number }>();
+function sessionMatches(query: URLSearchParams) {
+  const archived = query.get("archived") || "exclude";
+  const text = (query.get("q") || "").toLowerCase();
+  const tag = query.get("tag");
+  const view = query.get("view") || "all";
+  const age = (Date.now() - new Date(sessionSummary.last_at).getTime()) / 86400000;
+  const relevant = view === "all" || view === "main" || (view === "recent" && age <= 7) || (view === "inactive" && age >= Number(query.get("inactive_days") || 30));
+  const exactFacets: Record<string, string> = { "project.name": sessionSummary.project, client: "codex", "tool.name": "shell_command", "key.id": "sha256:mock-key-hash" };
+  return relevant && (archived === "all" || sessionMetadata.archived === (archived === "only")) &&
+    (query.get("starred") !== "true" || sessionMetadata.starred) && (!tag || sessionMetadata.tags.includes(tag)) &&
+    [...query.entries()].every(([name, value]) => ["q", "tag", "archived", "starred", "view", "inactive_days", "limit", "offset"].includes(name) || exactFacets[name] === value) &&
+    (!text || [sessionSummary.session_id, sessionSummary.summary, sessionSummary.project, sessionMetadata.title, sessionMetadata.note, ...sessionMetadata.tags].some((value) => value.toLowerCase().includes(text)));
+}
+function selectionQuery(selection: BulkSelection) {
+  const query = new URLSearchParams({ archived: selection.archived, view: selection.view, inactive_days: String(selection.inactive_days || 30) });
+  if (selection.q) query.set("q", selection.q);
+  if (selection.tag) query.set("tag", selection.tag);
+  if (selection.starred) query.set("starred", "true");
+  Object.entries(selection.filters || {}).forEach(([name, value]) => query.set(name, value));
+  return query;
+}
+function patchedMetadata(value: typeof sessionMetadata, job: BulkJob) {
+  return { ...value, tags: [...new Set([...value.tags.filter((tag) => !job.action.remove_tags?.includes(tag)), ...(job.action.add_tags || [])])],
+    ...(job.action.archived !== undefined ? { archived: job.action.archived } : {}), ...(job.action.starred !== undefined ? { starred: job.action.starred } : {}) };
+}
+
 function json(response: http.ServerResponse, value: unknown, status = 200) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -224,17 +254,7 @@ const server = http.createServer((request, response) => {
   if (url.pathname === prefix + "/session-browser") {
     const limit = Number(url.searchParams.get("limit") || 100);
     const offset = Number(url.searchParams.get("offset") || 0);
-    const archived = url.searchParams.get("archived") || "exclude";
-    const query = (url.searchParams.get("q") || "").toLowerCase();
-    const tag = url.searchParams.get("tag");
-    const matched =
-      (archived === "all" || sessionMetadata.archived === (archived === "only")) &&
-      (url.searchParams.get("starred") !== "true" || sessionMetadata.starred) &&
-      (!tag || sessionMetadata.tags.includes(tag)) &&
-      (!url.searchParams.get("project.name") || url.searchParams.get("project.name") === sessionSummary.project) &&
-      (!query || [sessionSummary.session_id, sessionSummary.summary, sessionSummary.project,
-        sessionMetadata.title, sessionMetadata.note, ...sessionMetadata.tags]
-        .some((value) => value.toLowerCase().includes(query)));
+    const matched = sessionMatches(url.searchParams);
     const sessions = matched ? [{ ...sessionSummary, management: sessionMetadata }] : [];
     return json(response, {
       sessions: sessions.slice(offset, offset + limit),
@@ -242,6 +262,52 @@ const server = http.createServer((request, response) => {
       limit,
       offset,
     });
+  }
+  if (url.pathname === prefix + "/session-bulk" && request.method === "GET") {
+    const id = url.searchParams.get("id");
+    if (!id) return json(response, { jobs: [...bulkJobs.values()].map((entry) => entry.job).reverse().slice(0, 20) });
+    const entry = bulkJobs.get(id);
+    return entry ? json(response, entry.job) : json(response, { error: "job not found" }, 404);
+  }
+  if (["/session-bulk-preview", "/session-bulk-apply", "/session-bulk-undo"].some((suffix) => url.pathname === prefix + suffix) && request.method === "POST") {
+    let body = "";
+    request.setEncoding("utf8"); request.on("data", (chunk: string) => { body += chunk; });
+    request.on("end", () => {
+      try {
+        const input = JSON.parse(body);
+        if (url.pathname.endsWith("-preview")) {
+          const selection = { limit: 0, offset: 0, q: "", tag: "", starred: false, ...input.selection } as BulkSelection;
+          const total = Number(sessionMatches(selectionQuery(selection)));
+          const protectedCount = Number(!!total && input.action.archived === true && ((!input.action.include_starred && sessionMetadata.starred) || (!input.action.include_edited && manuallyEdited)));
+          const id = `mock-bulk-${bulkJobs.size + 1}`;
+          const job: BulkJob = { id, status: "preview", selection, action: input.action, total, pending: total - protectedCount, protected: protectedCount, applied: 0, conflicts: 0, unchanged: 0, undone: 0, undo_conflicts: 0, cancelled: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          if (job.pending && JSON.stringify(patchedMetadata(sessionMetadata, job)) === JSON.stringify(sessionMetadata)) { job.pending = 0; job.unchanged = 1; }
+          bulkJobs.set(id, { job, before: structuredClone(sessionMetadata) });
+          return json(response, job);
+        }
+        const entry = bulkJobs.get(input.id);
+        if (!entry) return json(response, { error: "job not found" }, 404);
+        const { job } = entry;
+        if (url.pathname.endsWith("-apply")) {
+          if (job.pending) {
+            if (sessionMetadata.revision !== entry.before.revision) job.conflicts++;
+            else { sessionMetadata = { ...patchedMetadata(sessionMetadata, job), revision: sessionMetadata.revision + 1, updated_at: new Date().toISOString() }; job.applied++; entry.afterRevision = sessionMetadata.revision; }
+            job.pending = 0;
+          }
+          job.status = "complete";
+        } else {
+          job.cancelled += job.pending; job.pending = 0;
+          if (job.applied && !job.undone && !job.undo_conflicts) {
+            if (sessionMetadata.revision !== entry.afterRevision) job.undo_conflicts++;
+            else { sessionMetadata = { ...entry.before, revision: sessionMetadata.revision + 1, updated_at: new Date().toISOString() }; job.undone++; }
+          }
+          job.status = "undone";
+        }
+        job.updated_at = new Date().toISOString();
+        return json(response, job);
+      } catch { return json(response, { error: "invalid JSON" }, 400); }
+    });
+    return;
   }
   if (url.pathname === prefix + "/session-metadata") {
     if (request.method === "GET") return json(response, sessionMetadata);
@@ -255,6 +321,7 @@ const server = http.createServer((request, response) => {
           if (update.expected_revision !== sessionMetadata.revision) {
             return json(response, { error: "session metadata revision conflict" }, 409);
           }
+          manuallyEdited = true;
           sessionMetadata = {
             session_id: sessionID,
             title: update.title,

@@ -66,6 +66,8 @@ export function App() {
   const [cache, setCache] = useState<Record<string, ManagedSession>>({});
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadKey, setLoadKey] = useState(0);
+  const [connectionEpoch, setConnectionEpoch] = useState(0);
+  const [metadataEpoch, setMetadataEpoch] = useState(0);
   const [loadError, setLoadError] = useState("");
   const [format, setFormat] = useState("archive");
   const [exportBusy, setExportBusy] = useState(false);
@@ -122,11 +124,16 @@ export function App() {
 
   const navigate = useCallback((path: string) => { location.hash = path.startsWith("#") ? path : `#${path}`; }, []);
   const identityName = useCallback((item: SessionSummary) => item.principal_alias || aliases[item.principal_id || ""] || aliases[(item.key_id || "").replace(/^sha256:/, "").toLowerCase()] || item.key_id?.slice(0, 14) || "—", [aliases]);
-  const projects = useMemo(() => facets.filter((facet) => ["project.name", "project.path", "workspace.name", "workspace.path", "git.repository", "git.remote"].includes(facet.name)), [facets]);
+  const projects = useMemo(() => facets.filter((facet) => ["project.id", "project.name", "project.path", "workspace.id", "workspace.name", "workspace.path", "git.repository", "git.remote"].includes(facet.name)), [facets]);
   const selected = useMemo<ManagedSession | undefined>(() => route.sessionID ? Object.hasOwn(cache, route.sessionID) ? cache[route.sessionID] : { session_id: route.sessionID, requests: 0, last_at: "", management: emptyManagement(route.sessionID) } : undefined, [route.sessionID, cache]);
   const saveMetadata = useCallback((value: SessionManagement) => {
     setCache((current) => ({ ...current, [value.session_id]: { ...(Object.hasOwn(current, value.session_id) ? current[value.session_id] : { session_id: value.session_id, requests: 0, last_at: "" }), management: value } }));
     setRefreshKey((value) => value + 1);
+  }, []);
+  const bulkChanged = useCallback(() => {
+    setCache((current) => dirty.current && routeRef.current.sessionID && Object.hasOwn(current, routeRef.current.sessionID) ? { [routeRef.current.sessionID]: current[routeRef.current.sessionID] } : {});
+    setRefreshKey((value) => value + 1);
+    setMetadataEpoch((value) => value + 1);
   }, []);
   function leaveDetail() {
     if (dirty.current && !window.confirm(zh ? "放弃尚未保存的修改？" : "Discard unsaved session changes?")) return false;
@@ -140,6 +147,7 @@ export function App() {
   function changeConnection(value: Connection | null) {
     if (dirty.current && !window.confirm(zh ? "放弃尚未保存的修改并重新连接？" : "Discard unsaved changes and reconnect?")) return;
     dirty.current = false;
+    setConnectionEpoch((current) => current + 1);
     setConnection(value);
     setCache({});
     setStats(undefined);
@@ -193,13 +201,13 @@ export function App() {
       {(downloadResult || exportError) && <div id={route.sessionID ? "downloadNotice" : "allDownloadNotice"} className="border-b bg-accent/30 px-5 py-2.5 text-xs" aria-live="polite">{exportError ? <span className="text-destructive">{zh ? "导出失败，请重试。" : "Export failed. Please retry."} ({exportError})</span> : <span className="flex min-w-0 items-center gap-2"><Check className="size-3.5 shrink-0 text-primary" /><span className="hidden text-muted-foreground sm:inline">{zh ? "下载已就绪，链接 30 分钟内可用：" : "Download ready. Link available for 30 minutes:"}</span><a href={downloadResult!.url} className="truncate font-medium text-primary underline underline-offset-4">{downloadResult!.filename}</a><ArrowUpRight className="size-3 shrink-0" /></span>}</div>}
       <div className={route.sessionID ? "hidden" : "flex min-h-0 flex-1 flex-col"} aria-hidden={!!route.sessionID}>
         {stats && <div className="flex shrink-0 items-center gap-5 border-b bg-muted/20 px-5 py-2 text-[10px] text-muted-foreground sm:px-8"><span><span className="mr-1.5 inline-block size-1.5 rounded-full bg-emerald-500" />{zh ? "已连接" : "Connected"}</span><span>{stats.sessions.toLocaleString()} {zh ? "个会话" : "sessions"}</span><span className="hidden sm:inline">{stats.records.toLocaleString()} {zh ? "条请求" : "requests"}</span><span className="ml-auto tabular-nums">{bytes(stats.compressed_bytes)}</span></div>}
-        <SessionLibrary api={api} locale={locale} project={project} view={view} facets={facets} onSelect={(session) => { setCache((current) => ({ ...current, [session.session_id]: session })); navigate(`/sessions/${encodeURIComponent(session.session_id)}`); }} refreshKey={refreshKey} identityName={identityName} />
+        <SessionLibrary key={connectionEpoch} api={api} locale={locale} project={project} view={view} facets={facets} onSelect={(session) => { setCache((current) => ({ ...current, [session.session_id]: session })); navigate(`/sessions/${encodeURIComponent(session.session_id)}`); }} refreshKey={refreshKey} identityName={identityName} onBulkChanged={bulkChanged} />
       </div>
       {selected && <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3 sm:px-6"><Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs" onClick={leaveDetail}><ArrowLeft className="size-3.5" />{zh ? "返回会话列表" : "Back to sessions"}</Button><span className="h-4 border-l" /><div className="min-w-0 flex-1"><h1 id="detailTitle" className="truncate text-sm font-semibold" title={title}>{title}</h1><p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{selected.session_id}</p></div>{overview && <Button variant="ghost" size="icon" aria-label={zh ? "切换会话信息" : "Toggle session information"} className="size-8" onClick={() => setShowEditor((value) => !value)}>{showEditor ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}</Button>}</div>
         <div className="workspace-body flex min-h-0 flex-1 flex-col overflow-auto lg:flex-row lg:overflow-hidden">
           <div className="min-h-0 min-w-0 shrink-0 p-4 sm:p-6 lg:flex-1 lg:overflow-auto"><SessionViewer api={api} locale={locale} {...route} sessionID={selected.session_id} onNavigate={navigate} identityName={identityName} /></div>
-          <div className={overview && showEditor ? "shrink-0 border-t bg-muted/10 lg:w-[300px] lg:overflow-auto lg:border-l lg:border-t-0" : "hidden"}><SessionEditor api={api} locale={locale} session={selected} onSaved={saveMetadata} onDirtyChange={(value) => { dirty.current = value; }} /></div>
+          <div className={overview && showEditor ? "shrink-0 border-t bg-muted/10 lg:w-[300px] lg:overflow-auto lg:border-l lg:border-t-0" : "hidden"}><SessionEditor refreshKey={metadataEpoch} api={api} locale={locale} session={selected} onSaved={saveMetadata} onDirtyChange={(value) => { dirty.current = value; }} /></div>
         </div>
       </div>}
     </main>

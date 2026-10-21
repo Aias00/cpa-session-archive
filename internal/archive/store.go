@@ -124,6 +124,10 @@ func OpenStore(path string, storeUpstream bool) (*Store, error) {
 		_ = db.Close()
 		return nil, e
 	}
+	if e = ensureSessionBulkSchema(db); e != nil {
+		_ = db.Close()
+		return nil, e
+	}
 	if e = ensureStableSnapshotMetadataIndex(db, archiveSchemaMigrationLogInterval, log.Printf); e != nil {
 		_ = db.Close()
 		return nil, e

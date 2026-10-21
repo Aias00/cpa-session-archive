@@ -218,6 +218,11 @@ The [React workspace](docs/frontend-workspace.md) implements the session
 page with shadcn/ui and Tailwind, responsive navigation, themes and a credential-free
 synthetic preview. Its single-file build continues to be embedded in the Go plugin.
 
+The next [automatic organization and bulk-job increment](docs/session-automation.md)
+is in development: computed views, previewed all-matching selections, protected
+metadata patches and resumable apply/undo. It is not included in the deployed
+P0 release above.
+
 With CPA management API support enabled, CPA-Manager-Plus shows a session archive plugin page. The page provides storage statistics, dynamic facet selectors and routed session, turn, request, tool-call, and raw-diagnostic views. A session first shows only each user command and the corresponding final/latest natural-language response. Expanding a turn reveals intermediate assistant explanations, compaction points, and compact tool summaries; opening a tool summary is the third level that materializes its complete arguments and result. Both the turn index and long internal-request sequences are paginated. System instructions, raw diagnostics, tool bodies, and long fields are materialized only after a click, so a large coding session does not freeze the page.
 
 Turn detail initially reads only the narrow `turn_records` projection. When a
