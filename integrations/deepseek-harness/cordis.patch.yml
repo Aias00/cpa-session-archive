@@ -1,0 +1,5 @@
+# Configure binary, endpoint and a private spoolDir in the profile before use.
+- insert:
+    - id: session-archive
+      name: '@aias/dsh-session-archive'
+      disabled: true

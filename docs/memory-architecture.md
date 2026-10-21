@@ -134,7 +134,7 @@ increase write work; test indexing throughput as well as query latency.
 
 Delivery admission uses a small generic count/weight queue. Reservations survive
 dequeue, storage retry and HTTP retry until the consumer releases the item.
-Archive-specific retained-weight estimation belongs to the archive package, not
+Archive-specific retained-weight estimation belongs to the shared record package, not
 the queue or storage backend. Collector decoding has a separate concurrency
 bound. These controls bound pending payload retention without pretending to bound
 active capture or total RSS. Process-local producer observations remain delivery

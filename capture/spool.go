@@ -1,4 +1,4 @@
-package archive
+package capture
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 // Status is cached by delivery workers; capture callbacks never query SQLite.
-func (p *Plugin) refreshSpoolStatus() {
+func (p *Producer) refreshSpoolStatus() {
 	p.spoolStatusMu.Lock()
 	defer p.spoolStatusMu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -21,7 +21,7 @@ func (p *Plugin) refreshSpoolStatus() {
 	}
 }
 
-func (p *Plugin) waitSpoolRetry() bool {
+func (p *Producer) waitSpoolRetry() bool {
 	timer := time.NewTimer(250 * time.Millisecond)
 	defer timer.Stop()
 	select {
@@ -34,7 +34,7 @@ func (p *Plugin) waitSpoolRetry() bool {
 
 // Persistence is asynchronous to response capture. The in-memory reservation
 // remains charged until persistence succeeds or shutdown discards unspooled work.
-func (p *Plugin) spoolWriter() {
+func (p *Producer) spoolWriter() {
 	defer p.wg.Done()
 	for {
 		select {
@@ -47,7 +47,7 @@ func (p *Plugin) spoolWriter() {
 	}
 }
 
-func (p *Plugin) persistDelivery(rec Record) {
+func (p *Producer) persistDelivery(rec Record) {
 	body, err := json.Marshal(rec)
 	if err != nil {
 		p.metrics.update(func(s *CaptureStatus) { s.InvalidDropped++ })
@@ -90,7 +90,7 @@ func (p *Plugin) persistDelivery(rec Record) {
 
 // One replay worker preserves admission order; quarantine retains permanent
 // rejections while allowing the next pending delivery to proceed.
-func (p *Plugin) spoolSender() {
+func (p *Producer) spoolSender() {
 	defer p.wg.Done()
 	for {
 		select {

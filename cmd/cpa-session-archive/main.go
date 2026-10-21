@@ -17,11 +17,11 @@ extern void cliproxyPluginShutdown(void);
 */
 import "C"
 import (
-	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/cpahost"
 	"unsafe"
 )
 
-var app = archive.NewPlugin()
+var app = cpahost.NewPlugin()
 
 func main() {}
 

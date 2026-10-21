@@ -45,14 +45,14 @@ Until the user changes the priority, ship retrieval before automatic injection.
 | Evidence | Consequence for implementation |
 | --- | --- |
 | [Storage contract](../../internal/storage/storage.go) separates collector behavior from the SQLite adapter | Reuse it; do not restart a database abstraction refactor |
-| [Plugin completion](../../internal/archive/plugin.go) enqueues a finished record non-blockingly and currently drops on a full queue | Expose loss/partial state; downstream processing cannot recover missing upstream records |
+| [Plugin completion](../../capture/producer.go) enqueues a finished record non-blockingly and currently drops on a full queue | Expose loss/partial state; downstream processing cannot recover missing upstream records |
 | [Collector](../../cmd/cpa-session-collector/main.go) currently returns 202 before its writer commits | Queue acceptance is not a durability guarantee |
 | [SQLite batch write](../../internal/archive/store.go) already uses a transaction | Add processing work in that same transaction, not an independent network dual-write |
 | [Timeline reconstruction](../../internal/archive/timeline.go) identifies repeated prefixes, retries and tool continuation | Reuse tested parsing concepts, but not the UI view as a complete data feed |
 | Timeline output can retain only the final 24 entries and truncate text at 40,000 bytes | Normalize from retained payloads through a dedicated loss-aware path |
 | [CAS normalization](../../internal/archive/cas.go) removes selected opaque fields and folds successful Responses SSE | Preserve original retained evidence and explicitly represent unavailable detail |
 | Current archive queries primarily use facets, not a searchable normalized message corpus | Add messages/chunks and Chinese-aware lexical retrieval |
-| [Management resources](../../internal/archive/management.go) expose a static page and forward data reads through management routes | Keep secrets/data out of static resources; fix download integration separately |
+| [Management resources](../../internal/cpahost/management.go) expose a static page and forward data reads through management routes | Keep secrets/data out of static resources; fix download integration separately |
 | ai-memory and Hy-Memory evaluations are source-level comparisons only | Do not make an untested external engine the first release's critical dependency |
 
 Mac mini still runs the previously installed v0.8.12 build. The collector/storage
@@ -155,7 +155,7 @@ Deliverables:
 Likely owners: new `internal/memory/{model,normalize,store,index,jobs}.go`,
 new migrations beside that store, a narrow committed-change/job capability at
 `internal/storage`, the SQLite archive transaction, collector worker wiring,
-`internal/archive/management.go` and its existing Web resource.
+`internal/cpahost/management.go` and its existing Web resource.
 
 Acceptance:
 

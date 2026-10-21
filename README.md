@@ -33,6 +33,22 @@ for retrieval lifecycle, SQLite concurrency and criteria for replacing a store.
 
     CPA native plugin -> bounded memory queue -> collector -> SQLite WAL + CAS blobs
 
+### Host adapters
+
+Capture and delivery are shared independently of the CPA host protocol:
+
+- `record` owns the compatible retained-record schema and queue accounting.
+- `delivery` owns capture telemetry and the existing commit-receipt protocol.
+- `capture` owns lifecycle assembly, bounded admission, retries and the outbox.
+- `internal/cpahost` owns CPA registration, callback decoding and management proxying.
+
+Development adapters now support Magpie's full-body Go observer and DeepSeek
+Harness's Cordis `llm/stream` hook. The latter uses `cpa-session-capture`, a local
+JSONL companion, to reuse Go delivery rather than implement another outbox.
+Magpie integration requires a custom host build; it is not a community JS
+middleware package. See [host plugin contracts, builds and verification](docs/host-plugins.md).
+No client configuration or live rollout is performed by these development tools.
+
 ### Collector storage boundary
 
 The collector's HTTP handlers and ingestion worker use `internal/storage.Backend`

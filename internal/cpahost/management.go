@@ -1,20 +1,20 @@
-package archive
+package cpahost
 
 import (
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"io"
 	"mime"
 	"net/http"
 	"net/url"
 	"strings"
+
+	workspace "cpa-session-archive/internal/archive/web"
 )
 
 const pluginID = "cpa-session-archive"
 
-//go:embed web/index.html
-var managementHTML []byte
+var managementHTML = workspace.HTML()
 
 type managementRequest struct {
 	Method  string

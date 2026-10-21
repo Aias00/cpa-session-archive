@@ -1,11 +1,11 @@
 // Package ingeststatus defines collector telemetry shared by independent readers.
 package ingeststatus
 
-import "cpa-session-archive/internal/archive"
+import "cpa-session-archive/delivery"
 
 type ProducerObservation struct {
-	Capture    archive.CaptureStatus `json:"capture"`
-	ReceivedAt string                `json:"received_at"`
+	Capture    delivery.CaptureStatus `json:"capture"`
+	ReceivedAt string                 `json:"received_at"`
 }
 
 // Status counts this collector's HTTP delivery attempts, not unique records or

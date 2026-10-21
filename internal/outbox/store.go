@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"cpa-session-archive/delivery"
+
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/sys/unix"
 )
@@ -32,14 +34,7 @@ type Entry struct {
 	Digest string
 	Body   []byte
 }
-type Status struct {
-	Entries     int   `json:"entries"`
-	Pending     int   `json:"pending"`
-	Quarantined int   `json:"quarantined"`
-	Bytes       int64 `json:"bytes"`
-	MaxBytes    int64 `json:"max_bytes"`
-	MaxEntries  int   `json:"max_entries"`
-}
+type Status = delivery.OutboxStatus
 
 func Open(path string, maxBytes int64, maxEntries int) (*Store, error) {
 	if !filepath.IsAbs(path) || maxBytes <= 0 || maxEntries <= 0 {

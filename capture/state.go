@@ -1,14 +1,17 @@
-package archive
+package capture
 
 import (
 	"crypto/sha256"
+
+	"cpa-session-archive/internal/sessionmodel"
+
 	"github.com/tidwall/gjson"
 )
 
 // The host emits model-catalog response/completion callbacks without a model
 // execution or original request. Require that explicit response shape; never
 // infer a catalog solely from a missing body or model name.
-func modelCatalogResponse(r intercept) bool {
+func modelCatalogResponse(r CaptureEvent) bool {
 	if r.StatusCode != 200 || r.Stream || r.Model != "" || r.RequestedModel != "" || len(r.OriginalRequest) > 0 || len(r.RequestBody) > 0 || !gjson.ValidBytes(r.Body) {
 		return false
 	}
@@ -17,22 +20,22 @@ func modelCatalogResponse(r intercept) bool {
 
 // Caller holds p.mu. Response/header-init callbacks can recover a missing
 // initial hook, but provider RequestBody must never masquerade as client input.
-func (p *Plugin) responseState(r intercept, stream bool) *state {
+func (p *Producer) responseState(r CaptureEvent, stream bool) *state {
 	s := p.active[r.RequestID]
 	if s == nil {
 		p.metrics.update(func(s *CaptureStatus) { s.RecoveredFromResponse++ })
-		s = &state{Record: Record{RequestID: r.RequestID, SourceFormat: r.SourceFormat, Model: r.Model, RequestedModel: r.RequestedModel, Stream: stream, Metadata: sanitizeMeta(r.Metadata), KeyID: archiveKeyID(r.Metadata)}}
+		s = &state{Record: Record{RequestID: r.RequestID, SourceFormat: r.SourceFormat, Model: r.Model, RequestedModel: r.RequestedModel, Stream: stream, Metadata: sessionmodel.SanitizeMeta(r.Metadata), KeyID: sessionmodel.ArchiveKeyID(r.Metadata)}}
 		p.active[r.RequestID] = s
 	}
 	if len(s.OriginalRequest) == 0 && len(r.OriginalRequest) > 0 {
-		s.OriginalRequest = limit(r.OriginalRequest, p.max, &s.Truncated)
-		enrichDesktopMetadata(&s.Record, r.RequestHeaders)
-		enrichGenericFacets(&s.Record, r.RequestHeaders, s.OriginalRequest)
-		s.SessionID = sessionID(&s.Record, r.Metadata, s.OriginalRequest)
-		s.Summary = extractConversationSummary(s.OriginalRequest)
+		s.OriginalRequest = sessionmodel.Limit(r.OriginalRequest, p.max, &s.Truncated)
+		sessionmodel.EnrichDesktopMetadata(&s.Record, r.RequestHeaders)
+		sessionmodel.EnrichGenericFacets(&s.Record, r.RequestHeaders, s.OriginalRequest)
+		s.SessionID = sessionmodel.SessionID(&s.Record, r.Metadata, s.OriginalRequest)
+		s.Summary = sessionmodel.ExtractConversationSummary(s.OriginalRequest)
 	}
 	if p.storeUpstream && len(s.UpstreamRequest) == 0 && len(r.RequestBody) > 0 {
-		s.UpstreamRequest = limit(r.RequestBody, p.max, &s.Truncated)
+		s.UpstreamRequest = sessionmodel.Limit(r.RequestBody, p.max, &s.Truncated)
 	}
 	return s
 }
@@ -40,12 +43,12 @@ func (p *Plugin) responseState(r intercept, stream bool) *state {
 // Bounded tombstones prevent late chunks from retaining completed requests and
 // duplicate completion callbacks from replacing a good record with an empty one.
 // Caller holds p.mu; hashes bound retained identifier storage as well as count.
-func (p *Plugin) requestFinished(id string) bool {
+func (p *Producer) requestFinished(id string) bool {
 	_, ok := p.finished[sha256.Sum256([]byte(id))]
 	return ok
 }
 
-func (p *Plugin) rememberFinished(id string) {
+func (p *Producer) rememberFinished(id string) {
 	key := sha256.Sum256([]byte(id))
 	if len(p.finished) == len(p.finishOrder) {
 		delete(p.finished, p.finishOrder[p.finishCursor])

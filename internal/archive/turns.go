@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"html"
 	"sort"
 	"strings"
 	"time"
@@ -307,42 +306,6 @@ func (s *Store) sessionTurnGroups(ctx context.Context, sessionID string) ([]turn
 
 func normalizeTurnSummary(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(cleanTurnText(value))), " ")
-}
-
-func cleanTurnText(value string) string {
-	value = strings.TrimSpace(unescapeDisplayText(value))
-	lower := strings.ToLower(value)
-	for _, prefix := range []string{"## my request for codex:", "# my request for codex:", "my request for codex:"} {
-		if strings.HasPrefix(lower, prefix) {
-			value = strings.TrimSpace(value[len(prefix):])
-			lower = strings.ToLower(value)
-			break
-		}
-	}
-	if strings.HasPrefix(lower, "<userrequest>") {
-		value = strings.TrimSpace(value[len("<userRequest>"):])
-		lower = strings.ToLower(value)
-	}
-	if strings.HasSuffix(lower, "</userrequest>") {
-		value = strings.TrimSpace(value[:len(value)-len("</userRequest>")])
-	}
-	return value
-}
-
-// unescapeDisplayText handles payloads that were HTML-escaped more than once
-// by an upstream client or an intermediate JSON serializer. It returns plain
-// text only; the browser still escapes the result before inserting it into the
-// DOM, so tags such as <environment_context> remain visible rather than being
-// interpreted as markup.
-func unescapeDisplayText(value string) string {
-	for range 4 {
-		next := html.UnescapeString(value)
-		if next == value {
-			break
-		}
-		value = next
-	}
-	return value
 }
 
 func readableFinalPreview(value string) bool {

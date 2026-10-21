@@ -13,7 +13,9 @@
     "check:frontend": "tsx scripts/check_frontend_build.ts",
     "test:e2e": "playwright test",
     "test:scripts": "tsx --test scripts/*.test.ts tests/*.test.ts tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit && tsc -p frontend/tsconfig.json"
+    "typecheck": "tsc --noEmit && tsc -p frontend/tsconfig.json",
+    "build:plugins": "tsx scripts/build_host_plugins.ts",
+    "verify:host-plugins": "tsx scripts/verify_host_plugins.ts"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

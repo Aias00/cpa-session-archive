@@ -53,26 +53,6 @@ func CompactPayload(raw []byte) ([]byte, []Blob, error) {
 	return m, []Blob{b}, nil
 }
 
-func terminalSSEPayload(raw []byte) ([]byte, bool) {
-	marker := []byte("event: response.completed")
-	pos := bytes.LastIndex(raw, marker)
-	if pos < 0 {
-		return nil, false
-	}
-	tail := raw[pos+len(marker):]
-	dataPos := bytes.Index(tail, []byte("data:"))
-	if dataPos < 0 || dataPos > 128 {
-		return nil, false
-	}
-	dec := json.NewDecoder(bytes.NewReader(tail[dataPos+len("data:"):]))
-	dec.UseNumber()
-	var event map[string]any
-	if err := dec.Decode(&event); err != nil || event["type"] != "response.completed" {
-		return nil, false
-	}
-	terminal, err := json.Marshal(event)
-	return terminal, err == nil
-}
 func ExpandPayload(manifest []byte, load func(string) ([]byte, error)) ([]byte, error) {
 	if len(manifest) == 0 {
 		return nil, nil

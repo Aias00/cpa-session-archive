@@ -40,11 +40,13 @@ jobs:
         run: |
           pnpm typecheck
           pnpm test:scripts
+          pnpm build:plugins
           pnpm check:frontend
       - name: Go formatting, vet, complete suite, and race detector
         run: |
           test -z "$(gofmt -l .)"
           go vet ./...
+          CGO_ENABLED=0 go test ./record ./delivery
           go test -count=1 ./...
           go test -count=1 -race ./...
       - name: Stable snapshot migration contract
@@ -63,6 +65,7 @@ jobs:
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-import ./cmd/cpa-session-import
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -tags cshared -buildmode=c-shared -o /tmp/cpa-session-archive-ci/cpa-session-archive.so ./cmd/cpa-session-archive
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-collector ./cmd/cpa-session-collector
+          CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-capture ./cmd/cpa-session-capture
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-identity-migrate ./cmd/cpa-session-identity-migrate
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-archive-backup ./cmd/cpa-session-archive-backup
       - name: Build the release container without publishing

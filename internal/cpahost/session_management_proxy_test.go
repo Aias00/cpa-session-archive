@@ -1,4 +1,4 @@
-package archive
+package cpahost
 
 import (
 	"encoding/json"
