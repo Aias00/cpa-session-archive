@@ -1,5 +1,42 @@
 # Mac mini M4 deployment
 
+## Cited project context rollout, 2026-10-20
+
+The native `cpa-memory` bridge was built from exact source `7c1bb8a` and installed
+on the Apple M4 / Mac16,10. A private project registry binds this repository's
+exact fork-origin project ID to its Git root. The local Codex configuration now
+has a `cpa_archive` MCP entry using the existing dedicated read credential and
+the registry; prior model/provider/auth and other settings were preserved.
+Existing Codex sessions need a new session to load the additional server.
+No CPA, collector or memory-service process restarted, and their artifacts,
+routing/account configuration, raw/projection/outbox data and reviewed Git
+knowledge were preserved. Proposal/review capability was not enabled.
+
+The new read-only tools are `project_context` and `project_read_document`.
+Four intents provide committed-document evidence for purpose, architecture,
+recorded followups and installation, with current commit/hash/line citations.
+Reviewed project knowledge retains its source validity checks; new archive
+searches are opt-in. Full Go race/vet, real stdio tests, native preflight with
+twelve exact citation roundtrips and actual Codex acceptance passed. See
+[project context](project-context.md) for the bounded coverage and model-capacity
+retry details. Optional history preflight was explicitly unavailable; its empty
+list was not interpreted as absence of evidence.
+
+Verified online raw/projection/outbox backups and old artifacts/configuration,
+including the prior Codex config, are retained under
+`/Volumes/data/build/cpa-session-archive/project-context-20261020/rollback`.
+The projection checkpoint and raw fence are both 305304; the raw backup contains
+146,092 records. Current/project-context rollback markers point to this set.
+The preceding hybrid database pair and empty outbox copy were retired only after
+zero missing source IDs/CAS hashes and no-open-file checks, removing approximately
+34.05 GiB of logical backup files. Their binaries/configuration/reports remain.
+
+The last read-only health sample had 146,521 sources, lag 0, failures 0, and zero
+outbox entries/bytes/quarantine. Brief earlier lag/outbox samples drained during
+normal collection. Production semantic indexing remains disabled with zero
+semantic tables. Private operational evidence is under the release's `reports/`;
+aggregate source-free acceptance is committed separately.
+
 ## Calibration tooling and rejected selection, 2026-10-20
 
 Two new native diagnostic commands, `cpa-memory-calibrate` and

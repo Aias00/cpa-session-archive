@@ -124,39 +124,11 @@ or truncation remains distinct from a successful search with no selected hits.
 One intent's history failure affects packet coverage while other sections keep
 their own completion state.
 
-## Enable and call
-
-The existing MCP bridge adds both tools automatically when `--projects-file`
-contains registered projects and its fixed credential scope permits project-wide
-reads. A knowledge repository alone does not register arbitrary project roots.
-Session-only bridges do not expose these project-wide tools. Existing archive
-tools and the separate proposal/review lifecycle retain their behavior.
-
-```text
-cpa-memory --endpoint http://127.0.0.1:8319 \
-  --token-file /absolute/private/project-read.token \
-  --project-id 'git:https://github.com/owner/project.git' \
-  --projects-file /absolute/private/project-memory-roots.json
-```
-
-Call `project_context` with structured input such as:
-
-```json
-{"intent":"installation","include_history":false}
-```
-
-A project-scoped bridge supplies the registered project ID; an owner-wide bridge
-requires an explicit `project_id`. Select `all` or omit `intent` for all four
-sections. Set `include_history: true` only when archived evidence is needed.
-Reviewed entries with archive citations still validate those sources even when
-new historical searches are disabled.
-
-Pass a returned document's `citation` object unchanged to
-`project_read_document`. The reader returns the same citation and original text.
-After a HEAD change, request a new packet. Both tools are read-only; neither
-runs a model, executes documented commands, installs the project, proposes memory,
-or activates knowledge. The complete packet has a ten-second request budget;
-individual Git snapshots/reads and optional operations have smaller budgets.
+Session-only bridges do not expose project-wide context tools. Reviewed entries
+with archive citations still validate their sources when new historical searches
+are disabled. The complete packet has a ten-second request budget; Git operations
+and optional source reads have smaller budgets. These tools do not execute
+documented commands, install the project, invoke a model or activate knowledge.
 
 ## Independent acceptance
 
@@ -178,3 +150,29 @@ real owner-labeled questions described in
 
 The project-context feature does not require semantic retrieval to be enabled.
 Semantic calibration results, if any, remain a separate acceptance boundary.
+
+## Recorded acceptance, 2026-10-20
+
+Native bridge source `7c1bb8a` passed full Go race tests and vet. Independent
+synthetic tests cover all four intent sections, exact document readback, dirty
+work/index preservation, cross-project/session restrictions, Git HEAD changes,
+reviewed-versus-draft knowledge, and archive deletion/transport failures.
+The real stdio composition also verifies both new tools alongside the existing
+archive and reviewed-memory readers, without proposal/review capabilities.
+
+On the explicitly registered current project, native artifact preflight returned
+three bounded document excerpts per intent and reproduced all twelve citations
+exactly. Four context-plus-readback samples took approximately 691–779 ms each;
+these are individual local samples, not p95, a corpus relevance score, or a
+production SLO. Document discovery completed within its budget, while the
+three-excerpt display limit was explicitly truncated. Optional installation
+history did not complete and was marked `unavailable`; that check does not prove
+the absence of relevant history.
+
+A real Codex run used the installed persistent MCP configuration, received all
+four intent sections, read one document citation back unchanged and checked live
+archive status. Three earlier attempts encountered upstream model capacity
+errors; a temporary `gpt-6-luna` CLI override completed acceptance without
+changing the configured model/provider. The
+[aggregate acceptance record](evals/project-context-v1.json) contains no source
+text, project/session/request IDs, credentials or local private paths.

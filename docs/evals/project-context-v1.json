@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "source_commit": "7c1bb8a",
+  "evaluation_scope": "synthetic correctness tests and one explicitly registered project; not owner gold or a production SLO",
+  "owner_questions_labeled": 0,
+  "full_go_race_and_vet_passed": true,
+  "artifact": {
+    "source_commit": "7c1bb8a",
+    "artifact_sha256": "560748aa98bd2f57e2ed2d94fd687e098ac12c1591adfd489c28e8f69eabf87a",
+    "real_stdio_process": true,
+    "tool_count": 7,
+    "four_intents": [
+      {
+        "intent": "overview",
+        "documents": 3,
+        "state": "evidence_found",
+        "truncated": true,
+        "coverage_documents": "complete",
+        "milliseconds": 778.7
+      },
+      {
+        "intent": "architecture",
+        "documents": 3,
+        "state": "evidence_found",
+        "truncated": true,
+        "coverage_documents": "complete",
+        "milliseconds": 690.57
+      },
+      {
+        "intent": "followups",
+        "documents": 3,
+        "state": "evidence_found",
+        "truncated": true,
+        "coverage_documents": "complete",
+        "milliseconds": 725.53
+      },
+      {
+        "intent": "installation",
+        "documents": 3,
+        "state": "evidence_found",
+        "truncated": true,
+        "coverage_documents": "complete",
+        "milliseconds": 760.54
+      }
+    ],
+    "exact_citation_roundtrips": 12,
+    "invalid_scope_and_stale_citations_rejected": true,
+    "history_requested_coverage": "unavailable",
+    "history_returned": 0,
+    "production_semantic_disabled": true,
+    "elapsed_seconds": 6.14,
+    "passed": true
+  },
+  "codex": {
+    "real_codex_client": true,
+    "temporary_model_override": "gpt-6-luna",
+    "persistent_mcp_configuration_used": true,
+    "passed": true,
+    "all_four_intents_independently_verified": true,
+    "exact_document_readbacks_verified": 1,
+    "archive_status_verified": true,
+    "capacity_failures_before_success": 3,
+    "model_calls_did_not_change_persistent_model": true
+  }
+}
