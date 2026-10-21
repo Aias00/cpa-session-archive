@@ -6,9 +6,10 @@ The archive remains retained evidence; a producer spool is a temporary delivery
 outbox, never another knowledge or retrieval authority. Delivery reliability is
 independent of projection freshness and retrieval ranking.
 
-The implementation includes an opt-in collector commit receipt and a tested
-outbox storage primitive. Producer integration, end-to-end crash/replay acceptance
-and production activation remain pending.
+The implementation includes an opt-in collector commit receipt, bounded outbox
+storage and producer integration. Isolated native-host acceptance covers producer
+and collector process termination after archive commit with a lost receipt.
+Production activation remains pending.
 Existing senders still receive HTTP 202 on volatile queue admission. Do not
 report durable delivery until the producer actually persists and verifies its
 receipts.
@@ -63,17 +64,63 @@ The outbox cannot strengthen the archive's power-loss contract by itself. A
 subprocess test verifies recovery after successful Put followed by immediate
 process exit without Close; this is not a simulated machine power failure.
 
-## Required next increments
+## Producer configuration and execution
 
-1. Persist exact producer payload bytes in a bounded private outbox outside the
-   response callback. Count admission, persistence, replay, rejection and overflow
-   separately. Records not yet committed to the spool remain crash-vulnerable.
-2. Replay after restart; remove only on a matching commit receipt. Keep permanent
-   rejections for explicit inspection without blocking later eligible deliveries.
-3. Bound logical payload bytes, entry count, memory, retry concurrency and disk
-   use; report capacity pressure and startup recovery. Avoid transcript/error body
-   logging. Preserve pending outbox data during upgrade and rollback.
-4. Test process termination before/after spool commit and archive commit, lost
-   receipts, duplicate replay, incompatible collectors, cancellation, disk full,
-   permanent rejection and corrupted spool. Run isolated native-host acceptance
-   before production activation.
+Set `spool_dir` to an absolute private directory (0700) to enable the outbox. The
+database is `deliveries.sqlite` inside that directory. `spool_max_bytes` defaults
+to 2147483648 and `spool_max_entries` to 10000. Omitted `spool_dir` preserves
+legacy volatile delivery. Enabling/disabling, moving the directory or changing
+outbox limits requires plugin restart; live reconfiguration rejects these changes
+before replacing any active settings. Restarting with lower limits preserves
+existing entries and refuses new capacity until retained work drains.
+
+Capture still enqueues into the bounded memory queue. One background worker
+serializes and persists deliveries, holding each memory reservation until Put
+succeeds. A separate replay worker reads the oldest pending entry and sends its
+exact bytes with commit negotiation. Missing/wrong receipts, plain 200 and legacy
+202 responses retain the entry and retry. A verified receipt removes the pending
+entry; permanent rejections are retained in quarantine. Storage errors apply
+backpressure rather than deleting pending records. Network retry does not stop
+new records from persisting until the logical disk budget fills.
+
+Active requests and admitted records not yet persisted remain vulnerable to
+process exit. Shutdown counts unspooled discards but retains already persisted
+in-flight deliveries. This asynchronous design keeps fsync off response capture;
+it does not promise that every completed callback has already reached disk.
+
+Producer diagnostics include persisted/duplicate entries, outbox capacity waits, write/read
+errors, oversize drops, verified commits, quarantines and missing commit receipts.
+The cached outbox snapshot reports pending/quarantined entries and logical byte
+usage without database access on capture callbacks. Snapshots travel in the
+existing latest-producer report, can be stale, and are hidden for scoped readers.
+A current delivery's report precedes its receipt and may still count that entry
+as pending. Process-local counters reset; retained outbox contents do not.
+
+Deploy the compatible collector before enabling the producer. Preserve pending
+outbox files during updates and rollback. An older collector's 202 does not drain
+an enabled outbox. An older plugin cannot replay it; keep the database intact
+until a compatible plugin is restored. Future backup procedures must include the
+outbox through SQLite online backup whenever it exists, rather than copying only
+its main file. No automatic deletion, approval, Git write or knowledge activation
+is introduced.
+
+## Remaining verification and activation work
+
+Tests also simulate SQLite capacity exhaustion with `max_page_count`, verify
+that failed persistence rolls back counters while preserving prior entries, and
+verify acknowledgement deletion followed by immediate subprocess exit. Native
+before-commit failure leaves zero raw records before restart and exactly two
+after replay; after-commit receipt loss leaves one before restart and two after.
+Both use forced producer and collector termination. These do not simulate an OS
+or hardware power failure.
+
+1. Validate receipt fields through live HTTP/MCP/browser boundaries after a
+   backed-up native deployment. Verify fresh captures persist and drain normally.
+2. Extend process fault acceptance to crashes before persistence, before archive
+   commit and after receipt deletion, plus disk exhaustion and corrupt-spool
+   recovery. Preserve exact boundary labels rather than claiming power-loss tests.
+3. Measure throughput, fsync cost, disk/WAL growth and restart backlog drain with
+   representative synthetic payload sizes and bounded concurrency.
+4. Activate production configuration only after exact-commit builds, native
+   preflight, verified backups and rollback provenance are ready. The archive's
+   SQLite NORMAL power-loss limitation remains a separate durability decision.

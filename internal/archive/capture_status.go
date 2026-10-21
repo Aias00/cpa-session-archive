@@ -7,12 +7,24 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/boundedqueue"
+	"cpa-session-archive/internal/outbox"
 )
 
 const CaptureStatusHeader = "X-CPA-Archive-Capture"
 
 // CaptureStatus is process-local producer telemetry, never a durable loss ledger.
 type CaptureStatus struct {
+	OutboxEnabled           bool                  `json:"outbox_enabled"`
+	OutboxCapacityWaits     uint64                `json:"outbox_capacity_waits"`
+	Outbox                  *outbox.Status        `json:"outbox,omitempty"`
+	OutboxPersisted         uint64                `json:"outbox_persisted"`
+	OutboxDuplicates        uint64                `json:"outbox_duplicates"`
+	OutboxWriteErrors       uint64                `json:"outbox_write_errors"`
+	OutboxReadErrors        uint64                `json:"outbox_read_errors"`
+	OutboxOversizeDropped   uint64                `json:"outbox_oversize_dropped"`
+	OutboxCommitted         uint64                `json:"outbox_committed"`
+	OutboxQuarantined       uint64                `json:"outbox_quarantined"`
+	CommitReceiptMissing    uint64                `json:"commit_receipt_missing"`
 	Version                 int                   `json:"version"`
 	Epoch                   string                `json:"epoch"`
 	Since                   string                `json:"since"`
@@ -56,6 +68,7 @@ func (p *Plugin) CaptureStatus() CaptureStatus {
 	defer p.mu.Unlock()
 	var out CaptureStatus
 	p.metrics.update(func(s *CaptureStatus) { out = *s })
+	out.OutboxEnabled = p.spool != nil
 	out.ActiveRequests = len(p.active)
 	out.Queue = p.q.Snapshot()
 	return out

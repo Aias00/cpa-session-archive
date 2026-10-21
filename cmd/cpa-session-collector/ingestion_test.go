@@ -12,6 +12,7 @@ import (
 
 	"cpa-session-archive/internal/archive"
 	"cpa-session-archive/internal/boundedqueue"
+	"cpa-session-archive/internal/outbox"
 	"cpa-session-archive/internal/storage"
 )
 
@@ -77,7 +78,7 @@ func TestIngestionBusyRejectsBeforeDecode(t *testing.T) {
 }
 
 func TestProducerObservationValidation(t *testing.T) {
-	report := archive.CaptureStatus{Version: 1, Epoch: "fixture-1", Since: time.Now().UTC().Format(time.RFC3339Nano), Enqueued: 7}
+	report := archive.CaptureStatus{Version: 1, Epoch: "fixture-1", Since: time.Now().UTC().Format(time.RFC3339Nano), Enqueued: 7, Outbox: &outbox.Status{Entries: 2, Pending: 1, Quarantined: 1, Bytes: 1024, MaxBytes: 2048, MaxEntries: 4}}
 	encoded, err := json.Marshal(report)
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +89,7 @@ func TestProducerObservationValidation(t *testing.T) {
 		t.Fatal("valid producer report missing")
 	}
 	original := m.state.Producer
-	for _, input := range []string{"{", strings.Repeat("x", 4097), strings.Replace(string(encoded), "fixture-1", "invalid epoch", 1), strings.Replace(string(encoded), `"version":1`, `"version":2`, 1), strings.Replace(string(encoded), `"in_flight":0`, `"in_flight":-1`, 1)} {
+	for _, input := range []string{"{", strings.Repeat("x", 4097), strings.Replace(string(encoded), "fixture-1", "invalid epoch", 1), strings.Replace(string(encoded), `"version":1`, `"version":2`, 1), strings.Replace(string(encoded), `"in_flight":0`, `"in_flight":-1`, 1), strings.Replace(string(encoded), `"pending":1`, `"pending":-1`, 1), strings.Replace(string(encoded), `"quarantined":1`, `"quarantined":2`, 1)} {
 		m.observeProducer(input)
 		if m.state.Producer != original {
 			t.Fatal("invalid report replaced valid observation")

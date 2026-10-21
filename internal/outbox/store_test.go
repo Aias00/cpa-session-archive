@@ -3,6 +3,7 @@ package outbox
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,6 +101,16 @@ func TestOutboxCrashHelper(t *testing.T) {
 	if err != nil {
 		os.Exit(2)
 	}
+	if os.Getenv("CPA_OUTBOX_CRASH_ACTION") == "ack" {
+		entry, err := s.Next(context.Background())
+		if err != nil {
+			os.Exit(4)
+		}
+		if s.Acknowledge(context.Background(), entry.Digest) != nil {
+			os.Exit(5)
+		}
+		os.Exit(0)
+	}
 	if _, _, err = s.Put(context.Background(), []byte("committed-before-exit")); err != nil {
 		os.Exit(3)
 	}
@@ -129,8 +140,10 @@ func TestOutboxRecoversAfterProcessExitAndRetainsOnLowerLimit(t *testing.T) {
 	if _, inserted, err := s.Put(context.Background(), entry.Body); err != nil || inserted {
 		t.Fatal("restart replay duplicated stored bytes", err)
 	}
-	if err = s.Acknowledge(context.Background(), entry.Digest); err != nil {
-		t.Fatal(err)
+	ackChild := exec.Command(os.Args[0], "-test.run=^TestOutboxCrashHelper$")
+	ackChild.Env = append(os.Environ(), "CPA_OUTBOX_CRASH_FIXTURE="+path, "CPA_OUTBOX_CRASH_ACTION=ack")
+	if err := ackChild.Run(); err != nil {
+		t.Fatal("receipt deletion crash fixture failed", err)
 	}
 	status, err := s.Status(context.Background())
 	if err != nil || status.Bytes != 0 || status.Entries != 0 {
@@ -173,5 +186,38 @@ func TestOutboxRejectsUnsafePathAndDetectsPayloadCorruption(t *testing.T) {
 	}
 	if _, err := s.Next(context.Background()); !errors.Is(err, ErrCorrupt) {
 		t.Fatal("corrupted delivery replayed", err)
+	}
+}
+
+func TestOutboxSQLiteFullRollsBackWithoutLosingPendingWork(t *testing.T) {
+	s := openFixture(t, 8<<20, 8)
+	ctx := context.Background()
+	digest, _, err := s.Put(ctx, []byte("retained"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pages int
+	if err = s.db.QueryRow(`PRAGMA page_count`).Scan(&pages); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.db.Exec(fmt.Sprintf(`PRAGMA max_page_count=%d`, pages)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = s.Put(ctx, make([]byte, 1<<20)); err == nil {
+		t.Fatal("SQLite capacity fault was not exercised")
+	}
+	status, err := s.Status(ctx)
+	if err != nil || status.Entries != 1 || status.Bytes != 8 {
+		t.Fatalf("failed persistence changed committed accounting: %+v %v", status, err)
+	}
+	entry, err := s.Next(ctx)
+	if err != nil || entry.Digest != digest || string(entry.Body) != "retained" {
+		t.Fatal("capacity failure damaged prior delivery", err)
+	}
+	if _, err = s.db.Exec(`PRAGMA max_page_count=2147483646`); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = s.Put(ctx, []byte("recovered")); err != nil {
+		t.Fatal("capacity recovery failed", err)
 	}
 }

@@ -149,6 +149,9 @@ func (m *ingestionMetrics) observeProducer(header string) {
 	if report.Queue.Depth < 0 || report.Queue.Capacity < 0 || report.Queue.RetainedBytes < 0 || report.Queue.MaxBytes < 0 || report.InFlight < 0 || report.ActiveRequests < 0 {
 		return
 	}
+	if out := report.Outbox; out != nil && (out.Entries < 0 || out.Pending < 0 || out.Quarantined < 0 || out.Bytes < 0 || out.MaxBytes <= 0 || out.MaxEntries <= 0 || out.Pending > out.Entries || out.Quarantined != out.Entries-out.Pending) {
+		return
+	}
 	if _, err := time.Parse(time.RFC3339Nano, report.Since); err != nil {
 		return
 	}

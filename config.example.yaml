@@ -6,3 +6,8 @@ queue_max_bytes: 268435456
 max_body_bytes: 67108864
 timeout: 5s
 store_upstream_request: false
+# Optional durable outbox. Use an absolute private directory (0700).
+# Enabling/disabling or changing outbox settings requires a plugin restart.
+# spool_dir: /absolute/private/session-archive/outbox
+# spool_max_bytes: 2147483648
+# spool_max_entries: 10000

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/boundedqueue"
+	"cpa-session-archive/internal/outbox"
 
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
@@ -28,6 +29,9 @@ type pluginConfig struct {
 	Endpoint             string `yaml:"endpoint"`
 	QueueSize            int    `yaml:"queue_size"`
 	QueueMaxBytes        int64  `yaml:"queue_max_bytes"`
+	SpoolDir             string `yaml:"spool_dir"`
+	SpoolMaxBytes        int64  `yaml:"spool_max_bytes"`
+	SpoolMaxEntries      int    `yaml:"spool_max_entries"`
 	MaxBodyBytes         int    `yaml:"max_body_bytes"`
 	Timeout              string `yaml:"timeout"`
 	StoreUpstreamRequest bool   `yaml:"store_upstream_request"`
@@ -41,22 +45,29 @@ type state struct {
 	catalog bool
 }
 type Plugin struct {
-	mu            sync.Mutex
-	active        map[string]*state
-	q             *boundedqueue.Queue[Record]
-	metrics       captureMetrics
-	closed        bool
-	finished      map[[32]byte]struct{}
-	finishOrder   [4096][32]byte
-	finishCursor  int
-	ctx           context.Context
-	cancel        context.CancelFunc
-	stop          chan struct{}
-	client        *http.Client
-	endpoint      string
-	max           int
-	storeUpstream bool
-	wg            sync.WaitGroup
+	mu              sync.Mutex
+	active          map[string]*state
+	q               *boundedqueue.Queue[Record]
+	metrics         captureMetrics
+	spool           *outbox.Store
+	spoolDir        string
+	spoolMaxBytes   int64
+	spoolMaxEntries int
+	spoolWake       chan struct{}
+	spoolClose      sync.Once
+	spoolStatusMu   sync.Mutex
+	closed          bool
+	finished        map[[32]byte]struct{}
+	finishOrder     [4096][32]byte
+	finishCursor    int
+	ctx             context.Context
+	cancel          context.CancelFunc
+	stop            chan struct{}
+	client          *http.Client
+	endpoint        string
+	max             int
+	storeUpstream   bool
+	wg              sync.WaitGroup
 }
 type envelope struct {
 	OK     bool `json:"ok"`
@@ -142,9 +153,12 @@ func (p *Plugin) configure(raw []byte) ([]byte, error) {
 	if json.Unmarshal(raw, &l) != nil {
 		return nil, errors.New("invalid plugin lifecycle")
 	}
-	c := pluginConfig{Enabled: true, QueueSize: 2048, QueueMaxBytes: 256 << 20, MaxBodyBytes: 64 << 20, Timeout: "5s"}
+	c := pluginConfig{Enabled: true, QueueSize: 2048, QueueMaxBytes: 256 << 20, MaxBodyBytes: 64 << 20, Timeout: "5s", SpoolMaxBytes: 2 << 30, SpoolMaxEntries: 10000}
 	if yaml.Unmarshal(l.ConfigYAML, &c) != nil || c.QueueMaxBytes <= 0 {
 		return nil, errors.New("invalid archive queue configuration")
+	}
+	if c.SpoolDir != "" && (!filepath.IsAbs(c.SpoolDir) || c.SpoolMaxBytes <= 0 || c.SpoolMaxEntries <= 0) {
+		return nil, errors.New("invalid archive outbox configuration")
 	}
 	if c.QueueSize < 64 {
 		c.QueueSize = 64
@@ -153,6 +167,18 @@ func (p *Plugin) configure(raw []byte) ([]byte, error) {
 	defer p.mu.Unlock()
 	if p.closed {
 		return nil, errors.New("archive plugin is stopped")
+	}
+	if p.q != nil && (c.SpoolDir != p.spoolDir || (p.spool != nil && (c.SpoolMaxBytes != p.spoolMaxBytes || c.SpoolMaxEntries != p.spoolMaxEntries))) {
+		return nil, errors.New("changing outbox configuration requires plugin restart")
+	}
+	if p.q == nil && c.SpoolDir != "" {
+		spool, err := outbox.Open(filepath.Join(c.SpoolDir, "deliveries.sqlite"), c.SpoolMaxBytes, c.SpoolMaxEntries)
+		if err != nil {
+			return nil, errors.New("archive outbox unavailable")
+		}
+		p.spool, p.spoolDir, p.spoolMaxBytes, p.spoolMaxEntries = spool, c.SpoolDir, c.SpoolMaxBytes, c.SpoolMaxEntries
+		p.spoolWake = make(chan struct{}, 1)
+		p.refreshSpoolStatus()
 	}
 	if c.MaxBodyBytes > 0 {
 		p.max = c.MaxBodyBytes
@@ -174,8 +200,14 @@ func (p *Plugin) configure(raw []byte) ([]byte, error) {
 			return nil, err
 		}
 		p.q = queue
-		p.wg.Add(1)
-		go p.sender()
+		if p.spool == nil {
+			p.wg.Add(1)
+			go p.sender()
+		} else {
+			p.wg.Add(2)
+			go p.spoolWriter()
+			go p.spoolSender()
+		}
 	} else {
 		if err := p.q.SetMaxBytes(c.QueueMaxBytes); err != nil {
 			return nil, err
@@ -486,11 +518,18 @@ func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
 	if err != nil {
 		return deliveryRejected
 	}
+	result, _ := p.sendPayloadWithRetry(b, false)
+	return result
+}
+
+func (p *Plugin) sendPayloadWithRetry(b []byte, commit bool) (deliveryResult, int) {
+	digest := sha256.Sum256(b)
+	expected := fmt.Sprintf("%x", digest)
 	backoff := 250 * time.Millisecond
 	for {
 		select {
 		case <-p.stop:
-			return deliveryStopped
+			return deliveryStopped, 0
 		default:
 		}
 		p.mu.Lock()
@@ -498,9 +537,19 @@ func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
 		p.mu.Unlock()
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
 		if err != nil {
-			return deliveryRejected
+			if !commit {
+				return deliveryRejected, 0
+			}
+			p.metrics.update(func(s *CaptureStatus) { s.DeliveryRetries++ })
+			if !p.waitSpoolRetry() {
+				return deliveryStopped, 0
+			}
+			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
+		if commit {
+			req.Header.Set(CommitAckHeader, CommitAckRequest)
+		}
 		status, _ := json.Marshal(p.CaptureStatus())
 		req.Header.Set(CaptureStatusHeader, string(status))
 		resp, err := client.Do(req)
@@ -509,10 +558,13 @@ func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
 			resp.Body.Close()
 			code = resp.StatusCode
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				return deliveryAccepted
+				if !commit || (code == http.StatusOK && resp.Header.Get(CommitAckHeader) == CommitAckResponse && resp.Header.Get(CommitDigestHeader) == expected) {
+					return deliveryAccepted, code
+				}
+				p.metrics.update(func(s *CaptureStatus) { s.CommitReceiptMissing++ })
 			}
 			if code == 400 || code == 413 || code == 422 {
-				return deliveryRejected
+				return deliveryRejected, code
 			}
 		}
 		p.metrics.update(func(s *CaptureStatus) { s.DeliveryRetries++ })
@@ -524,7 +576,7 @@ func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
 			if !timer.Stop() {
 				<-timer.C
 			}
-			return deliveryStopped
+			return deliveryStopped, 0
 		}
 		if backoff < 30*time.Second {
 			backoff *= 2
@@ -535,6 +587,11 @@ func (p *Plugin) sendWithRetry(rec Record) deliveryResult {
 	}
 }
 func (p *Plugin) Shutdown() {
+	defer p.spoolClose.Do(func() {
+		if p.spool != nil {
+			_ = p.spool.Close()
+		}
+	})
 	p.mu.Lock()
 	select {
 	case <-p.stop:

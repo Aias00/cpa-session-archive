@@ -33,12 +33,12 @@ type Entry struct {
 	Body   []byte
 }
 type Status struct {
-	Entries     int
-	Pending     int
-	Quarantined int
-	Bytes       int64
-	MaxBytes    int64
-	MaxEntries  int
+	Entries     int   `json:"entries"`
+	Pending     int   `json:"pending"`
+	Quarantined int   `json:"quarantined"`
+	Bytes       int64 `json:"bytes"`
+	MaxBytes    int64 `json:"max_bytes"`
+	MaxEntries  int   `json:"max_entries"`
 }
 
 func Open(path string, maxBytes int64, maxEntries int) (*Store, error) {
