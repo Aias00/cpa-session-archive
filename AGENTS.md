@@ -7,6 +7,16 @@
   removed at the user's request. Preserve existing capture services and all raw,
   projection, outbox and reviewed Git data. This temporarily supersedes the
   automatic deployment workflow below for new memory changes.
+- **Scoped session-workspace rollout (user instruction, 2026-10-21):** The user
+  explicitly requested deployment of the shadcn/ui session workspace, paired
+  archive plugin/collector and `cpa-session-manage` CLI. This authorizes that
+  rollout and its required CPA/collector restarts on the verified M4 target.
+  It does not authorize client-plugin configuration or deployment/activation of
+  new memory extraction, validity, review or vector features. Preserve the
+  independent memory service and its existing binary and configuration. Future
+  memory work remains development-only under the instruction above.
+  This rollout is recorded in `docs/mac-mini-deployment.md`; its completion does
+  not lift the development-only restriction for other memory work.
 
 - Work in the user's fork: `Aias00/cpa-session-archive`.
 - The standing deployment target is the user's **Mac mini M4**, reachable as

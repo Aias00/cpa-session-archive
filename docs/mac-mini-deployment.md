@@ -1,5 +1,90 @@
 # Mac mini M4 deployment
 
+## Session workspace rollout, 2026-10-21
+
+The user explicitly requested this rollout after selecting shadcn/ui and
+Tailwind. The archive plugin, collector and new `cpa-session-manage` CLI were
+built natively from exact source `baa4650f23336b9adec3d8430be03f7c1b07e4e0`
+and installed on the verified Apple M4 / Mac16,10. The UI remains one embedded
+HTML resource with no separate Node service or runtime CDN dependency. It adds
+the shared Web/CLI session library, revisioned title/tag/note/favorite/archive
+edits, responsive navigation and themes, while retaining lazy evidence views
+and streamed exports. Later product stages remain planned.
+
+The collector restarted first while the old durable CPA producer continued to
+capture. Its final startup readiness took 23.776 seconds; the CPA plugin switch
+then took 1.399 seconds. The independent memory service retained PID 46860 and
+its existing artifact/configuration. CPA's executable, account/routing settings,
+credentials, LaunchAgents, raw/projection/outbox data, reviewed Git knowledge
+and the Codex configuration were preserved. The Codex `cpa_archive` entry
+remains absent. No model extraction, memory approval or vector activation was
+performed. This authorization is limited to the session-workspace deployment;
+new memory features and client integration remain paused as described below.
+
+The page is served from the existing plugin entry:
+
+```text
+http://127.0.0.1:8317/v0/resource/plugins/cpa-session-archive/index.html
+```
+
+On a workstation using the existing CPA tunnel, the same path uses port 18327.
+Refresh the existing plugin tab and retain the existing management credential.
+The installed CLI is
+`/Users/aias/Library/Application Support/CLIProxyAPI/session-archive/bin/cpa-session-manage`;
+see [session management](session-management.md) for credential-file usage.
+
+Exact-source Go race/vet, the pinned frontend/browser checks and native builds
+passed before replacement. Isolated tests using the installed CPA executable,
+synthetic credentials and the new native plugin/collector verified streaming
+and nonstreaming capture, producer/collector termination, before/after-commit
+replay, authenticated management/CLI operations, revision conflicts and unchanged
+raw exports. A production-sized online-backup clone passed readiness and session
+API checks in 189.516 seconds.
+
+The private release and aggregate operational evidence are retained under
+`/Volumes/data/build/cpa-session-archive/session-workspace-20261021-baa4650`.
+Its verified complete rollback set contains 150,215 raw records, projection
+checkpoint/raw fence 309427 and an empty outbox backup, plus old binaries,
+configuration and manifests. A second verified empty online outbox snapshot
+was taken immediately before stopping CPA. The initial switch automatically
+restored the old artifacts when an offline read-only SQLite backup could not
+initialize missing WAL sidecars; no databases were restored. An isolated sample
+reproduced the issue, and the successful switch snapshots the outbox while the
+producer is still running. Active outbox files are preserved throughout.
+
+Live read-only acceptance passed: the served 507,612-byte HTML matches the
+release SHA-256, has the shadcn marker, no preview flag and no-store caching;
+anonymous management access returns 401. A clean browser rendered the production
+connection form without JavaScript errors, external requests or persisted
+credentials. The new plugin is mapped in CPA, all three installed artifact
+hashes match, all 15 protected file hashes are unchanged, and the CLI's three
+help commands work. Collector browsing, metadata reads, literal empty search
+and selected-session turn/detail scope checks passed. Raw identity and ingest
+fence remain continuous; 151,007 records and 15,382 sessions were sampled. Three
+existing source citations returned identical text hashes.
+
+The memory service caught up to checkpoint/watermark 318685 with 151,013 sources,
+lag 0, no current error and completed backfill; outbox entries, bytes and
+quarantine are zero. Its cumulative projection-attempt failure counter rose
+from 0 to 18 during the collector interruptions and remained stable over nine
+samples across 16.067 seconds. The counter was not reset. Positive authenticated
+management/CLI calls were verified with synthetic credentials in isolated native
+CPA fixtures; no live management plaintext was retrieved or reset, so live
+positive login, metadata writes, private-history browser rendering and exports
+were not exercised. Live raw continuity checks use identity, count and fence,
+not a claim that every live record hash was compared.
+
+The install manifest retains unrelated mixed-version provenance and records
+the new artifact hashes/source and acceptance report. `current-rollback-dir.txt`
+and `session-workspace-rollback-dir.txt` point to this release's complete rollback
+set. The preceding project-context database pair and empty outbox copy were
+retired after proving zero missing IDs among 146,092 old records and zero missing
+hashes among 1,040,585 old CAS entries, then repeating exact file fingerprint and
+no-open-file checks. Five superseded database/sidecar files totaling
+37,170,667,520 logical bytes (34.62 GiB) were removed. Old artifacts, configuration,
+manifests, reports and required migration baselines remain, with an aggregate
+retirement record in both release directories.
+
 ## Client integration paused, 2026-10-21
 
 At the user's request, the local Codex `cpa_archive` MCP entry was removed,

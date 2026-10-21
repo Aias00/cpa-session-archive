@@ -1,9 +1,12 @@
 # Session workspace product plan
 
-Status: stage P0 is implemented in development and must pass isolated validation
-before any explicitly requested rollout. Subsequent stages are planned, not
-implemented or deployed by this document. Both Web and CLI are first-class
-interfaces, as requested by the user on 2026-10-21.
+Status: stage P0 and the React/shadcn workspace were deployed to the Mac mini M4
+on 2026-10-21 after the user's explicit request. Isolated integration and live
+read-only acceptance passed; the [deployment record](../mac-mini-deployment.md)
+records the checks and live-authentication limitation. Subsequent stages remain
+planned. Both Web and CLI are first-class interfaces, as requested by the user
+on 2026-10-21. This rollout does not authorize deploying new memory features or
+configuring client plugins.
 
 ## Product outcome
 

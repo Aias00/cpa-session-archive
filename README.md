@@ -205,14 +205,16 @@ TypeScript only; Go remains the product implementation language.
 
 ## Management UI and faceted search
 
-The development-only [session management workflow](docs/session-management.md)
+The [session management workflow](docs/session-management.md)
 adds a shared Web/CLI session library: custom titles, tags, notes, favorites,
 archive/restore, label search and normal pagination. User edits are revisioned
 separately from raw evidence. The new `cpa-session-manage` CLI uses CPA's
-authenticated management proxy. These changes are not installed on live services;
-see the [staged product plan](docs/plans/2026-10-21-session-management.md) for
+authenticated management proxy. The paired plugin/collector/CLI was deployed to
+the Mac mini M4 on 2026-10-21 after the user's explicit request; see the
+[deployment record](docs/mac-mini-deployment.md) for live checks and rollback.
+See the [staged product plan](docs/plans/2026-10-21-session-management.md) for
 search integration, task continuity and human memory review that follow.
-The [React workspace](docs/frontend-workspace.md) now implements the development
+The [React workspace](docs/frontend-workspace.md) implements the session
 page with shadcn/ui and Tailwind, responsive navigation, themes and a credential-free
 synthetic preview. Its single-file build continues to be embedded in the Go plugin.
 

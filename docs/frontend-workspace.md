@@ -1,9 +1,11 @@
 # React session workspace
 
-The development UI uses React, Vite, Tailwind CSS and source-owned shadcn/ui
+The session UI uses React, Vite, Tailwind CSS and source-owned shadcn/ui
 components. This implements the user's third UI choice on 2026-10-21. It replaces
 the handwritten management page while preserving the existing Go management
-proxy, collector, session-management API and CLI. This increment is not deployed.
+proxy, collector, session-management API and CLI. The paired plugin, collector
+and CLI were deployed to the Mac mini M4 on 2026-10-21 after the user's explicit
+request. See the [deployment record](mac-mini-deployment.md) for access and rollback.
 
 ## Source and packaging
 
@@ -117,3 +119,23 @@ browser opened the synthetic preview without an auth envelope, connected to its
 mock automatically, reported no page errors, made no external requests and
 persisted no credential. This is isolated synthetic acceptance, not a claim of
 live CPA integration or deployment.
+
+## Live rollout acceptance, 2026-10-21
+
+The native plugin, collector and CLI from source commit
+`baa4650f23336b9adec3d8430be03f7c1b07e4e0` were installed together. The live CPA
+resource served the exact embedded page hash above; a browser rendered its
+login screen without page errors. Collector readiness, session browsing and
+session-scoped turn reads passed. Installed artifact hashes matched, retained
+raw record counts advanced, and the producer outbox and quarantine were empty.
+
+The independent memory service was not restarted. Its ingestion lag returned
+to zero, no active error remained, and its cumulative failure counter stayed
+stable during the final observation window. Three existing citations returned
+the same text hashes; protected CPA, memory, LaunchAgent and Codex files stayed
+unchanged. No client integration or new memory workflow was enabled.
+
+Anonymous management requests were rejected. A positive live management login
+or write was not tested because no existing plaintext management credential was
+retrieved or reset. Authenticated management and native CLI operations passed
+against the actual CPA executable in isolated fixtures with synthetic credentials.

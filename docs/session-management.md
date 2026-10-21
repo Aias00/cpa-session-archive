@@ -1,9 +1,11 @@
 # Session management: Web and CLI
 
-This increment is development-only. It does not install a client integration,
-replace a live binary, restart services, configure credentials, or process private
-histories. Use the updated collector and plugin together in an explicitly
-requested rollout before expecting these controls in the installed page.
+The session workspace and paired collector/plugin/CLI were deployed to the
+Mac mini M4 on 2026-10-21 after the user's explicit request. Native, isolated
+integration and live read-only acceptance checks passed; see the
+[deployment record](mac-mini-deployment.md). This scope does not enable client
+integration, automatic memory extraction, semantic retrieval or human memory
+approval. Existing management credentials remain in use.
 
 ## Available workflow
 
@@ -15,7 +17,7 @@ deterministic tie-breaker. Search covers session ID, project label, the source
 summary, custom title, note and tags. This is not full conversation or semantic
 search; the separate recall engine remains responsible for those capabilities.
 
-The development page now uses the [React/shadcn workspace](frontend-workspace.md),
+The page uses the [React/shadcn workspace](frontend-workspace.md),
 with responsive navigation and a synthetic preview. The Web and CLI keep the same
 backend contract described below.
 
@@ -95,15 +97,17 @@ GOROOT=/Volumes/data/tools/cpa-go-sdk \
   -o /absolute/development/cpa-session-manage ./cmd/cpa-session-manage
 ```
 
-Use a private regular credential file (0600). Replace the origin and paths below
-with the intended CPA management endpoint and existing credential file. Nothing
+The examples below use the installed M4 CLI and local CPA origin. For a
+development executable or a different host, replace those two values. Use a
+private regular credential file (0600) containing the existing management
+credential; replace the placeholder path below with that file. Nothing
 in these examples provisions or retrieves a credential. The CLI permits HTTPS
 origins or literal-loopback HTTP, disables proxies and redirects, and never puts
 the credential in a command-line flag value or diagnostic output.
 
 ```sh
-manager=/absolute/development/cpa-session-manage
-cpa_origin=http://127.0.0.1:YOUR_CPA_PORT
+manager="/Users/aias/Library/Application Support/CLIProxyAPI/session-archive/bin/cpa-session-manage"
+cpa_origin=http://127.0.0.1:8317
 credential_file=/absolute/private/management.token
 
 "$manager" list --endpoint "$cpa_origin" --token-file "$credential_file" \
@@ -130,6 +134,33 @@ To browse archived sessions use `list --archived only`; use `list --starred true
 for favorites. Use `list --help`, `show --help` or `edit --help` for flags.
 
 ## Verification
+
+Live rollout checks on 2026-10-21 verified the exact embedded page, browser
+login-screen rendering, anonymous management rejection, collector readiness,
+session browsing and session-scoped turn reads. Raw history advanced, the
+outbox and quarantine were empty, existing citations stayed intact, and the
+independent memory service and protected configurations were preserved. No live
+authenticated login or write was tested: the existing management credential was
+neither retrieved nor reset. Positive authenticated operations were verified
+with synthetic credentials in the isolated real-CPA fixture below.
+
+The later React/shadcn acceptance described in
+[frontend-workspace.md](frontend-workspace.md#verified-development-acceptance-2026-10-21)
+supersedes the initial browser counts below: all 15 scenarios passed with the
+pinned Playwright 1.62.1 browser, alongside 21 script/normalization/repository
+checks, TypeScript, deterministic frontend build, repository-wide Go race tests
+and `go vet`.
+
+The release was also checked against the actual installed CPA executable in an
+isolated fixture using synthetic credentials and records. Plugin/collector
+streaming and nonstreaming capture, termination recovery, before/after-commit
+replay, exact embedded HTML, management authentication, native CLI edits and
+revision conflicts passed, with unchanged raw exports. A production-sized
+online-backup clone passed startup, readiness and session API checks. These
+checks did not replace live artifacts or use live management credentials.
+
+The following records describe the earlier API/CLI increment before the React
+workspace and release-fixture verification above.
 
 Isolated synthetic tests cover metadata persistence across capture and rebuild,
 concurrent revision conflicts, exact Unicode and SQL wildcard literal matching,
