@@ -16,7 +16,11 @@ func TestMCPStdioHelper(t *testing.T) {
 	if os.Getenv("CPA_RECALL_STDIO_HELPER") != "1" {
 		return
 	}
-	if err := run(context.Background(), []string{"--endpoint", os.Getenv("CPA_RECALL_TEST_ENDPOINT"), "--token-file", os.Getenv("CPA_RECALL_TEST_TOKEN"), "--allow-all-projects"}); err != nil {
+	args := []string{"--endpoint", os.Getenv("CPA_RECALL_TEST_ENDPOINT"), "--token-file", os.Getenv("CPA_RECALL_TEST_TOKEN"), "--allow-all-projects"}
+	if projects := os.Getenv("CPA_RECALL_TEST_PROJECTS"); projects != "" {
+		args = append(args, "--projects-file", projects)
+	}
+	if err := run(context.Background(), args); err != nil {
 		os.Exit(1)
 	}
 	os.Exit(0)

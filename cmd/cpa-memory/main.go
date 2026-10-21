@@ -14,6 +14,7 @@ import (
 
 	"cpa-session-archive/internal/knowledge"
 	"cpa-session-archive/internal/memory"
+	"cpa-session-archive/internal/projectcontext"
 	"cpa-session-archive/internal/recall"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -107,7 +108,15 @@ func run(ctx context.Context, args []string) error {
 			}
 			return json.NewEncoder(os.Stdout).Encode(entry)
 		}
-		return recall.NewServerWithKnowledge(scoped, library, *allowProposals).Run(ctx, &mcp.StdioTransport{})
+		server := recall.NewServerWithKnowledge(scoped, library, *allowProposals)
+		if len(projects) > 0 && scope.SessionID == "" {
+			packets, err := projectcontext.New(projectcontext.Config{Projects: projects, Scope: scope, Source: scoped, Knowledge: library})
+			if err != nil {
+				return err
+			}
+			recall.AddProjectContextTools(server, packets)
+		}
+		return server.Run(ctx, &mcp.StdioTransport{})
 	}
 	if reviewing || *allowProposals {
 		return fmt.Errorf("knowledge-root or projects-file is required")

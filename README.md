@@ -73,8 +73,11 @@ synthetic [recall evaluation](docs/recall-evaluation.md) measures evidence-backe
 top-five quality and repeated-context misses. An optional
 [reviewed Git memory adapter](docs/curated-git-memory.md)
 adds sourced candidates, explicit operator confirmation, correction and archive
-using existing canonical Git repositories. The recall collector is deployed on the
-user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
+using existing canonical Git repositories. The optional
+[project context tools](docs/project-context.md) assemble cited committed
+documents, reviewed project knowledge and explicitly requested history for
+overview, architecture, followups and installation. Collector and independent
+memory services run on the user's Mac mini M4; see the [deployment runbook](docs/mac-mini-deployment.md)
 for access, verification and rollback.
 
 Native history synchronization also supports Qoder, WorkBuddy, CodeBuddy,

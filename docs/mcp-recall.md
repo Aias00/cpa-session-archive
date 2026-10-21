@@ -23,6 +23,15 @@ Markdown/YAML in Git remain authoritative. The optional
 `memory_propose`; review is a separate operator command, never an MCP tool.
 Automatic extraction and automatic context injection are not implemented.
 
+When the bridge has a registered `--projects-file` and a project-wide or owner
+scope, two additional read-only tools provide
+[project context](project-context.md): `project_context` routes committed
+documentation, reviewed project knowledge and optional historical excerpts into
+overview/architecture/followups/installation sections; `project_read_document`
+reproduces a returned Git commit/hash/line citation. These are evidence packets,
+not inferred answers or a new knowledge authority. Session-only scope does not
+grant project-wide document access.
+
 The explicit [diverse mode](diverse-retrieval.md) reduces repeated excerpts and
 long-message candidate pressure. It requires searchable text even for recap;
 it preserves current source checks and does not add semantic matching. An

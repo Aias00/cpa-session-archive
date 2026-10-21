@@ -41,6 +41,14 @@ and proposing, never operator review. Git commits remain authoritative; SQLite
 does not acquire confirmation state. A derived index may be discarded only
 without discarding authoritative evidence or Git state.
 
+The optional [project context adapter](project-context.md) reads allowlisted
+documents at a registered project's fixed Git HEAD, then routes bounded excerpts
+for overview, architecture, followups and installation. Reviewed knowledge and
+explicitly requested archive probes retain their own authority and validity
+checks. Its MCP tools are read-only and independent of projection ownership;
+line/hash/commit citations reproduce original documents. Presence is evidence,
+not model review, and unavailable sources do not become successful empty claims.
+
 ## SQLite concurrency and status
 
 The projection owns one write connection and a pool of at most four read-only
