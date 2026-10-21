@@ -189,3 +189,9 @@ parameter grid, separate subjects and an unevaluated held-out split. It requires
 positive recall, every negative case, safety and complete retrieval together.
 It supplements the regression fixture; model-authored labels do not replace
 owner review or authorize production backfill.
+
+The first separate calibration selected no threshold: at 0.78 it found 24/24
+positives but passed only 2/24 negatives; at 0.92 it passed 24/24 negatives but
+found only 3/24 positives. All ten predeclared trials were ineligible. The
+held-out split remains unevaluated and production semantic indexing remains
+disabled; see the linked calibration report for every trial and its limits.

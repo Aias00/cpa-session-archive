@@ -154,6 +154,55 @@ checks enabled when judging acceptance; an aggregate recall number alone can
 hide false positives. No retrieval results for these new sets were inspected
 while authoring and structurally freezing version 1.
 
+## Measured calibration, 2026-10-20
+
+Native tools built from exact source `9e4f39b` ran the predeclared grid once on
+the local Apple M4 with the pinned E5 Small provider. The
+[aggregate report](evals/semantic-calibration-v1.json) preserves all ten trials.
+The index profile remained
+`878738c18327a5af1399e132e99b9e4d05d6ce469bf6b7b21e66ed686977efb3`.
+
+| Minimum cosine | Positive questions found | Negative questions passed | Eligible |
+| --- | ---: | ---: | --- |
+| 0.78 | 24/24 | 2/24 | No |
+| 0.80 | 18/24 | 5/24 | No |
+| 0.82 | 15/24 | 6/24 | No |
+| 0.84 | 14/24 | 14/24 | No |
+| 0.86 | 14/24 | 17/24 | No |
+| 0.88 | 12/24 | 19/24 | No |
+| 0.90 | 7/24 | 22/24 | No |
+| 0.92 | 3/24 | 24/24 | No |
+| 0.94 | 1/24 | 24/24 | No |
+| 0.96 | 0/24 | 24/24 | No |
+
+Every trial had complete semantic coverage, zero truncated cases, and zero
+citation, scope or forbidden-source failures. No candidate combined at least
+0.8 positive macro recall with all negatives passing. The command correctly
+exited 3 and persisted `selected_minimum: null`. No parameter was promoted and
+the held-out set remained unevaluated. The grid result does not characterize
+every possible continuous threshold, other models, or production questions.
+
+Literal and diverse comparison runs on this deliberately paraphrased calibration
+set each found 0/24 positives and passed 24/24 negatives, with no safety failures.
+These are distinct questions from the observed baseline; the scores do not imply
+a regression in existing literal/diverse behavior. They demonstrate why merely
+returning nothing is an insufficient acceptance criterion.
+
+The full ten-trial command took approximately 4.14 seconds in this small fixture
+experiment. Each trial reindexed 30 short synthetic records. This elapsed time
+is not a production query latency, capacity measurement or SLO. The temporary
+embedding process was stopped after evaluation; production embeddings remain
+disabled and no owner transcripts were processed by this experiment.
+
+Next retrieval work needs a separately evaluated relevance/answerability policy
+or a different candidate model; another threshold adjustment is not established
+as sufficient by these results. Evidence must still be returned with current
+source citations, and refusal must remain distinct from transport failure.
+For broad project-orientation questions, build cited context from the registered
+project's reviewed Git documents and scoped observations. A typed project brief
+should cover purpose, architecture, open work and installation without treating
+an unreviewed model summary as a new knowledge authority.
+
 ## Limits
 
 Questions within a subject share evidence, so the balanced counts are not

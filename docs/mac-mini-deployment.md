@@ -1,5 +1,38 @@
 # Mac mini M4 deployment
 
+## Calibration tooling and rejected selection, 2026-10-20
+
+Two new native diagnostic commands, `cpa-memory-calibrate` and
+`cpa-memory-eval`, were built from exact source `9e4f39b` and added to the
+existing M4 installation. Both paths were previously absent; exclusive creation
+prevented replacement. No existing artifact or configuration was replaced and
+no service restarted. The previous complete raw/projection/outbox rollback pair
+was preserved. Tool checksums and private installation evidence are in
+`/Volumes/data/build/cpa-session-archive/calibration-20261020-9e4f39b/reports`;
+the installation also has a separate aggregate tool-installation record.
+
+The [new synthetic calibration](semantic-calibration.md) evaluated ten
+predeclared cosine thresholds on 24 supported and 24 empty-expected questions.
+No threshold met both the 0.8 positive recall requirement and all negative
+expectations. The report retained `selected_minimum: null` and exit 3; the
+separate 32-question held-out set was not evaluated. All trials passed citation,
+scope, forbidden-source and completeness gates. This is a failed exploratory
+quality selection, not production acceptance or a storage migration trigger.
+
+Full Go race/vet and native builds passed. The evaluator now refuses to count
+truncated or semantically incomplete empty results as passing negatives, with
+an additional explicit `--require-complete` gate. Provider failure/profile
+drift tests confirm that an earlier eligible trial cannot survive a later
+execution failure.
+
+Post-install read-only checks observed 144,334 sources, lag 0 and failures 0.
+CPA, collector and memory listener PIDs and existing artifact/configuration
+hashes were unchanged. Production still has zero semantic tables and an explicit
+hybrid request returns 503. The temporary local embedding provider was stopped
+and port 8320 was verified unbound. Four actual owner questions were saved in
+private intake with project scope/evidence unconfirmed; none was counted as a
+completed label or copied into the repository.
+
 ## Experimental hybrid readiness, 2026-10-20
 
 Memory server, MCP bridge and the new private-corpus preparation command were
