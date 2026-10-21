@@ -497,3 +497,53 @@ func TestMalformedOrderedPagesAreRejected(t *testing.T) {
 		t.Fatal("manifest contract changed")
 	}
 }
+
+func TestAmbiguousOrIncompleteControlObjectsNeverBecomeAbsenceOrEmptyHistory(t *testing.T) {
+	for _, body := range []string{
+		`{"error":"unavailable","error":"source_missing"}`,
+		`{"error":"source_missing","unexpected":true}`,
+	} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			protocolHeaders(w, "archive-a")
+			w.WriteHeader(404)
+			_, _ = io.WriteString(w, body)
+		}))
+		client := fixtureClient(t, server.URL)
+		if _, err := client.MemorySource(context.Background(), "one"); err == nil || errors.Is(err, storage.ErrSourceNotFound) {
+			t.Fatal("ambiguous404 became authoritative absence", err)
+		}
+		server.Close()
+	}
+	for _, body := range []string{`{"changes":[{"sequence":1,"request_id":"one"}],"changes":[]}`, `{"changes":[],"unexpected":true}`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			protocolHeaders(w, "archive-a")
+			_, _ = io.WriteString(w, body)
+		}))
+		client := fixtureClient(t, server.URL)
+		if _, err := client.MemoryChanges(context.Background(), 0, 256); err == nil {
+			t.Fatal("ambiguous history became an empty page")
+		}
+		server.Close()
+	}
+	for _, body := range []string{`{"version":1,"archive_id":"archive-a","history_complete":true}`, `{"version":1,"archive_id":"archive-a","watermark":null,"history_complete":true}`, `{"version":1,"archive_id":"archive-a","watermark":0,"watermark":1,"history_complete":true}`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			protocolHeaders(w, "archive-a")
+			_, _ = io.WriteString(w, body)
+		}))
+		client := fixtureClient(t, server.URL)
+		if _, err := client.MemoryIdentity(context.Background()); err == nil {
+			t.Fatal("incomplete/ambiguous identity accepted")
+		}
+		server.Close()
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		protocolHeaders(w, "archive-a")
+		w.Header().Add(HeaderArchiveID, "archive-a")
+		w.WriteHeader(404)
+		_, _ = io.WriteString(w, `{"error":"source_missing"}`)
+	}))
+	defer server.Close()
+	if _, err := fixtureClient(t, server.URL).MemorySource(context.Background(), "one"); err == nil || errors.Is(err, storage.ErrSourceNotFound) {
+		t.Fatal("duplicateidentityheaders accepted", err)
+	}
+}

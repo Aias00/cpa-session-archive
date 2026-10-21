@@ -70,14 +70,66 @@ func (c *Client) checkIdentity(value string, pin bool) error {
 	}
 	return nil
 }
+
+// Protocol control fields are required and unique. In particular an ambiguous
+// error or changes object must never become a tombstone or an empty event page.
+// Decode each field directly so large source records need no second raw copy.
+type requiredField struct{ target any }
+
+func (field *requiredField) UnmarshalJSON(data []byte) error {
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		return errUnavailable
+	}
+	return json.Unmarshal(data, field.target)
+}
+
 func decode(data []byte, out any) error {
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || trimmed[0] != '{' {
 		return errUnavailable
 	}
+	var fields map[string]any
+	switch value := out.(type) {
+	case *manifest:
+		fields = map[string]any{"version": &value.Version, "archive_id": &value.ArchiveID, "watermark": &value.Watermark, "history_complete": &value.HistoryComplete}
+	case *changes:
+		fields = map[string]any{"changes": &value.Changes}
+	case *page:
+		fields = map[string]any{"ids": &value.IDs, "after_id": &value.AfterID, "done": &value.Done}
+	case *source:
+		fields = map[string]any{"record": &value.Record, "revision": &value.Revision, "sequence": &value.Sequence}
+	case *revision:
+		fields = map[string]any{"revision": &value.Revision}
+	case *failure:
+		fields = map[string]any{"error": &value.Error}
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	if decoder.Decode(out) != nil {
-		return errUnavailable
+	if fields == nil {
+		if decoder.Decode(out) != nil {
+			return errUnavailable
+		}
+	} else {
+		start, err := decoder.Token()
+		if err != nil || start != json.Delim('{') {
+			return errUnavailable
+		}
+		seen := map[string]bool{}
+		for decoder.More() {
+			token, err := decoder.Token()
+			key, valid := token.(string)
+			field, exists := fields[key]
+			if err != nil || !valid || !exists || seen[key] {
+				return errUnavailable
+			}
+			seen[key] = true
+			if decoder.Decode(&requiredField{field}) != nil {
+				return errUnavailable
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil || end != json.Delim('}') || len(seen) != len(fields) {
+			return errUnavailable
+		}
 	}
 	var extra any
 	if decoder.Decode(&extra) != io.EOF {
@@ -112,7 +164,7 @@ func (c *Client) get(ctx context.Context, name string, query url.Values, out any
 	}
 	defer response.Body.Close()
 	id := response.Header.Get(HeaderArchiveID)
-	if response.Header.Get(HeaderVersion) != Version || c.checkIdentity(id, false) != nil {
+	if len(response.Header.Values(HeaderVersion)) != 1 || len(response.Header.Values(HeaderArchiveID)) != 1 || response.Header.Get(HeaderVersion) != Version || c.checkIdentity(id, false) != nil {
 		return "", errUnavailable
 	}
 	mediaType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
