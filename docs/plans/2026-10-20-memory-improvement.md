@@ -17,10 +17,12 @@ Negotiated archive commit receipts and bounded producer replay are enabled as
 boundary, asynchronous pre-spool gap and SQLite NORMAL power-loss limit. Quality
 evaluation now has a frozen 62-question synthetic baseline and an isolated
 [cpa-memory-eval runner](../recall-evaluation.md). The private owner-labeled corpus
-of 50 real questions remains pending. An optional [diverse literal mode](../diverse-retrieval.md) now addresses repeated
-context and long-window candidate pressure, measured against the unchanged frozen
-corpus. Broader relevance ranking, continuation and extraction remain planned. The baseline section records the state before
-these changes.
+of 50 real questions remains pending. Optional [diverse literal
+retrieval](../diverse-retrieval.md) is implemented and deployed as `5349321`.
+It addresses repeated context and long-window candidate pressure against the
+unchanged frozen corpus. Broader relevance ranking, continuation and extraction
+remain planned. See the [verified rollout](../mac-mini-deployment.md#diverse-literal-retrieval-rollout-2026-10-20).
+The baseline section records the state before these changes.
 
 ## Outcome and authority
 

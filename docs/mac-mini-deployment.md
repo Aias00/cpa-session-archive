@@ -1,5 +1,61 @@
 # Mac mini M4 deployment
 
+## Diverse literal retrieval rollout, 2026-10-20
+
+Collector and MCP bridge source: `5349321`, built from the committed source
+archive on Apple M4 / Mac16,10. The evaluator was built from the same archive for
+artifact-level comparison and remains outside production `bin`. Only the
+collector restarted. CPA PID, plugin `572f0a1`, account/routing settings, read
+credentials and client configuration were preserved. Default literal retrieval,
+projection v3 and normalizer v2 remain compatible.
+
+The explicit [diverse mode](diverse-retrieval.md) spreads candidate selection
+across repeated exact content and long-message windows, then suppresses identical
+displayed excerpts within role/kind/tool identity. Each result retains a current
+single-source citation. Search/MCP/recap and the page expose the option; the page
+requests five results in diverse mode. A one-second recent-prefix attempt falls
+back within a five-second total diverse budget, with explicit HTTP 422 recovery
+advice instead of a false empty success. Full fallback starts from FTS matches;
+large-project-first scanning had caused avoidable latency.
+
+Full Go race/vet checks and native collector/bridge/evaluator builds passed.
+Separate tests cover 1,100 repeated occurrences, 1,100 long-message windows,
+deleted/replaced/moved representatives, refill past literal/stale leaders,
+authorized source/time/client filters, fast/full ordering equivalence,
+role/tool/pointer attribution, cancellation and the real connection-wait budget.
+The frozen synthetic corpus remains byte-identical: recall/hit@5 improves from
+36/56 (64.3%) to 48/56 (85.7%), MRR from 57.1% to 67.9%, and identical excerpt
+slots from 48/110 to 0/74. Empty cases and citation/scope/forbidden gates all pass;
+paraphrases remain 0/8. These are synthetic results, not owner relevance scores.
+
+Exact release artifacts passed an isolated real-collector/commit-receipt test,
+MCP owner/scoped checks, literal/diverse search/source/recap roundtrips and
+Chromium interaction. Live installed-binary samples returned three diverse hits
+at 162.58–163.56 ms; default literal had one 3.47-second sample and warm samples
+at 279–283 ms. All 18 deployment citation reads matched. Live Chromium verified
+five diverse hits and source access without browser token storage. A fresh real
+Codex invocation through CPA used `archive_search` in diverse mode and then
+`archive_read_source`, checked the text match and returned the fixed success
+marker. Its per-invocation MCP configuration did not change user configuration.
+This verifies retrieval integration, not full project-continuation acceptance.
+
+After catch-up, the checked corpus had 141,600 sources, lag 0 and failures 0.
+Status samples were 0.81–5.4 ms. Collector and producer sampled queue/drop/error
+counters were zero. The active outbox retained the same file identity throughout
+the update; its actual backlog, bytes and quarantine were zero. The producer's
+latest process snapshot lagged actual acknowledgement by one, as expected.
+These samples do not establish cold-cache or concurrent-capture p95 guarantees.
+
+Before replacement, online raw/projection/outbox copies passed integrity and
+hash verification. Projection checkpoint 299105 was covered by raw fence 299106;
+the raw copy contained 141,330 records. Private release/rollback evidence is in
+`/Volumes/data/build/cpa-session-archive/diversity-20261020`. The install manifest,
+`diverse-retrieval-rollback-dir.txt` and `current-rollback-dir.txt` identify the
+newest complete set. Active archive/projection/outbox files were preserved.
+The predecessor `durable-572f0a1` database pair was retired only after zero
+missing record IDs/CAS hashes and no open files were confirmed; its old
+binaries/configuration, removal report and required baselines remain.
+
 ## Coverage and delivery diagnostics rollout, 2026-10-20
 
 Collector and MCP bridge source: `7a88d15`. Both were built from the committed
