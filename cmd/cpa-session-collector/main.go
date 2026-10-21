@@ -201,6 +201,8 @@ func run() error {
 	mux.HandleFunc("/v1/facets", s.facets)
 	mux.HandleFunc("/v1/identity-mappings", s.identityMappings)
 	mux.HandleFunc("/v1/sessions", s.sessions)
+	mux.HandleFunc("/v1/session-browser", s.sessionBrowser)
+	mux.HandleFunc("/v1/session-metadata", s.sessionManagement)
 	mux.HandleFunc("/v1/sessions/", s.session)
 	mux.HandleFunc("/v1/requests/", s.request)
 	mux.HandleFunc("/v1/request-context", s.requestContext)

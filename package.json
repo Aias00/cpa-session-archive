@@ -1,5 +1,5 @@
 {
-  "name": "cpa-session-archive-ui-tests",
+  "name": "cpa-session-archive-workspace",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
@@ -7,15 +7,35 @@
     "node": ">=24.18.0"
   },
   "scripts": {
+    "dev": "vite --config frontend/vite.config.ts",
+    "preview:frontend": "tsx scripts/preview_frontend.ts",
+    "build:frontend": "tsc -p frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
+    "check:frontend": "tsx scripts/check_frontend_build.ts",
     "test:e2e": "playwright test",
-    "test:scripts": "tsx --test scripts/*.test.ts tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "test:scripts": "tsx --test scripts/*.test.ts tests/*.test.ts tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc -p frontend/tsconfig.json"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.60.0",
+    "radix-ui": "1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
     "@playwright/test": "1.62.1",
     "@types/node": "24.13.3",
     "lossless-json": "4.3.0",
     "tsx": "4.23.12",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.4",
+    "vite-plugin-singlefile": "2.3.4"
   }
 }

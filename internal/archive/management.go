@@ -30,7 +30,7 @@ type managementResponse struct {
 
 func (p *Plugin) managementRegistration() map[string]any {
 	base := "/plugins/" + pluginID
-	return map[string]any{"Routes": []map[string]string{{"Method": "GET", "Path": base + "/stats"}, {"Method": "GET", "Path": base + "/facets"}, {"Method": "GET", "Path": base + "/sessions"}, {"Method": "GET", "Path": base + "/turns"}, {"Method": "GET", "Path": base + "/turn-text"}, {"Method": "GET", "Path": base + "/requests"}, {"Method": "GET", "Path": base + "/request-context"}, {"Method": "GET", "Path": base + "/request-view"}, {"Method": "GET", "Path": base + "/export"}, {"Method": "GET", "Path": base + "/identity-mappings"}, {"Method": "PUT", "Path": base + "/identity-mappings"}}, "Resources": []map[string]string{{"Path": "/index.html", "Menu": "会话归档", "Description": "Browse archived projects, sessions and training data."}}}
+	return map[string]any{"Routes": []map[string]string{{"Method": "GET", "Path": base + "/stats"}, {"Method": "GET", "Path": base + "/facets"}, {"Method": "GET", "Path": base + "/sessions"}, {"Method": "GET", "Path": base + "/session-browser"}, {"Method": "GET", "Path": base + "/session-metadata"}, {"Method": "PUT", "Path": base + "/session-metadata"}, {"Method": "GET", "Path": base + "/turns"}, {"Method": "GET", "Path": base + "/turn-text"}, {"Method": "GET", "Path": base + "/requests"}, {"Method": "GET", "Path": base + "/request-context"}, {"Method": "GET", "Path": base + "/request-view"}, {"Method": "GET", "Path": base + "/export"}, {"Method": "GET", "Path": base + "/identity-mappings"}, {"Method": "PUT", "Path": base + "/identity-mappings"}}, "Resources": []map[string]string{{"Path": "/index.html", "Menu": "会话归档", "Description": "Browse and organize sessions, inspect sources and export training data."}}}
 }
 func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 	var r managementRequest
@@ -63,6 +63,10 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 		target = "/v1/stats"
 	case r.Method == http.MethodGet && path == base+"/facets":
 		target = "/v1/facets"
+	case r.Method == http.MethodGet && path == base+"/session-browser":
+		target = "/v1/session-browser"
+	case (r.Method == http.MethodGet || r.Method == http.MethodPut) && path == base+"/session-metadata":
+		target = "/v1/session-metadata"
 	case (r.Method == http.MethodGet || r.Method == http.MethodPut) && path == base+"/identity-mappings":
 		target = "/v1/identity-mappings"
 	case r.Method == http.MethodGet && path == base+"/sessions":
@@ -129,6 +133,11 @@ func (p *Plugin) handleManagement(raw []byte) ([]byte, error) {
 	headers := http.Header{"Content-Type": []string{resp.Header.Get("Content-Type")}}
 	if v := resp.Header.Get("Content-Disposition"); v != "" {
 		headers.Set("Content-Disposition", v)
+	}
+	for _, name := range []string{"Cache-Control", "X-Content-Type-Options", "Allow"} {
+		if value := resp.Header.Get(name); value != "" {
+			headers.Set(name, value)
+		}
 	}
 	return ok(managementResponse{StatusCode: resp.StatusCode, Headers: headers, Body: body})
 }

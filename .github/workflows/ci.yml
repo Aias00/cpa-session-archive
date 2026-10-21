@@ -40,6 +40,7 @@ jobs:
         run: |
           pnpm typecheck
           pnpm test:scripts
+          pnpm check:frontend
       - name: Go formatting, vet, complete suite, and race detector
         run: |
           test -z "$(gofmt -l .)"

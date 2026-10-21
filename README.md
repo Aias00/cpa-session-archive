@@ -205,6 +205,17 @@ TypeScript only; Go remains the product implementation language.
 
 ## Management UI and faceted search
 
+The development-only [session management workflow](docs/session-management.md)
+adds a shared Web/CLI session library: custom titles, tags, notes, favorites,
+archive/restore, label search and normal pagination. User edits are revisioned
+separately from raw evidence. The new `cpa-session-manage` CLI uses CPA's
+authenticated management proxy. These changes are not installed on live services;
+see the [staged product plan](docs/plans/2026-10-21-session-management.md) for
+search integration, task continuity and human memory review that follow.
+The [React workspace](docs/frontend-workspace.md) now implements the development
+page with shadcn/ui and Tailwind, responsive navigation, themes and a credential-free
+synthetic preview. Its single-file build continues to be embedded in the Go plugin.
+
 With CPA management API support enabled, CPA-Manager-Plus shows a session archive plugin page. The page provides storage statistics, dynamic facet selectors and routed session, turn, request, tool-call, and raw-diagnostic views. A session first shows only each user command and the corresponding final/latest natural-language response. Expanding a turn reveals intermediate assistant explanations, compaction points, and compact tool summaries; opening a tool summary is the third level that materializes its complete arguments and result. Both the turn index and long internal-request sequences are paginated. System instructions, raw diagnostics, tool bodies, and long fields are materialized only after a click, so a large coding session does not freeze the page.
 
 Turn detail initially reads only the narrow `turn_records` projection. When a

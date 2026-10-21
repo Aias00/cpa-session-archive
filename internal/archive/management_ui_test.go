@@ -2,59 +2,54 @@ package archive
 
 import (
 	"bytes"
+	"encoding/json"
+	"net/http"
+	"regexp"
 	"testing"
+	"unicode/utf8"
 )
 
-func TestManagementUIContainsBilingualFacetedExperience(t *testing.T) {
-	checks := [][]byte{
-		[]byte("Projects and repositories"),
-		[]byte("项目与代码库"),
-		[]byte("Faceted filters"),
-		[]byte("分面筛选"),
-		[]byte("MutationObserver"),
-		[]byte("data-i18n"),
-		[]byte("#/sessions/"),
-		[]byte("Download this session"),
-		[]byte("Parameterized SQL"),
-		[]byte("previousPage"),
-		[]byte("toolCallsAndResults"),
-		[]byte("downloadExport('all')"),
-		[]byte("#/sessions/"),
-		[]byte("/raw/"),
-		[]byte("/tools/"),
-		[]byte("/request-context?id="),
-		[]byte("/request-view?id="),
-		[]byte("extractToolEntriesFromValues"),
-		[]byte("goLastSessionPage"),
-		[]byte("downloadReady"),
-		[]byte("languageHint"),
-		[]byte("parent.document.documentElement"),
-		[]byte("normalizeKeyHash"),
-		[]byte(`name === "key.id" || name === "caller.scope"`),
-		[]byte("var displayTitle = duplicate"),
-		[]byte("event.key==='Enter'"),
-		[]byte("thread_sources"),
-		[]byte("/turns?session_id="),
-		[]byte("renderTurnProcess"),
-		[]byte("openTurnTool"),
-		[]byte("backToTurn"),
-		[]byte("renderExpandableTurnText"),
-		[]byte("turn-text-detail"),
+func TestManagementUIEmbedsSelfContainedWorkspace(t *testing.T) {
+	if !utf8.Valid(managementHTML) {
+		t.Fatal("embedded workspace must be valid UTF-8")
 	}
-	for _, check := range checks {
-		if !bytes.Contains(managementHTML, check) {
-			t.Errorf("management UI missing %q", check)
+	for _, required := range []string{`id="root"`, `data-ui="shadcn"`, `<script type="module"`, "会话工作台", "Session Workspace"} {
+		if !bytes.Contains(managementHTML, []byte(required)) {
+			t.Errorf("embedded workspace missing %q; run pnpm build:frontend", required)
 		}
 	}
-	for _, forbidden := range [][]byte{[]byte("sk-live-"), []byte("cpamp_actual_secret_")} {
-		if bytes.Contains(managementHTML, forbidden) {
-			t.Errorf("management UI contains credential-like literal %q", forbidden)
+	for _, pattern := range []string{`(?i)<script\b[^>]*\bsrc\s*=`, `(?i)<link\b[^>]*\brel=["']?stylesheet`, `(?i)<link\b[^>]*\brel=["']?modulepreload`} {
+		if regexp.MustCompile(pattern).Match(managementHTML) {
+			t.Errorf("workspace must bundle runtime resources in one HTML file: %s", pattern)
 		}
 	}
-	if bytes.Contains(managementHTML, []byte("response.blob()")) {
-		t.Error("complete exports must not be buffered in the browser")
+	for _, forbidden := range []string{"/@vite/client", "sk-live-", "cpamp_actual_secret_", "response.blob()", "link.download"} {
+		if bytes.Contains(managementHTML, []byte(forbidden)) {
+			t.Errorf("embedded workspace contains forbidden runtime or credential literal %q", forbidden)
+		}
 	}
-	if bytes.Contains(managementHTML, []byte("link.download")) {
-		t.Error("download attribute overrides the server-provided JSONL filename")
+}
+
+func TestManagementResourceServesWorkspaceWithoutCollector(t *testing.T) {
+	p := NewPlugin()
+	for _, test := range []struct {
+		path   string
+		status int
+	}{
+		{"/v0/resource/plugins/cpa-session-archive/index.html", http.StatusOK},
+		{"/v0/resource/plugins/cpa-session-archive/unknown.js", http.StatusNotFound},
+	} {
+		request, _ := json.Marshal(managementRequest{Method: http.MethodGet, Path: test.path})
+		response, err := p.handleManagement(request)
+		var envelope struct {
+			OK     bool               `json:"ok"`
+			Result managementResponse `json:"result"`
+		}
+		if err != nil || json.Unmarshal(response, &envelope) != nil || !envelope.OK || envelope.Result.StatusCode != test.status {
+			t.Fatalf("resource status mismatch for %s: err=%v", test.path, err)
+		}
+		if test.status == http.StatusOK && (!bytes.Equal(envelope.Result.Body, managementHTML) || envelope.Result.Headers.Get("Cache-Control") != "no-store, max-age=0") {
+			t.Fatal("resource must serve the exact embedded workspace with caching disabled")
+		}
 	}
 }

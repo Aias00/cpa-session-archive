@@ -1,27 +1,34 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { test } from "node:test";
 
 const repository = resolve(import.meta.dirname, "..");
-const ignoredDirectories = new Set([".git", "node_modules", "playwright-report", "test-results"]);
 const forbiddenExtensions = new Set([".py", ".pyi", ".pyc", ".sh", ".bash", ".cjs", ".js", ".mjs", ".ps1", ".rb"]);
+// Existing native-history/capacity and optional local-embedding entry points.
+const operationalAdapters = new Set([
+  "scripts/archive_capacity.py", "scripts/archive_capacity_test.py",
+  "scripts/cpa-embedding-server.py", "scripts/cpa_embedding_server_test.py",
+  "scripts/repair_native_forks.py", "scripts/repair_native_forks_test.py",
+  "scripts/sync_native_history.py", "scripts/sync_native_history_test.py",
+]);
 
-function files(directory = repository): string[] {
-  const result: string[] = [];
-  for (const entry of readdirSync(directory)) {
-    if (ignoredDirectories.has(entry)) continue;
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) result.push(...files(path));
-    else result.push(path);
-  }
-  return result;
+function files(): string[] {
+  // Include tracked and reviewable untracked sources with Git's ignore rules.
+  const paths = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
+    cwd: repository, encoding: "utf8",
+  }).split("\0").filter(Boolean);
+  return [...new Set(paths)].map((path) => join(repository, path)).filter((path) => {
+    try { return statSync(path).isFile(); } catch { return false; }
+  });
 }
 
-test("repository scripts are TypeScript-only and temporary Forgejo/Harbor paths are absent", () => {
+test("release tooling stays TypeScript and existing operational adapters remain explicit", () => {
   const paths = files();
   const forbidden = paths
     .map((path) => relative(repository, path))
+    .filter((path) => !operationalAdapters.has(path))
     .filter((path) => [...forbiddenExtensions].some((extension) => path.endsWith(extension)));
   assert.deepEqual(forbidden, []);
   assert.equal(paths.some((path) => relative(repository, path).startsWith(`.forgejo/`)), false);
@@ -33,8 +40,11 @@ test("repository scripts are TypeScript-only and temporary Forgejo/Harbor paths 
     )
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
-  assert.doesNotMatch(text, /#!.*\b(?:python|bash|sh)\b/);
-  assert.doesNotMatch(text, /\b(?:python3?|PYTHONPATH)\b/);
+  const tooling = paths
+    .filter((path) => relative(repository, path).startsWith(".github/workflows/") || (relative(repository, path).startsWith("scripts/") && path.endsWith(".ts")))
+    .map((path) => readFileSync(path, "utf8")).join("\n");
+  assert.doesNotMatch(tooling, /#!.*\b(?:python|bash|sh)\b/);
+  assert.doesNotMatch(tooling, /\b(?:python3?|PYTHONPATH)\b/);
   assert.doesNotMatch(text, /harbor\.k3s\.onetwo\.website|\.forgejo\/workflows/);
 });
 

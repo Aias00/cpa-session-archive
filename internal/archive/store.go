@@ -120,6 +120,10 @@ func OpenStore(path string, storeUpstream bool) (*Store, error) {
 	if _, e = db.Exec(schema); e != nil {
 		return nil, e
 	}
+	if _, e = db.Exec(sessionManagementSchema); e != nil {
+		_ = db.Close()
+		return nil, e
+	}
 	if e = ensureStableSnapshotMetadataIndex(db, archiveSchemaMigrationLogInterval, log.Printf); e != nil {
 		_ = db.Close()
 		return nil, e

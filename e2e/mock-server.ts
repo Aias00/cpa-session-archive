@@ -4,10 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const port = Number(process.env.CPA_E2E_PORT || 4173);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+  throw new Error("CPA_E2E_PORT must be an integer from 1024 to 65535");
+}
+const origin = `http://127.0.0.1:${port}`;
 
-const page = fs.readFileSync(
-  path.join(__dirname, "..", "internal", "archive", "web", "index.html"),
-);
+const pagePath = path.join(__dirname, "..", "internal", "archive", "web", "index.html");
 const sessionID = "mock-session-long-content";
 const turnID = "mock-turn-long-content";
 const requestID = "mock-request-long-content";
@@ -134,9 +137,30 @@ const timelinePreview = {
   ...timeline,
   entries: [],
 };
+const sessionSummary = {
+  session_id: sessionID,
+  summary: escapedSummary,
+  project: "mock-long-project",
+  key_id: "sha256:mock-key-hash",
+  model: "gpt-5.6-sol",
+  requests: 23,
+  last_at: "2026-08-03T12:35:56+08:00",
+  thread_sources: ["user"],
+  kinds: ["turn"],
+};
+let sessionMetadata = {
+  session_id: sessionID,
+  title: "",
+  note: "",
+  tags: [] as string[],
+  starred: false,
+  archived: false,
+  revision: 0,
+  updated_at: "",
+};
 
-function json(response: http.ServerResponse, value: unknown) {
-  response.writeHead(200, {
+function json(response: http.ServerResponse, value: unknown, status = 200) {
+  response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
   });
@@ -144,11 +168,17 @@ function json(response: http.ServerResponse, value: unknown) {
 }
 
 const server = http.createServer((request, response) => {
-  const url = new URL(request.url ?? "/", "http://127.0.0.1:4173");
+  const url = new URL(request.url ?? "/", origin);
   if (url.pathname === "/healthz") return json(response, { ok: true });
   if (url.pathname === "/" || url.pathname === "/management.html") {
-    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    return response.end(page);
+    response.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    const page = fs.readFileSync(pagePath, "utf8");
+    return response.end(process.env.CPA_PREVIEW === "1"
+      ? page.replace("<head>", '<head><meta name="cpa-preview" content="synthetic">')
+      : page);
   }
   if (url.pathname === "/v0/management/api-key-aliases") {
     return json(response, {
@@ -189,19 +219,59 @@ const server = http.createServer((request, response) => {
     ]);
   }
   if (url.pathname === prefix + "/sessions") {
-    return json(response, [
-      {
-        session_id: sessionID,
-        summary: escapedSummary,
-        project: "mock-long-project",
-        key_id: "sha256:mock-key-hash",
-        model: "gpt-5.6-sol",
-        requests: 23,
-        last_at: "2026-08-03T12:35:56+08:00",
-        thread_sources: ["user"],
-        kinds: ["turn"],
-      },
-    ]);
+    return json(response, [sessionSummary]);
+  }
+  if (url.pathname === prefix + "/session-browser") {
+    const limit = Number(url.searchParams.get("limit") || 100);
+    const offset = Number(url.searchParams.get("offset") || 0);
+    const archived = url.searchParams.get("archived") || "exclude";
+    const query = (url.searchParams.get("q") || "").toLowerCase();
+    const tag = url.searchParams.get("tag");
+    const matched =
+      (archived === "all" || sessionMetadata.archived === (archived === "only")) &&
+      (url.searchParams.get("starred") !== "true" || sessionMetadata.starred) &&
+      (!tag || sessionMetadata.tags.includes(tag)) &&
+      (!url.searchParams.get("project.name") || url.searchParams.get("project.name") === sessionSummary.project) &&
+      (!query || [sessionSummary.session_id, sessionSummary.summary, sessionSummary.project,
+        sessionMetadata.title, sessionMetadata.note, ...sessionMetadata.tags]
+        .some((value) => value.toLowerCase().includes(query)));
+    const sessions = matched ? [{ ...sessionSummary, management: sessionMetadata }] : [];
+    return json(response, {
+      sessions: sessions.slice(offset, offset + limit),
+      total: sessions.length,
+      limit,
+      offset,
+    });
+  }
+  if (url.pathname === prefix + "/session-metadata") {
+    if (request.method === "GET") return json(response, sessionMetadata);
+    if (request.method === "PUT") {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk: string) => { body += chunk; });
+      request.on("end", () => {
+        try {
+          const update = JSON.parse(body);
+          if (update.expected_revision !== sessionMetadata.revision) {
+            return json(response, { error: "session metadata revision conflict" }, 409);
+          }
+          sessionMetadata = {
+            session_id: sessionID,
+            title: update.title,
+            note: update.note,
+            tags: update.tags,
+            starred: update.starred,
+            archived: update.archived,
+            revision: sessionMetadata.revision + 1,
+            updated_at: "2026-10-21T12:00:00Z",
+          };
+          return json(response, sessionMetadata);
+        } catch {
+          return json(response, { error: "invalid JSON" }, 400);
+        }
+      });
+      return;
+    }
   }
   if (url.pathname === prefix + "/turn-text") {
     turnTextPolls++;
@@ -295,4 +365,4 @@ const server = http.createServer((request, response) => {
   response.end("not found: " + url.pathname);
 });
 
-server.listen(4173, "127.0.0.1");
+server.listen(port, "127.0.0.1");
