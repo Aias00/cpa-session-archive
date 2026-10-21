@@ -2,12 +2,13 @@ package memory
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"cpa-session-archive/internal/storage"
 )
 
 type candidate struct {
@@ -59,6 +60,9 @@ func (e *Engine) search(ctx context.Context, q Query, allowEmpty bool) (SearchRe
 	}
 	if q.Mode == "diverse" {
 		return e.searchDiverse(ctx, q)
+	}
+	if _, err := e.sourceIdentity(ctx, false); err != nil {
+		return SearchResult{}, err
 	}
 	tokens := lexicalTokens(q.Text)
 	where := []string{`c.role NOT IN ('system','developer')`, `COALESCE(m.kind,'') NOT IN ('context','image')`}
@@ -189,15 +193,15 @@ func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candida
 		}
 		rev, known := revisions[c.hit.Citation.RequestID]
 		if !known {
-			source, err := e.feed.MemorySource(ctx, c.hit.Citation.RequestID)
-			if errors.Is(err, sql.ErrNoRows) {
+			current, err := e.sourceRevision(ctx, c.hit.Citation.RequestID)
+			if errors.Is(err, storage.ErrSourceNotFound) {
 				revisions[c.hit.Citation.RequestID] = ""
 				continue
 			}
 			if err != nil {
-				return out, err
+				return SearchResult{}, err
 			}
-			rev = source.Revision
+			rev = current
 			revisions[c.hit.Citation.RequestID] = rev
 		}
 		if rev != c.hit.Citation.Revision {
@@ -236,6 +240,9 @@ func (e *Engine) finishSearch(ctx context.Context, q Query, candidates []candida
 		out.Hits = append(out.Hits, c.hit)
 	}
 	out.Status, err = e.Status(ctx)
+	if err != nil {
+		return SearchResult{}, err
+	}
 	return out, err
 }
 func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
@@ -243,8 +250,11 @@ func (e *Engine) ReadSource(ctx context.Context, c Citation) (Evidence, error) {
 	if c.NormalizerVersion != NormalizerVersion || c.RequestID == "" || c.Revision == "" || c.Start < 0 || c.End <= c.Start || c.End-c.Start > 1600 {
 		return out, ErrSourceUnavailable
 	}
+	if _, err := e.sourceIdentity(ctx, false); err != nil {
+		return Evidence{}, err
+	}
 	source, err := e.feed.MemorySource(ctx, c.RequestID)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, storage.ErrSourceNotFound) {
 		return out, ErrSourceUnavailable
 	}
 	if err != nil {

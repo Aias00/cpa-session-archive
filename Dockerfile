@@ -12,6 +12,7 @@ COPY internal ./internal
 RUN mkdir -p /out && \
     CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -tags cshared -buildmode=c-shared -o /out/cpa-session-archive.so ./cmd/cpa-session-archive && \
     CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o /out/cpa-session-collector ./cmd/cpa-session-collector && \
+    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o /out/cpa-memory-server ./cmd/cpa-memory-server && \
     CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o /out/cpa-session-identity-migrate ./cmd/cpa-session-identity-migrate && \
     CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o /out/cpa-session-archive-backup ./cmd/cpa-session-archive-backup && \
     install -d -m 0770 -o 65532 -g 65532 /out/data
@@ -20,6 +21,7 @@ LABEL org.opencontainers.image.source="https://github.com/linonetwo/cpa-session-
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 COPY --from=build --chmod=0555 /out/cpa-session-archive.so /plugin/cpa-session-archive.so
 COPY --from=build --chmod=0555 /out/cpa-session-collector /usr/local/bin/cpa-session-collector
+COPY --from=build --chmod=0555 /out/cpa-memory-server /usr/local/bin/cpa-memory-server
 COPY --from=build --chmod=0555 /out/cpa-session-identity-migrate /usr/local/bin/cpa-session-identity-migrate
 COPY --from=build --chmod=0555 /out/cpa-session-archive-backup /usr/local/bin/cpa-session-archive-backup
 COPY --from=build --chown=65532:65532 /out/data /data

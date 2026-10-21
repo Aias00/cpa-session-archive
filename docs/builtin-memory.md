@@ -12,7 +12,7 @@ reads and recaps directly. The Web page remains available. Optional
 confirmation, correction and archive. Semantic retrieval, native thread
 restoration and automatic context injection are not implemented.
 
-## Enable on a development collector
+## Enable independent local services
 
 Build the collector normally; no FTS5 build tag is required:
 
@@ -35,16 +35,22 @@ with os.fdopen(fd, 'w') as stream:
 PY
 ```
 
-Start your collector using its existing archive path and settings, adding:
+Start collection with its existing archive path and a separate dedicated feed
+token; start `cpa-memory-server` separately with its own projection/read token.
+See [two-process configuration and migration](decoupled-memory.md). Build both:
 
 ```sh
-export MEMORY_ENABLED=true
-export MEMORY_READ_TOKEN_FILE="$HOME/Library/Application Support/CPA Recall/read.token"
-export MEMORY_LISTEN_ADDR=127.0.0.1:8319
-# Optional: default is memory.sqlite alongside ARCHIVE_DB.
-# export MEMORY_DB='/private/workspace/memory.sqlite'
-/tmp/cpa-session-collector
+go build -trimpath -buildvcs=false -o /tmp/cpa-session-collector ./cmd/cpa-session-collector
+go build -trimpath -buildvcs=false -o /tmp/cpa-memory-server ./cmd/cpa-memory-server
 ```
+
+`MEMORY_ENABLED` no longer starts an embedded worker. The memory server uses
+`MEMORY_DB`, `MEMORY_ARCHIVE_ENDPOINT`, `MEMORY_ARCHIVE_TOKEN_FILE`,
+`MEMORY_LISTEN_ADDR`, `MEMORY_READ_TOKEN_FILE` and optional
+`MEMORY_READ_CREDENTIALS_FILE`. Collection only needs `ARCHIVE_FEED_TOKEN_FILE`
+for this integration; it does not load read credentials or the memory database.
+Do not reuse feed/read tokens. Legacy projections require explicit one-time
+source adoption, then retain their existing checkpoint and citations.
 
 Open <http://127.0.0.1:8319/> and enter the dedicated token. The page keeps it in
 memory only; it does not put it in a URL, localStorage or sessionStorage. This
@@ -131,7 +137,7 @@ with HTTP 410; pending reindexing may temporarily hide an updated source.
 Existing archive triggers append changes in the same transaction as records.
 An initial row-ID backfill is resumable, followed by ordered change-log replay.
 Projection changes and live checkpoints commit atomically; an interrupted
-backfill page safely replays. One collector-owned worker runs at a time. Failed
+backfill page safely replays. One memory-service-owned worker runs at a time. Failed
 work leaves the cursor pending, retries once per second and records a sanitized
 error/counter. Read-time revision validation suppresses stale/deleted/moved
 sources even before the worker catches up.
@@ -145,8 +151,8 @@ private plaintext. The main file is created/restricted to
 0600. Protect its directory and backups. Deletion immediately blocks API recall,
 but secure erasure from SQLite free pages, WAL files or backups is not promised.
 Do not delete only the projection to delete original evidence. The projection
-can be rebuilt by stopping the collector, moving its database and WAL/SHM files
-aside together, then restarting against the same archive. Keep the original
+can be rebuilt by stopping the memory service, moving its database and WAL/SHM files
+aside together, then restarting against the same authenticated archive feed. Keep the original
 archive and its committed change log intact. There is no curated user state in
 this first projection schema.
 

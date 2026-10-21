@@ -24,18 +24,32 @@ import (
 const ProjectionVersion = 3
 
 type Engine struct {
-	db     *sql.DB
-	readDB *sql.DB
-	feed   storage.MemoryFeed
-	syncMu sync.Mutex
+	db                  *sql.DB
+	readDB              *sql.DB
+	feed                storage.MemoryFeed
+	syncMu              sync.Mutex
+	allowSourceAdoption bool
 }
 
 var _ Reader = (*Engine)(nil)
 var _ Projection = (*Engine)(nil)
 
-func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
+func Open(path string, feed storage.MemoryFeed, options ...OpenOption) (*Engine, error) {
 	if feed == nil || path == "" || path == ":memory:" {
 		return nil, fmt.Errorf("memory requires a file path and source feed")
+	}
+	var config openOptions
+	for _, option := range options {
+		if option != nil {
+			option(&config)
+		}
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := rejectArchivePath(abs); err != nil {
+		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
@@ -51,17 +65,19 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err = f.Close(); err != nil {
 		return nil, err
 	}
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
 	location := url.URL{Scheme: "file", Path: abs}
-	db, err := sql.Open("sqlite3", location.String()+"?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL&_foreign_keys=on")
+	db, err := sql.Open("sqlite3", location.String()+"?_busy_timeout=5000&_foreign_keys=on")
 	if err != nil {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
 	fail := func(err error) (*Engine, error) { db.Close(); return nil, err }
+	if err := rejectArchiveSchema(db); err != nil {
+		return fail(err)
+	}
+	if _, err := db.Exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL`); err != nil {
+		return fail(err)
+	}
 	var version int
 	if err = db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fail(err)
@@ -116,6 +132,9 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 	if err := openCoverageStats(db); err != nil {
 		return fail(err)
 	}
+	if err := openSourceBinding(db); err != nil {
+		return fail(err)
+	}
 	// WAL readers use a bounded, read-only pool so a projection transaction does
 	// not monopolize the connection required by interactive searches.
 	readDB, err := sql.Open("sqlite3", location.String()+"?mode=ro&_query_only=on&_busy_timeout=5000")
@@ -128,7 +147,7 @@ func Open(path string, feed storage.MemoryFeed) (*Engine, error) {
 		readDB.Close()
 		return fail(err)
 	}
-	return &Engine{db: db, readDB: readDB, feed: feed}, nil
+	return &Engine{db: db, readDB: readDB, feed: feed, allowSourceAdoption: config.sourceAdoption}, nil
 }
 func (e *Engine) Close() error { return errors.Join(e.readDB.Close(), e.db.Close()) }
 
@@ -154,7 +173,15 @@ func (e *Engine) Status(ctx context.Context) (Status, error) {
 	if err := tx.Commit(); err != nil {
 		return s, err
 	}
-	s.Watermark, err = e.feed.MemoryWatermark(ctx)
+	identity, err := e.sourceIdentity(ctx, false)
+	if err != nil {
+		return Status{}, err
+	}
+	if identity != nil {
+		s.Watermark = identity.Watermark
+	} else {
+		s.Watermark, err = e.feed.MemoryWatermark(ctx)
+	}
 	s.Lag = max(0, s.Watermark-s.Checkpoint)
 	return s, err
 }
@@ -172,10 +199,18 @@ func (e *Engine) Sync(ctx context.Context, limit int) (n int, err error) {
 	if limit < 1 || limit > 256 {
 		limit = 64
 	}
+	identity, err := e.sourceIdentity(ctx, true)
+	if err != nil {
+		return 0, err
+	}
 	var s Status
 	err = e.db.QueryRowContext(ctx, `SELECT backfill_after_id,backfill_done,checkpoint FROM state WHERE id=1`).Scan(&s.BackfillAfterID, &s.BackfillDone, &s.Checkpoint)
 	if err == nil {
-		s.Watermark, err = e.feed.MemoryWatermark(ctx)
+		if identity != nil {
+			s.Watermark = identity.Watermark
+		} else {
+			s.Watermark, err = e.feed.MemoryWatermark(ctx)
+		}
 	}
 	if err != nil {
 		return 0, err
@@ -224,27 +259,35 @@ func (e *Engine) Sync(ctx context.Context, limit int) (n int, err error) {
 }
 
 func (e *Engine) Run(ctx context.Context) {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
+	backoff := time.Second
 	for {
 		n, err := e.Sync(ctx, 64)
 		if ctx.Err() != nil {
 			return
 		}
-		if err == nil && n > 0 {
-			continue
+		delay := time.Second
+		if err == nil {
+			backoff = time.Second
+			if n > 0 {
+				continue
+			}
+		} else {
+			delay = backoff
+			backoff = min(2*backoff, 30*time.Second)
 		}
+		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
-		case <-ticker.C:
+		case <-timer.C:
 		}
 	}
 }
 
 func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error {
 	source, err := e.feed.MemorySource(ctx, id)
-	missing := errors.Is(err, sql.ErrNoRows)
+	missing := errors.Is(err, storage.ErrSourceNotFound)
 	if err != nil && !missing {
 		return err
 	}
@@ -253,6 +296,16 @@ func (e *Engine) project(ctx context.Context, id string, checkpoint int64) error
 		return err
 	}
 	defer tx.Rollback()
+	if _, bound := e.feed.(storage.IdentityFeed); bound && !missing {
+		if source.Sequence < 0 {
+			return ErrSourceBinding
+		}
+		// A source can be newer than the descriptor observed before this batch.
+		// Persist that observed fence atomically with the projected evidence.
+		if _, err := tx.ExecContext(ctx, `UPDATE source_binding SET last_watermark=? WHERE id=1 AND last_watermark<?`, source.Sequence, source.Sequence); err != nil {
+			return err
+		}
+	}
 	if !missing {
 		var indexedRevision string
 		readErr := tx.QueryRowContext(ctx, `SELECT revision FROM sources WHERE request_id=?`, id).Scan(&indexedRevision)

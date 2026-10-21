@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"cpa-session-archive/internal/archive"
+	"cpa-session-archive/internal/archivefeed"
 	"cpa-session-archive/internal/boundedqueue"
 	"cpa-session-archive/internal/storage"
 )
@@ -164,65 +165,73 @@ func run() error {
 			return nil
 		}
 	}
-	s := &server{s: st, exportDir: env("ARCHIVE_EXPORT_DIR", filepath.Dir(dbPath)), q: queue, decodeSlots: make(chan struct{}, decodeLimit), startupReady: startStartupTasks(
+	ready := make(chan struct{})
+	s := &server{s: st, exportDir: env("ARCHIVE_EXPORT_DIR", filepath.Dir(dbPath)), q: queue, decodeSlots: make(chan struct{}, decodeLimit), startupReady: ready, tickets: map[string]exportTicket{}, turnTextJobs: map[string]bool{}}
+	s.ingestionStatus()
+	if env("MEMORY_ENABLED", "false") == "true" {
+		log.Printf("embedded memory has moved to cpa-memory-server; collector ingestion starts independently")
+	}
+	addr := env("LISTEN_ADDR", ":8080")
+	mux := http.NewServeMux()
+	if tokenFile := os.Getenv("ARCHIVE_FEED_TOKEN_FILE"); tokenFile != "" {
+		handler, err := configureArchiveFeed(startupContext, st, addr, tokenFile, s.startupReady, s.ingestionStatus)
+		if err != nil {
+			// A broken optional feed must not disable committed archive ingestion.
+			log.Printf("archive feed disabled: %v; collector ingestion remains available", err)
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, "archive feed unavailable", http.StatusServiceUnavailable)
+			})
+		}
+		mux.Handle(archivefeed.Prefix, handler)
+	}
+	// Initialize the feed identity before background repair transactions begin.
+	// Its authenticated handler still waits for the complete readiness barrier.
+	go runStartupTasks(ready,
 		startupTask{name: "repair chain", run: repairChain},
 		startupTask{name: "turn projection", run: turnProjection},
 		startupTask{name: "turn facet projection", run: turnFacets},
-	), tickets: map[string]exportTicket{}, turnTextJobs: map[string]bool{}}
-	s.ingestionStatus()
-	if env("MEMORY_ENABLED", "false") == "true" {
-		service, err := startMemory(context.Background(), st, dbPath, s.startupReady, memoryConfig{
-			DB:              env("MEMORY_DB", filepath.Join(filepath.Dir(dbPath), "memory.sqlite")),
-			Listen:          env("MEMORY_LISTEN_ADDR", "127.0.0.1:8319"),
-			TokenFile:       os.Getenv("MEMORY_READ_TOKEN_FILE"),
-			CredentialsFile: os.Getenv("MEMORY_READ_CREDENTIALS_FILE"),
-			Diagnostics:     s.ingestionStatus,
-		})
-		if err != nil {
-			return fmt.Errorf("memory startup: %w", err)
-		}
-		defer service.Close()
-		log.Printf("built-in memory listening on %s", service.listener.Addr())
-	}
+	)
 	go s.writer()
 	go s.digestRefresher()
-	http.HandleFunc("/healthz", s.health)
-	http.HandleFunc("/readyz", s.ready)
-	http.HandleFunc("/ingest", s.ingest)
-	http.HandleFunc("/v1/ingest-status", s.ingestStatus)
-	http.HandleFunc("/v1/stats", s.stats)
-	http.HandleFunc("/v1/facets", s.facets)
-	http.HandleFunc("/v1/identity-mappings", s.identityMappings)
-	http.HandleFunc("/v1/sessions", s.sessions)
-	http.HandleFunc("/v1/sessions/", s.session)
-	http.HandleFunc("/v1/requests/", s.request)
-	http.HandleFunc("/v1/request-context", s.requestContext)
-	http.HandleFunc("/v1/request-view", s.requestView)
-	http.HandleFunc("/v1/turns", s.turns)
-	http.HandleFunc("/v1/turn-text", s.turnText)
-	http.HandleFunc("/v1/export-tickets", s.exportTicket)
-	http.HandleFunc("/archive-api/v1/exports/", s.ticketedExport)
-	http.HandleFunc("/v1/maintenance/gc", s.gc)
-	addr := env("LISTEN_ADDR", ":8080")
+	mux.HandleFunc("/healthz", s.health)
+	mux.HandleFunc("/readyz", s.ready)
+	mux.HandleFunc("/ingest", s.ingest)
+	mux.HandleFunc("/v1/ingest-status", s.ingestStatus)
+	mux.HandleFunc("/v1/stats", s.stats)
+	mux.HandleFunc("/v1/facets", s.facets)
+	mux.HandleFunc("/v1/identity-mappings", s.identityMappings)
+	mux.HandleFunc("/v1/sessions", s.sessions)
+	mux.HandleFunc("/v1/sessions/", s.session)
+	mux.HandleFunc("/v1/requests/", s.request)
+	mux.HandleFunc("/v1/request-context", s.requestContext)
+	mux.HandleFunc("/v1/request-view", s.requestView)
+	mux.HandleFunc("/v1/turns", s.turns)
+	mux.HandleFunc("/v1/turn-text", s.turnText)
+	mux.HandleFunc("/v1/export-tickets", s.exportTicket)
+	mux.HandleFunc("/archive-api/v1/exports/", s.ticketedExport)
+	mux.HandleFunc("/v1/maintenance/gc", s.gc)
 	log.Printf("archive collector v%s listening on %s, db=%s, store_upstream=%v", archive.Version, addr, dbPath, storeUpstream)
-	return http.ListenAndServe(addr, nil)
+	listener := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: time.Minute}
+	return listener.ListenAndServe()
 }
 
 func startStartupTasks(tasks ...startupTask) <-chan struct{} {
 	ready := make(chan struct{})
-	go func() {
-		for _, task := range tasks {
-			if task.run == nil {
-				continue
-			}
-			if err := task.run(); err != nil {
-				log.Printf("collector startup stopped at %s; readiness remains false: %v", task.name, err)
-				return
-			}
-		}
-		close(ready)
-	}()
+	go runStartupTasks(ready, tasks...)
 	return ready
+}
+
+func runStartupTasks(ready chan struct{}, tasks ...startupTask) {
+	for _, task := range tasks {
+		if task.run == nil {
+			continue
+		}
+		if err := task.run(); err != nil {
+			log.Printf("collector startup stopped at %s; readiness remains false: %v", task.name, err)
+			return
+		}
+	}
+	close(ready)
 }
 
 func retryStartup(ctx context.Context, name string, run func(context.Context) error) error {

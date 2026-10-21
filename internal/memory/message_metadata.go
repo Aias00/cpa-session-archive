@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"cpa-session-archive/internal/storage"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -137,10 +138,10 @@ func (e *Engine) syncMessageMetadata(ctx context.Context, limit int) (int, error
 		}
 		if needsMessages || (needsCoverage && refreshCoverage) {
 			source, err := e.feed.MemorySource(ctx, v.id)
-			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			if err != nil && !errors.Is(err, storage.ErrSourceNotFound) {
 				return 0, err
 			}
-			if errors.Is(err, sql.ErrNoRows) {
+			if errors.Is(err, storage.ErrSourceNotFound) {
 				current = ""
 			} else {
 				current = source.Revision

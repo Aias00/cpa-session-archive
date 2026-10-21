@@ -1,10 +1,10 @@
 # Read-only MCP recall
 
-`cpa-memory` is a stdio MCP server backed by the collector's authenticated recall
-HTTP API. It uses the official MCP Go SDK v1.8.0, supporting protocol negotiation
+`cpa-memory` is a stdio MCP server backed by the independent memory service's
+authenticated recall HTTP API. It uses the official MCP Go SDK v1.8.0, supporting protocol negotiation
 with current and older clients. The SDK requires Go 1.25 or newer; this repository
 now sets that minimum. No Node/Python sidecar or model calls are required by the
-bridge. The collector remains the only writer of the memory projection.
+bridge. The independent memory worker remains the only writer of the projection.
 
 ## Tools
 
@@ -46,7 +46,7 @@ Generate real random tokens; the placeholders above are not credentials. Scope
 is enforced by the server, including source reads, regardless of tool inputs.
 Mismatched explicit query scopes fail. Scoped tokens omit global corpus counts.
 Credentials without a scope and duplicate tokens are rejected. Changing this file
-requires restarting the collector. The file and all individual token files must
+requires restarting the memory service. The file and all individual token files must
 remain private; do not embed credentials in Git, CLI arguments, MCP settings or
 URLs. The owner-wide credential is appropriate only for the owner's personal
 clients. Use separate scoped credentials when restricting a client or project.

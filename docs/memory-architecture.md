@@ -7,7 +7,7 @@ The system has three independent authorities:
 | Layer | Owner | Contract |
 | --- | --- | --- |
 | Retained evidence | Collector archive backend | Record/CAS transaction, source revisions, ordered change feed, stable snapshots |
-| Derived retrieval | Collector memory projection | Scoped search, revision-checked excerpts, bounded recap, resumable indexing |
+| Derived retrieval | Independent memory service | Scoped search, revision-checked excerpts, bounded recap, resumable indexing |
 | Reviewed knowledge | Existing canonical Git repositories | Explicit proposals, operator approval, correction and archive |
 
 `internal/storage.Backend` is the archive persistence boundary. Its optional
@@ -17,10 +17,19 @@ bundled archive implementation.
 
 `internal/memory.Reader` composes `SearchReader`, `SourceReader` and `StatusReader`.
 HTTP and MCP accept this read capability; they do not own SQL connections or
-indexing. `Projection` adds collector-owned Run/Close lifecycle. The composition
-root still selects SQLite explicitly with `memory.Open`; no plugin registry,
+indexing. `Projection` adds memory-service-owned Run/Close lifecycle. The independent
+`cpa-memory-server` composition root selects SQLite explicitly with `memory.Open`;
+no plugin registry,
 backend configuration matrix or speculative generic SQL repository is needed.
 An alternative engine can implement Projection once an evaluated use case exists.
+
+Collection and retrieval are also [separate processes](decoupled-memory.md).
+The collector exports committed evidence through a dedicated authenticated
+loopback feed. Recall never opens the raw database. A stopped or misconfigured
+memory backend does not prevent archive commits. Stable source identity and a
+monotonic projection binding detect source replacement/rollback; only explicit
+source absence can invalidate indexed content. Shared ingestion DTOs live in
+`internal/ingeststatus`, outside the recall implementation.
 
 `internal/memory.Knowledge` is separate from the projection. It supports reading
 and proposing, never operator review. Git commits remain authoritative; SQLite
@@ -30,7 +39,7 @@ without discarding authoritative evidence or Git state.
 ## SQLite concurrency and status
 
 The projection owns one write connection and a pool of at most four read-only
-connections. Only the collector worker mutates content. WAL allows reads during
+connections. Only the memory worker mutates content. WAL allows reads during
 projection transactions; a bounded pool limits page cache and concurrent query
 pressure. Candidate rows are closed before archive source validation. Source
 revision and scope validation remain live reads, never a cached permission result.
@@ -138,6 +147,5 @@ must reject writes. Existing source/scope/citation tests remain required.
 
 Run full Go tests, race checks, vet and native builds. Preflight production-sized
 snapshots separately, preserve a verified raw/projection rollback pair and old
-artifacts, and follow the M4 deployment runbook. Collector-only updates leave CPA
-running. Record actual live latency, index lag and new archive commits after
+artifacts, and follow the M4 deployment runbook. Collector/memory-only updates leave CPA running. Record actual live latency, index lag and new archive commits after
 replacement; passing unit tests alone does not establish deployment success.

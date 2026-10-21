@@ -380,3 +380,11 @@ credentials and export endpoints accordingly. No Ingress is included.
 ## License
 
 Apache-2.0.
+
+### Independent memory backend
+
+Collection and recall now run as separate processes. `cpa-session-collector`
+commits retained evidence and exposes a dedicated authenticated change/source
+feed; `cpa-memory-server` owns the rebuildable projection and existing recall API.
+`cpa-memory` remains the scoped MCP bridge. See
+[configuration, source binding and migration](docs/decoupled-memory.md).

@@ -23,6 +23,19 @@ func NewSQLite(store *archive.Store) *SQLite { return &SQLite{Store: store} }
 func (s *SQLite) Ping(ctx context.Context) error { return s.DB.PingContext(ctx) }
 func (s *SQLite) Close() error                   { return s.DB.Close() }
 
+func (s *SQLite) MemorySource(ctx context.Context, id string) (archive.SourceSnapshot, error) {
+	source, err := s.Store.MemorySource(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return archive.SourceSnapshot{}, ErrSourceNotFound
+	}
+	return source, err
+}
+
+func (s *SQLite) MemoryRevision(ctx context.Context, id string) (string, error) {
+	source, err := s.MemorySource(ctx, id)
+	return source.Revision, err
+}
+
 func (s *SQLite) SessionExists(ctx context.Context, sessionID string) (bool, error) {
 	var exists int
 	err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM records WHERE session_id=? LIMIT 1`, sessionID).Scan(&exists)

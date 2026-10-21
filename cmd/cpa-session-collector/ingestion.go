@@ -9,12 +9,12 @@ import (
 
 	"cpa-session-archive/internal/archive"
 	"cpa-session-archive/internal/boundedqueue"
-	"cpa-session-archive/internal/memory"
+	"cpa-session-archive/internal/ingeststatus"
 )
 
 type ingestionMetrics struct {
 	mu    sync.Mutex
-	state memory.IngestionStatus
+	state ingeststatus.Status
 }
 
 func (m *ingestionMetrics) initializeLocked() {
@@ -119,7 +119,7 @@ func (m *ingestionMetrics) writeError(n int, retryable bool) {
 	}
 }
 
-func (s *server) ingestionStatus() memory.IngestionStatus {
+func (s *server) ingestionStatus() ingeststatus.Status {
 	m := &s.ingestion
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -159,5 +159,5 @@ func (m *ingestionMetrics) observeProducer(header string) {
 	defer m.mu.Unlock()
 	m.initializeLocked()
 	m.state.ProducerObserved = true
-	m.state.Producer = &memory.ProducerObservation{Capture: report, ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano)}
+	m.state.Producer = &ingeststatus.ProducerObservation{Capture: report, ReceivedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 }

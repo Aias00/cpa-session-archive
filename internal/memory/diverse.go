@@ -27,6 +27,9 @@ func (e *Engine) searchDiverse(ctx context.Context, q Query) (SearchResult, erro
 }
 
 func (e *Engine) diverseCandidates(ctx context.Context, q Query) (SearchResult, error) {
+	if _, err := e.sourceIdentity(ctx, false); err != nil {
+		return SearchResult{}, err
+	}
 	// First-round ordinary text in the newest authorized sources is a complete
 	// global prefix, even if it is shorter than the candidate budget. Return it
 	// only when live checks and literal/display filters produce enough hits.

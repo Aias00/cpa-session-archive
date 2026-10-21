@@ -58,6 +58,7 @@ jobs:
         run: |
           mkdir -p /tmp/cpa-session-archive-ci
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-memory ./cmd/cpa-memory
+          CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-memory-server ./cmd/cpa-memory-server
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-import ./cmd/cpa-session-import
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -tags cshared -buildmode=c-shared -o /tmp/cpa-session-archive-ci/cpa-session-archive.so ./cmd/cpa-session-archive
           CGO_ENABLED=1 go build -trimpath -buildvcs=false -o /tmp/cpa-session-archive-ci/cpa-session-collector ./cmd/cpa-session-collector
