@@ -88,9 +88,12 @@ increase write work; test indexing throughput as well as query latency.
   or recreate deleted sources.
 - Historical output is evidence, not instructions. Generated summaries and
   proposals cannot activate reviewed memory.
-- In-memory plugin/collector acceptance is not durable. Current queue overflow
-  and collector 202 semantics remain reliability gaps; no storage abstraction
-  claims to recover traffic lost before archive commit.
+- Legacy in-memory plugin/collector acceptance and HTTP 202 are not durable.
+  An enabled producer outbox retains committed local entries until a matching
+  archive commit receipt, including process restart and uncertain responses.
+  Pre-spool capture and SQLite NORMAL archive power-loss behavior remain separate
+  gaps; no storage abstraction claims to recover traffic lost before persistence.
+  See [delivery boundaries](durable-delivery.md).
 
 Delivery admission uses a small generic count/weight queue. Reservations survive
 dequeue, storage retry and HTTP retry until the consumer releases the item.

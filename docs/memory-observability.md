@@ -107,7 +107,13 @@ a single record exceeding the queue budget returns 413. Status exposes
 `busy_rejected`, `byte_rejected`, `oversize_rejected`, `queue_bytes` and
 `queue_max_bytes`. The plugin retries temporary delivery failures and treats
 400/413/422 as permanent rejections. None of these limits upgrades the volatile
-202 acknowledgement to a durable commit acknowledgement.
+202 acknowledgement. The separately enabled [producer outbox](durable-delivery.md)
+requests `commit-v1`, checks `committed-v1` and the exact body digest, and retains
+pending bytes until receipt verification. Its snapshot, capacity waits, read/write
+errors, quarantines and verified commits are nested in the latest producer report.
+The collector `acknowledgement` field still describes the default legacy mode;
+legacy and opt-in deliveries share admission/commit counters. A current report
+precedes its own receipt, so it can still count that delivery as pending.
 
 ## Read and authorization architecture
 

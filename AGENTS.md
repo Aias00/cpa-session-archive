@@ -11,6 +11,9 @@
 - Before replacing a deployed artifact, create a verified SQLite online backup
   and preserve the existing binary, launchd configuration and install manifest.
   Prepare and test artifacts before restarting services. Retain a rollback path.
+  When the producer outbox exists, include a verified SQLite online backup of it
+  and preserve the active outbox files through updates and rollback. Older plugins
+  cannot replay pending entries; never delete them as deployment cleanup.
 - On the M4, use the existing installation under
   `/Users/aias/Library/Application Support/CLIProxyAPI/session-archive` and the
   collector LaunchAgent `com.linonetwo.cpa-session-collector`.
@@ -24,7 +27,7 @@
 - New documentation and code comments use English. Explain results to the user
   in Chinese. Do not claim deployment until live checks have passed.
 
-- The M4 Go SDK is `/Users/aias/Work/tools/cpa-go-sdk/bin/go` (Go 1.26.3).
+- The M4 Go SDK is `/Volumes/data/tools/cpa-go-sdk/bin/go` (Go 1.26.3).
   Set `GOROOT` to its parent SDK directory for native builds. See
   `docs/mac-mini-deployment.md` for access ports, verification and rollback.
 

@@ -10,10 +10,12 @@ fixes have since been implemented and deployed. See the
 Coverage classification, resumable historical diagnostic refresh and collector
 delivery counters are also deployed; see [observability](../memory-observability.md).
 Producer-side process-local diagnostics and retained-payload queue bounds are
-also deployed (source `10042d2`). Durable commit acknowledgement and replay remain
-separate reliability work. Cold broad search exceeded the latency target in live
-acceptance; query performance remains open. Quality evaluation, ranking, continuation and extraction increments below
-remain planned. The baseline section records the state before these changes.
+also deployed (source `10042d2`). Broad-query prefix selection is deployed as
+`9e32762`; sampled warm latency improved, while cold latency remains open.
+Negotiated archive commit receipts and bounded producer replay are enabled as
+`572f0a1`; see [durable delivery](../durable-delivery.md) for the tested process-crash
+boundary, asynchronous pre-spool gap and SQLite NORMAL power-loss limit. Quality
+evaluation, ranking, continuation and extraction increments below remain planned. The baseline section records the state before these changes.
 
 ## Outcome and authority
 

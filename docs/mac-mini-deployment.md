@@ -40,8 +40,9 @@ Live historical refresh completed with zero change-feed lag and zero projection
 failures. At the recorded check, all 18 admitted deliveries in the new epoch had
 committed, with no invalid requests, queue refusals, write failures or discards.
 Status p95 measured 3.67 ms and the example warm search median was 144.91 ms.
-The counters cover this collector HTTP boundary only; plugin-side drops remain
-unobserved and HTTP 202 remains a volatile queue acknowledgement.
+At that rollout, counters covered the collector HTTP boundary only; plugin-side
+drops were unobserved and HTTP 202 was a volatile queue acknowledgement. Later
+producer diagnostics and opt-in commit delivery are recorded below.
 
 A new verified online raw/projection pair, old collector/bridge, LaunchAgent and
 manifest were preserved before replacement. The archive fence followed the
@@ -584,3 +585,52 @@ Ten subsequent requests had median 239 ms and maximum 404 ms. Ten
 This verifies the sampled warm improvement, not a universal subsecond or cold
 latency SLO. Capacity, query distribution and concurrent capture still require
 continued observation. Aggregate evidence is retained in the private reports.
+
+## Producer outbox activation (2026-10-20)
+
+Source `572f0a1` is enabled on the M4. Collector, native plugin and MCP bridge
+were built from its exact archived commit. Full race/vet checks passed. Release
+artifacts were tested with the installed CPA executable, a synthetic provider and
+an actual isolated collector. Before-commit failure and after-commit receipt loss
+both survived forced producer and collector termination: replay retained exact
+bytes, produced two final records, and cleared the outbox without duplicates.
+Actual Chromium and MCP tests preserved the new outbox fields and scoped omission.
+
+The private release root is
+`/Volumes/data/build/cpa-session-archive/durable-572f0a1`. Its verified online
+rollback pair has checkpoint/fence 298518 and 140,959 raw records. Projection
+quick_check and hashes passed. Old artifacts, CPA executable, LaunchAgents,
+configuration and manifest are retained. Only the three outbox configuration
+settings changed; semantic comparison verified account/routing preservation.
+The compatible collector started first, then CPA restarted with the new plugin.
+No active archive or projection database was replaced.
+
+The enabled directory is
+`session-archive/private/delivery-outbox` under the existing installation. Its
+limits are 2 GiB of logical payload and 10,000 entries, including quarantine.
+Directory/file permissions and SQLite integrity passed. Initial live observation
+reported eight persisted entries and seven verified commits in the latest sender
+snapshot; direct local inspection showed zero remaining entries and zero
+quarantine. The snapshot precedes the current receipt. No sampled queue drops,
+permanent rejections, missing receipts, outbox read/write errors or collector
+discards were observed. Index lag/failures were zero. These are sampled counters,
+not a durable reconciliation ledger or proof about unpersisted callbacks.
+
+Authenticated status, invalid-token denial, three source/citation roundtrips,
+MCP owner/scoped behavior and actual live Chromium passed. Status took about
+0.8–5.5 ms. The first broad search after restart took 4.33 s; cold latency remains
+open despite the earlier warm improvement.
+
+On the actual system volume, sixteen synthetic deliveries per size measured
+persist medians of approximately 0.11 ms (4 KiB), 0.56 ms (256 KiB), and 9.46 ms
+(4 MiB). All drained; these are isolated fsync samples, not a sustained ingest SLO.
+System-volume fixture databases were removed after use. SQLite WAL/file overhead
+is separate from the logical payload limit.
+
+The outbox uses SQLite FULL; the archive still uses NORMAL. This activation
+verifies process-crash replay after local persistence, not machine power-loss
+survival or callbacks still waiting to persist. Preserve active outbox files on
+rollback, and online-back up that database before future artifact replacements.
+An older plugin cannot drain it. The superseded search rollback database pair
+is retired only after record-ID/CAS inclusion proof and open-file checks;
+aggregate reports and old binaries/configuration remain in their release roots.

@@ -9,10 +9,14 @@ independent of projection freshness and retrieval ranking.
 The implementation includes an opt-in collector commit receipt, bounded outbox
 storage and producer integration. Isolated native-host acceptance covers producer
 and collector process termination after archive commit with a lost receipt.
-Production activation remains pending.
-Existing senders still receive HTTP 202 on volatile queue admission. Do not
-report durable delivery until the producer actually persists and verifies its
-receipts.
+Source `572f0a1` is enabled on the M4 with a private 2 GiB / 10,000-entry outbox.
+Live capture, matching receipts, empty local backlog, source citations, MCP scope
+isolation and Chromium rendering were verified. See the deployment runbook for
+backup provenance and the exact observation limits.
+Legacy senders still receive HTTP 202 on volatile queue admission. Enabled
+producers persist before delivery and require matching commit receipts. This
+protects the tested process-crash boundary after persistence, not every capture
+callback or machine power failure.
 
 ## Commit receipt v1
 
@@ -116,11 +120,12 @@ or hardware power failure.
 
 1. Validate receipt fields through live HTTP/MCP/browser boundaries after a
    backed-up native deployment. Verify fresh captures persist and drain normally.
-2. Extend process fault acceptance to crashes before persistence, before archive
-   commit and after receipt deletion, plus disk exhaustion and corrupt-spool
-   recovery. Preserve exact boundary labels rather than claiming power-loss tests.
+2. Extend native acceptance to deliberately unpersisted callbacks, corrupted-spool
+   operator recovery and OS disk exhaustion. Before/after archive commit and
+   post-deletion process tests already pass; SQLite capacity rollback is covered.
+   Preserve exact boundary labels rather than claiming power-loss tests.
 3. Measure throughput, fsync cost, disk/WAL growth and restart backlog drain with
    representative synthetic payload sizes and bounded concurrency.
-4. Activate production configuration only after exact-commit builds, native
-   preflight, verified backups and rollback provenance are ready. The archive's
-   SQLite NORMAL power-loss limitation remains a separate durability decision.
+4. Preserve the verified rollout procedure for future updates, including online
+   outbox backups and active pending-file preservation. The archive's SQLite
+   NORMAL power-loss limitation remains a separate durability decision.
